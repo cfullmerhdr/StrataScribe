@@ -1,4 +1,4 @@
-const CACHE_NAME = 'strata-scribe-v1.6.3';
+const CACHE_NAME = 'strata-scribe-v1.6.5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

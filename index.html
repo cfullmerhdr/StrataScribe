@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strata Scribe v1.6.3 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>Strata Scribe v1.6.5 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -50,14 +50,14 @@
 <body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
 
     <!-- Stationary Project Controls -->
-    <div class="bg-slate-900 text-white px-3 sm:px-4 py-3 shadow-md border-b border-slate-700">
+    <div class="bg-slate-900 text-white px-3 sm:px-4 py-3 shadow-md border-b border-slate-700 sticky top-0 z-40">
         <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-2.5">
             <div class="flex items-center space-x-2.5">
                 <div class="bg-amber-500 p-2 rounded-lg text-slate-950 font-bold flex items-center justify-center shadow">
                     <i data-lucide="layers" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.3</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.5</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -66,32 +66,41 @@
             <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="importJSON(event)">
 
-                <button onclick="openProjectBoringProfilesModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="View All Project Boring Profiles">
-                    <i data-lucide="folder-kanban" class="w-3.5 h-3.5"></i>
+                <button onclick="openProjectBoringProfilesModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="View All Project Boring Profiles">
+                    <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-amber-400"></i>
                     <span class="hidden xs:inline sm:inline">Profiles</span>
                 </button>
-                <button onclick="triggerJSONUpload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Import Project Session">
-                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <button onclick="triggerJSONUpload()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Import Project Session">
+                    <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
                     <span class="hidden md:inline">Import Project</span>
                 </button>
-                <button onclick="exportJSON()" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export Project (JSON)">
-                    <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
-                    <span class="hidden md:inline">Export Project</span>
+                <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm px-3.5 sm:px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow-lg border border-emerald-500" title="Save Project (JSON Backup)">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Save Project</span>
                 </button>
-                <button onclick="exportCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export CSV">
-                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                <button onclick="exportCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export CSV">
+                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-400"></i>
                     <span>CSV</span>
                 </button>
-                <button onclick="confirmResetAll()" class="bg-rose-700 hover:bg-rose-800 text-white font-bold text-[11px] sm:text-xs px-2 sm:px-2.5 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Clear All Data">
+                <button onclick="confirmResetAll()" class="bg-rose-950/60 hover:bg-rose-900 text-rose-200 border border-rose-800 font-bold text-[11px] sm:text-xs px-2 sm:px-2.5 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Clear All Data">
                     <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                     <span class="hidden sm:inline">Reset</span>
                 </button>
-                <button id="themeToggleBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition border border-slate-700">
+                <button id="themeToggleBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition border border-slate-700 shadow" title="Toggle Dark/Light Mode">
                     <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
                     <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-200"></i>
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- Persistent Non-Intrusive Save Reminder Banner -->
+    <div id="saveReminderBanner" class="hidden bg-amber-500 text-slate-950 px-4 py-3 text-sm font-extrabold shadow-md transition-all duration-300 flex items-center justify-between sticky top-[57px] z-30">
+        <div class="flex items-center space-x-2.5 mx-auto">
+            <i data-lucide="save" class="w-5 h-5 flex-shrink-0"></i>
+            <span>💾 Save Project after completing your boring log.</span>
+        </div>
+        <button onclick="dismissSaveReminder()" class="text-slate-950 hover:bg-amber-600 px-2.5 py-1 rounded text-sm font-extrabold">&times;</button>
     </div>
 
     <!-- Main Responsive Layout -->
@@ -124,8 +133,11 @@
                 </div>
 
                 <!-- Boring Switcher & Active Boring Header Bar -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 sm:p-4 space-y-4">
-                    <div class="flex flex-wrap items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2 gap-2">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 sm:p-4 space-y-4 relative overflow-hidden">
+                    <!-- Subtle Left Accent Bar -->
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
+
+                    <div class="flex flex-wrap items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2 gap-2 pl-2">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="file-text" class="w-4 h-4 text-amber-500"></i>
                             <h2 class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-200">Active Boring & Termination</h2>
@@ -146,7 +158,7 @@
                     </div>
 
                     <!-- Consolidated Meta Inputs -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pl-2">
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Boring ID</label>
                             <input type="text" id="boringId" onchange="updateActiveBoringHeader('id', this.value)" class="table-input font-bold text-amber-600 dark:text-amber-400" placeholder="e.g. B-01">
@@ -185,8 +197,8 @@
                         </div>
                     </div>
 
-                    <!-- GPS Location Box (Above Termination & Refusal Parameters) -->
-                    <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <!-- GPS Location Box -->
+                    <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 ml-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Boring GPS Coordinates</span>
                             <button onclick="getBoringGPS()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded transition flex items-center space-x-1 shadow">
@@ -206,8 +218,8 @@
                         </div>
                     </div>
 
-                    <!-- Single Consolidated Box: Total Depth & Termination / Refusal entries -->
-                    <div class="bg-amber-500/10 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-500/20 space-y-2">
+                    <!-- Termination & Refusal Parameters -->
+                    <div class="bg-amber-500/10 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-500/20 space-y-2 ml-2">
                         <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Termination & Refusal Parameters</span>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div>
@@ -246,7 +258,7 @@
                     </div>
 
                     <!-- Dates & Interactive Drilling Methods Row -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 pl-2">
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Start Date</label>
                             <input type="date" id="startDate" onchange="updateActiveBoringHeader('startDate', this.value)" class="table-input font-medium text-xs">
@@ -295,7 +307,7 @@
                     </div>
 
                     <!-- Groundwater Observations -->
-                    <div class="pt-1">
+                    <div class="pt-1 pl-2">
                         <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Groundwater Observations</label>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div class="flex flex-col space-y-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -381,15 +393,17 @@
                 </div>
 
                 <!-- Additional Boring Notes Field -->
-                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-2">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Additional Boring Notes</label>
-                    <textarea id="additionalBoringNotes" onchange="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-2 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 pl-2">Additional Boring Notes</label>
+                    <textarea id="additionalBoringNotes" onchange="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900 ml-2 max-w-[calc(100%-8px)]" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
                 </div>
 
                 <!-- Surface Conditions Section Header -->
-                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2">
-                    <div class="flex items-center space-x-2">
-                        <i data-lucide="disc" class="w-4 h-4 text-amber-500"></i>
+                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-400 dark:bg-slate-500"></div>
+                    <div class="flex items-center space-x-2 pl-2">
+                        <i data-lucide="disc" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
                         <span class="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Surface Conditions</span>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -421,9 +435,10 @@
                 </div>
 
                 <!-- Soil Sample Section Header -->
-                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2">
-                    <div class="flex items-center space-x-2">
-                        <i data-lucide="layers" class="w-4 h-4 text-amber-500"></i>
+                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-600"></div>
+                    <div class="flex items-center space-x-2 pl-2">
+                        <i data-lucide="layers" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
                         <span class="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Soil Sample Rows</span>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -461,9 +476,10 @@
                 </div>
 
                 <!-- Rock Coring Section Header -->
-                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 mt-6">
-                    <div class="flex items-center space-x-2">
-                        <i data-lucide="gem" class="w-4 h-4 text-amber-500"></i>
+                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 mt-6 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-500"></div>
+                    <div class="flex items-center space-x-2 pl-2">
+                        <i data-lucide="gem" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
                         <span class="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Rock Coring Table</span>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -517,6 +533,11 @@
 
         </div>
     </main>
+
+    <!-- PWA Debug Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
+        Version: v1.6.5 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.5
+    </footer>
 
     <!-- Project Boring Profiles Modal -->
     <div id="projectBoringProfilesModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
@@ -988,15 +1009,29 @@
         // Theme Toggle Handler
         document.getElementById('themeToggleBtn').addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');
-            localStorage.setItem('geoTabletTheme_v1_6_3', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            localStorage.setItem('geoTabletTheme_v1_6_5', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         });
-        if (localStorage.getItem('geoTabletTheme_v1_6_3') === 'dark') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('geoTabletTheme_v1_6_5') === 'dark') document.documentElement.classList.add('dark');
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
             toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2200);
+        }
+
+        function triggerSaveReminder() {
+            const banner = document.getElementById('saveReminderBanner');
+            if (!banner) return;
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 7000);
+        }
+
+        function dismissSaveReminder() {
+            const banner = document.getElementById('saveReminderBanner');
+            if (banner) banner.classList.add('hidden');
         }
 
         function formatExportDate(d = new Date()) {
@@ -1168,7 +1203,12 @@
                 alert("Geolocation is not supported by your browser");
                 return;
             }
+            const cur = borings[activeBoringIndex];
+            cur.gpsLat = "";
+            cur.gpsLon = "";
+            syncHeaderUI();
             showToast("Retrieving GPS location...");
+
             navigator.geolocation.getCurrentPosition((position) => {
                 const lat = position.coords.latitude.toFixed(6);
                 const lon = position.coords.longitude.toFixed(6);
@@ -1177,7 +1217,6 @@
                 const timestamp = new Date(position.timestamp || Date.now()).toISOString();
                 const source = "Device GPS";
 
-                const cur = borings[activeBoringIndex];
                 cur.gpsLat = lat;
                 cur.gpsLon = lon;
                 cur.gpsAccuracy = accuracy;
@@ -1189,6 +1228,9 @@
                 saveLocal();
                 showToast("GPS location acquired successfully.");
             }, (error) => {
+                cur.gpsLat = "";
+                cur.gpsLon = "";
+                syncHeaderUI();
                 alert("Unable to retrieve your location: " + error.message);
             }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
         }
@@ -1299,7 +1341,7 @@
             updateBoringSelector();
             syncHeaderUI();
             renderTables();
-            showToast(`Added Boring ${newBoringId}`);
+            triggerSaveReminder();
         }
 
         function deleteCurrentBoring() {
@@ -1322,7 +1364,7 @@
             if (confirm("Are you sure you want to delete all borings and project information?")) {
                 const promptVal = prompt("Are you sure you want to delete all borings and project information?\n\nType \"YES\" to confirm:");
                 if (promptVal && promptVal.trim() === "YES") {
-                    localStorage.removeItem('geoTabletLog_v1_6_3');
+                    localStorage.removeItem('geoTabletLog_v1_6_5');
                     projectMeta = { client: "", name: "", number: "" };
                     borings = [{
                         id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
@@ -2634,7 +2676,7 @@
         // --- Save Local ---
         function saveLocal() {
             const dataToSave = { projectMeta, activeBoringIndex, borings };
-            localStorage.setItem('geoTabletLog_v1_6_3', JSON.stringify(dataToSave));
+            localStorage.setItem('geoTabletLog_v1_6_5', JSON.stringify(dataToSave));
         }
 
         // --- Export & Import Operations ---
@@ -2643,7 +2685,7 @@
             const filename = buildExportFilename('json');
             const exportPayload = {
                 application: "Strata Scribe",
-                applicationVersion: "v1.6.3",
+                applicationVersion: "v1.6.5",
                 exportFilename: filename,
                 exportDateISO: now.toISOString(),
                 exportDateDisplay: formatExportDate(now),
@@ -2659,7 +2701,7 @@
             a.href = url;
             a.download = filename;
             a.click();
-            showToast("Project JSON exported successfully.");
+            showToast("Project successfully saved.");
         }
 
         function exportCSV() {
@@ -2672,7 +2714,7 @@
             csv += `Client,${projectMeta.client || ''}\n`;
             csv += `Export Date,${formatExportDate(now)}\n`;
             csv += `Export Time,${formatExportTime(now)}\n`;
-            csv += `Application Version,v1.6.3\n\n`;
+            csv += `Application Version,v1.6.5\n\n`;
 
             csv += "Boring ID,Drill Rig,Driller,Field Logger,Additional Boring Notes,Latitude,Longitude,Accuracy,Elevation,Timestamp,GPS Source,Total Depth (ft),Offset (ft),Direction,Termination Reason,Refusal Type,Refusal Depth (ft),Start Date,End Date,Drilling Methods,GW Obs 1,GW Obs 2,GW Obs 3,Record Type,Top Depth (ft),Sample Type / Rock Type,LENGTH (IN),Run Length (ft),Bottom Depth (ft),Blow 1,Blow 2,Blow 3,N-Value,Recovery (in/ft),RQD (ft),USCS,Major Mod,Minor Mod,Moisture,Density/Consistency,Shade,Color(s),Weathering,Grain Size,Grain Shape,Strength,Bedding/Foliation,Joint Type,Joint Spacing,Joint Persistence,Joint Roughness,Joint Geometry,Joint Aperture,Joint Filling,Groundwater Condition,Natural Fractures/ft,Descriptors,Origin,Auto Description,Remarks\n";
 
@@ -2836,7 +2878,7 @@
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2') || localStorage.getItem('geoTabletLog_v1_6_1') || localStorage.getItem('geoTabletLog_v1_6') || localStorage.getItem('geoTabletLog_v1_5');
+            const saved = localStorage.getItem('geoTabletLog_v1_6_5') || localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2') || localStorage.getItem('geoTabletLog_v1_6_1') || localStorage.getItem('geoTabletLog_v1_6') || localStorage.getItem('geoTabletLog_v1_5');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
