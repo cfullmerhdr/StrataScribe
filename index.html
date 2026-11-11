@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strata Scribe v1.6.7 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>Strata Scribe v1.6.8 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -11,6 +11,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         tailwind.config = { darkMode: 'class' };
     </script>
@@ -45,6 +48,30 @@
             background-color: #0f172a;
             color: #f8fafc;
         }
+        #boringMap {
+            width: 100%;
+            height: 75vh;
+            border-radius: 0.75rem;
+        }
+        /* Dark mode support for Leaflet popups and tiles */
+        .dark .leaflet-popup-content-wrapper, .dark .leaflet-popup-tip {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155;
+        }
+        .dark .leaflet-tile {
+            filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+        }
+        .custom-boring-tooltip {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
@@ -57,7 +84,7 @@
                     <i data-lucide="layers" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.7</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.8</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -83,6 +110,10 @@
                         <button onclick="closeToolsMenu(); openProjectBoringProfilesModal();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
                             <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-amber-500"></i>
                             <span>Profiles</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); openProjectBoringMapModal();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="map" class="w-3.5 h-3.5 text-blue-400"></i>
+                            <span>View Boring Map</span>
                         </button>
                         <button onclick="closeToolsMenu(); triggerJSONUpload();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
                             <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
@@ -551,7 +582,7 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
-        Version: v1.6.7 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.7
+        Version: v1.6.8 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.7
     </footer>
 
     <!-- Project Boring Profiles Modal -->
@@ -578,6 +609,34 @@
                 <button onclick="closeProjectBoringProfilesModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition shadow">
                     Close Window
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Boring Map Modal -->
+    <div id="projectBoringMapModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-[95vw] max-h-[92vh] flex flex-col overflow-hidden">
+            <div class="bg-slate-800 text-white px-5 py-3.5 flex justify-between items-center border-b border-slate-700">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="map" class="w-5 h-5 text-blue-400"></i>
+                    <div>
+                        <h3 class="font-bold text-sm">Project Boring Map</h3>
+                        <p class="text-[11px] text-slate-400">Spatial QA/QC & Boring Locations</p>
+                    </div>
+                </div>
+                <button onclick="closeProjectBoringMapModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition shadow">
+                    Close Window
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-950/40 relative">
+                <div id="boringMapEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center space-y-3">
+                    <div class="bg-amber-500/10 text-amber-500 p-3 rounded-full">
+                        <i data-lucide="map-pin-off" class="w-8 h-8"></i>
+                    </div>
+                    <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No GPS coordinates available in this project.</p>
+                    <p class="text-xs text-slate-400 max-w-sm">Capture GPS coordinates on your borings to view them interactively on the map.</p>
+                </div>
+                <div id="boringMap" class="w-full h-[550px] rounded-xl border border-slate-300 dark:border-slate-700 shadow-inner z-10"></div>
             </div>
         </div>
     </div>
@@ -1287,6 +1346,7 @@
                 cur.gpsSource = source;
 
                 syncHeaderUI();
+                markUnsaved();
                 saveLocal();
                 showToast("GPS location acquired successfully.");
             }, (error) => {
@@ -1335,6 +1395,7 @@
         function onManualTotalDepthChange(val) {
             borings[activeBoringIndex].totalDepth = val;
             recalculateTotalDepth();
+            markUnsaved();
             saveLocal();
         }
 
@@ -1403,6 +1464,7 @@
             updateBoringSelector();
             syncHeaderUI();
             renderTables();
+            markUnsaved();
             triggerSaveReminder();
         }
 
@@ -1418,6 +1480,7 @@
                 updateBoringSelector();
                 syncHeaderUI();
                 renderTables();
+                markUnsaved();
                 showToast(`Deleted ${deletedId}`);
             }
         }
@@ -1438,6 +1501,7 @@
                     updateBoringSelector();
                     syncHeaderUI();
                     renderTables();
+                    markUnsaved();
                     showToast("All project data has been reset.");
                 } else {
                     showToast("Reset canceled.");
@@ -1447,6 +1511,7 @@
 
         function updateProjectMeta(field, val) {
             projectMeta[field] = val;
+            markUnsaved();
             saveLocal();
         }
 
@@ -1455,6 +1520,7 @@
             if (field === 'id') {
                 updateBoringSelector();
             }
+            markUnsaved();
             saveLocal();
         }
 
@@ -1467,6 +1533,7 @@
                 curMethods.push(val);
                 borings[activeBoringIndex].methods = curMethods;
                 renderDrillingBadges();
+                markUnsaved();
                 saveLocal();
             }
             picker.value = "";
@@ -1476,6 +1543,7 @@
             const curMethods = borings[activeBoringIndex].methods || [];
             borings[activeBoringIndex].methods = curMethods.filter(m => m !== methodName);
             renderDrillingBadges();
+            markUnsaved();
             saveLocal();
         }
 
@@ -1501,6 +1569,7 @@
             }
             borings[activeBoringIndex].gw[index][field] = val;
             updateLiveProfile();
+            markUnsaved();
             saveLocal();
         }
 
@@ -1618,6 +1687,7 @@
             const activeBoring = borings[activeBoringIndex];
             if (!activeBoring.surfaceConditions) activeBoring.surfaceConditions = [];
             activeBoring.surfaceConditions.push({ thickness: "", type: "Asphalt", remarks: "" });
+            markUnsaved();
             renderTables();
             showToast("Surface condition added.");
         }
@@ -1625,6 +1695,7 @@
         function updateSurfaceCondition(idx, field, val) {
             const activeBoring = borings[activeBoringIndex];
             activeBoring.surfaceConditions[idx][field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -1638,6 +1709,7 @@
                 activeBoring.surfaceConditions[idx].type = val;
                 if (customInput) customInput.classList.add('hidden');
             }
+            markUnsaved();
             renderTables();
         }
 
@@ -1649,12 +1721,14 @@
             const temp = scList[idx];
             scList[idx] = scList[newIdx];
             scList[newIdx] = temp;
+            markUnsaved();
             renderTables();
         }
 
         function deleteSurfaceCondition(idx) {
             const activeBoring = borings[activeBoringIndex];
             activeBoring.surfaceConditions.splice(idx, 1);
+            markUnsaved();
             renderTables();
             showToast("Surface condition deleted.");
         }
@@ -1731,11 +1805,13 @@
             if (sampleLengthDefaults[val] !== undefined) {
                 sample.length = sampleLengthDefaults[val];
             }
+            markUnsaved();
             renderTables();
         }
 
         function updateSoilRow(idx, field, val) {
             borings[activeBoringIndex].samples[idx][field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -1761,12 +1837,14 @@
                 descriptors: last && last.descriptors ? [...last.descriptors] : [], 
                 remarks: ""
             });
+            markUnsaved();
             renderTables();
             showToast("Soil sample row added.");
         }
 
         function deleteSoilRow(idx) {
             borings[activeBoringIndex].samples.splice(idx, 1);
+            markUnsaved();
             renderTables();
             showToast("Soil sample row deleted.");
         }
@@ -1838,6 +1916,7 @@
             const nVal = computeN(s.b2, s.b3);
             document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
             renderSoilColorChips([]);
+            markUnsaved();
             renderTables();
             showToast("Soil properties cleared.");
         }
@@ -1849,6 +1928,7 @@
             const nVal = computeN(s.b2, s.b3);
             document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
             renderChipGroup('chipContainer_uscs', uscsList, val, 'selectSoilUscs');
+            markUnsaved();
             renderTables();
         }
 
@@ -1856,6 +1936,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].major = val;
             renderChipGroup('chipContainer_major', majorMods, val, 'selectSoilMajor');
+            markUnsaved();
             renderTables();
         }
 
@@ -1863,6 +1944,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].minor = val;
             renderChipGroup('chipContainer_minor', minorMods, val, 'selectSoilMinor');
+            markUnsaved();
             renderTables();
         }
 
@@ -1870,6 +1952,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].moisture = val;
             renderChipGroup('chipContainer_moisture', moistureList, val, 'selectSoilMoisture');
+            markUnsaved();
             renderTables();
         }
 
@@ -1877,6 +1960,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].origin = val;
             renderChipGroup('chipContainer_origin', origins, val, 'selectSoilOrigin');
+            markUnsaved();
             renderTables();
         }
 
@@ -1884,6 +1968,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].shade = val;
             renderChipGroup('chipContainer_soilShade', shades, val, 'selectSoilShade');
+            markUnsaved();
             renderTables();
         }
 
@@ -1914,6 +1999,7 @@
             renderChipGroup('chipContainer_soilShade', shades, s.shade, 'selectSoilShade');
 
             renderSoilColorChips(s.colors);
+            markUnsaved();
             renderTables();
         }
 
@@ -1922,6 +2008,7 @@
             const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
             s.colors.splice(colorIndex, 1);
             renderSoilColorChips(s.colors);
+            markUnsaved();
             renderTables();
         }
 
@@ -2015,6 +2102,7 @@
                 alert("Warning: Recovery exceeds Run Length. Verify entry.");
             }
             rockSample[field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -2027,10 +2115,12 @@
             if (!isNaN(numVal) && !isNaN(recoveryVal) && numVal > recoveryVal) {
                 alert("RQD cannot exceed Recovery.");
                 rockSample[field] = "";
+                markUnsaved();
                 renderTables();
                 return;
             }
             rockSample[field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -2043,11 +2133,13 @@
             if (!isNaN(refusalDep) && newTop < refusalDep) {
                 alert(`WARNING: Top depth (${newTop.toFixed(1)} ft) is shallower than the recorded Refusal Depth (${refusalDep.toFixed(1)} ft)!`);
             }
+            markUnsaved();
             renderTables();
         }
 
         function updateRockRow(idx, field, val) {
             borings[activeBoringIndex].rockSamples[idx][field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -2118,12 +2210,14 @@
             }
 
             activeBoring.rockSamples.push(newRockRun);
+            markUnsaved();
             renderTables();
             showToast("Rock core run added.");
         }
 
         function deleteRockRow(idx) {
             borings[activeBoringIndex].rockSamples.splice(idx, 1);
+            markUnsaved();
             renderTables();
             showToast("Rock core run deleted.");
         }
@@ -2203,6 +2297,7 @@
             document.getElementById('modal_natFractures').value = "0";
             renderRockColorChips([]);
             renderModalDescriptors([]);
+            markUnsaved();
             renderTables();
             showToast("Rock properties cleared.");
         }
@@ -2211,96 +2306,112 @@
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].rockType = val;
             renderChipGroup('chipContainer_rockType', rockTypes, val, 'selectRockType');
+            markUnsaved();
             renderTables();
         }
         function selectRockWeathering(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].weathering = val;
             renderChipGroup('chipContainer_weathering', rockWeathering, val, 'selectRockWeathering');
+            markUnsaved();
             renderTables();
         }
         function selectRockGrainSize(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainSize = val;
             renderChipGroup('chipContainer_grainSize', rockGrainSize, val, 'selectRockGrainSize');
+            markUnsaved();
             renderTables();
         }
         function selectRockGrainShape(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainShape = val;
             renderChipGroup('chipContainer_grainShape', rockGrainShape, val, 'selectRockGrainShape');
+            markUnsaved();
             renderTables();
         }
         function selectRockStrength(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].strength = val;
             renderChipGroup('chipContainer_strength', rockStrength, val, 'selectRockStrength');
+            markUnsaved();
             renderTables();
         }
         function selectRockShade(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].shade = val;
             renderChipGroup('chipContainer_rockShade', shades, val, 'selectRockShade');
+            markUnsaved();
             renderTables();
         }
         function selectRockBedding(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].bedding = val;
             renderChipGroup('chipContainer_bedding', rockBedding, val, 'selectRockBedding');
+            markUnsaved();
             renderTables();
         }
         function selectRockJointType(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointType = val;
             renderChipGroup('chipContainer_jointType', rockJointType, val, 'selectRockJointType');
+            markUnsaved();
             renderTables();
         }
         function selectRockJointSpacing(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointSpacing = val;
             renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, val, 'selectRockJointSpacing');
+            markUnsaved();
             renderTables();
         }
         function selectRockJointPersistence(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointPersistence = val;
             renderChipGroup('chipContainer_jointPersistence', rockJointPersistence, val, 'selectRockJointPersistence');
+            markUnsaved();
             renderTables();
         }
         function selectRockJointRoughness(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointRoughness = val;
             renderChipGroup('chipContainer_jointRoughness', rockRoughness, val, 'selectRockJointRoughness');
+            markUnsaved();
             renderTables();
         }
         function selectRockJointGeometry(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointGeometry = val;
             renderChipGroup('chipContainer_jointGeometry', rockGeometry, val, 'selectRockJointGeometry');
+            markUnsaved();
             renderTables();
         }
         function selectRockJointAperture(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointAperture = val;
             renderChipGroup('chipContainer_jointAperture', rockAperture, val, 'selectRockJointAperture');
+            markUnsaved();
             renderTables();
         }
         function selectRockJointFilling(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointFilling = val;
             renderChipGroup('chipContainer_jointFilling', rockFilling, val, 'selectRockJointFilling');
+            markUnsaved();
             renderTables();
         }
         function selectRockGwCondition(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].gwCondition = val;
             renderChipGroup('chipContainer_gwCondition', rockGWCondition, val, 'selectRockGwCondition');
+            markUnsaved();
             renderTables();
         }
 
         function updateModalField(field, val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex][field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -2325,6 +2436,7 @@
             renderChipGroup('chipContainer_rockShade', shades, r.shade, 'selectRockShade');
 
             renderRockColorChips(r.colors);
+            markUnsaved();
             renderTables();
         }
 
@@ -2333,6 +2445,7 @@
             const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
             r.colors.splice(colorIndex, 1);
             renderRockColorChips(r.colors);
+            markUnsaved();
             renderTables();
         }
 
@@ -2385,6 +2498,7 @@
             } else {
                 r.descriptors = r.descriptors.filter(item => item !== checkbox.value);
             }
+            markUnsaved();
             renderTables();
         }
 
@@ -2735,142 +2849,142 @@
             closeProjectBoringProfilesModal();
         }
 
-        // --- Save Local ---
+        // --- Leaflet Boring Map Logic ---
+        let boringLeafletMap = null;
+        let boringMapMarkersLayer = null;
+
+        function openProjectBoringMapModal() {
+            const modal = document.getElementById('projectBoringMapModal');
+            const mapDiv = document.getElementById('boringMap');
+            const emptyState = document.getElementById('boringMapEmptyState');
+            if (!modal) return;
+
+            modal.classList.remove('hidden');
+
+            const validBorings = borings.filter(b => b.gpsLat && b.gpsLon && !isNaN(parseFloat(b.gpsLat)) && !isNaN(parseFloat(b.gpsLon)));
+
+            if (validBorings.length === 0) {
+                if (mapDiv) mapDiv.classList.add('hidden');
+                if (emptyState) emptyState.classList.remove('hidden');
+                return;
+            } else {
+                if (mapDiv) mapDiv.classList.remove('hidden');
+                if (emptyState) emptyState.classList.add('hidden');
+            }
+
+            setTimeout(() => {
+                if (!boringLeafletMap) {
+                    boringLeafletMap = L.map('boringMap').setView([36.1627, -86.7816], 13);
+                    L.tileLayer(
+                        'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+                        {
+                            maxZoom: 20,
+                            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+                        }
+                    ).addTo(boringLeafletMap);
+                    boringMapMarkersLayer = L.layerGroup().addTo(boringLeafletMap);
+                } else {
+                    boringLeafletMap.invalidateSize();
+                }
+
+                boringMapMarkersLayer.clearLayers();
+                const latLngs = [];
+
+                validBorings.forEach(b => {
+                    const lat = parseFloat(b.gpsLat);
+                    const lon = parseFloat(b.gpsLon);
+                    latLngs.push([lat, lon]);
+
+                    const marker = L.circleMarker([lat, lon], {
+                        radius: 10,
+                        fillColor: '#f59e0b',
+                        color: '#1e293b',
+                        weight: 2,
+                        fillOpacity: 1
+                    });
+
+                    marker.bindTooltip(b.id || 'Boring', {
+                        permanent: true,
+                        direction: 'top',
+                        className: 'custom-boring-tooltip'
+                    });
+
+                    const popupContent = `
+                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; min-width: 160px;">
+                            <strong style="font-size: 14px; color: #f59e0b;">Boring ${b.id || 'N/A'}</strong><br>
+                            <strong>Latitude:</strong> ${b.gpsLat}<br>
+                            <strong>Longitude:</strong> ${b.gpsLon}<br>
+                            <strong>GPS Accuracy:</strong> ${b.gpsAccuracy || 'N/A'}<br>
+                            <strong>Total Depth:</strong> ${b.totalDepth || '0.0'} ft<br>
+                            <strong>Driller:</strong> ${b.driller || 'N/A'}<br>
+                            <strong>Field Logger:</strong> ${b.logger || 'N/A'}
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                    boringMapMarkersLayer.addLayer(marker);
+                });
+
+                if (latLngs.length > 0) {
+                    const bounds = L.latLngBounds(latLngs);
+                    boringLeafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+                }
+            }, 150);
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function closeProjectBoringMapModal() {
+            const modal = document.getElementById('projectBoringMapModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // --- Import / Export / Storage ---
         function saveLocal() {
-            const dataToSave = { projectMeta, activeBoringIndex, borings };
-            localStorage.setItem('geoTabletLog_v1_6_7', JSON.stringify(dataToSave));
-            if (isInitialized) {
-                markUnsaved();
+            const payload = {
+                projectMeta: projectMeta,
+                borings: borings,
+                activeBoringIndex: activeBoringIndex
+            };
+
+            localStorage.setItem(
+                'geoTabletLog_v1_6_7',
+                JSON.stringify(payload)
+            );
+        }
+
+        function loadLocal() {
+            const saved = localStorage.getItem('geoTabletLog_v1_6_7');
+            if (!saved) return false;
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.projectMeta) projectMeta = parsed.projectMeta;
+                if (parsed.borings && parsed.borings.length > 0) borings = parsed.borings;
+                if (parsed.activeBoringIndex !== undefined) activeBoringIndex = parsed.activeBoringIndex;
+                return true;
+            } catch (e) {
+                console.error("Failed to load local storage session", e);
+                return false;
             }
         }
 
-        // --- Export & Import Operations ---
         function exportJSON() {
-            const now = new Date();
-            const filename = buildExportFilename('json');
-            const exportPayload = {
-                application: "Strata Scribe",
-                applicationVersion: "v1.6.7",
-                exportFilename: filename,
-                exportDateISO: now.toISOString(),
-                exportDateDisplay: formatExportDate(now),
-                exportTimeDisplay: formatExportTime(now),
-                projectMeta,
-                borings
+            const payload = {
+                application: "StrataScribe",
+                version: "v1.6.8",
+                exportTimestamp: new Date().toISOString(),
+                projectMeta: projectMeta,
+                borings: borings
             };
-
-            const jsonStr = JSON.stringify(exportPayload, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", buildExportFilename("json"));
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
             isSaved = true;
             updateSaveStatusUI();
-            showToast("Project successfully saved.");
-        }
-
-        function exportCSV() {
-            const now = new Date();
-            const filename = buildExportFilename('csv');
-
-            let csv = "STRATA SCRIBE EXPORT\n\n";
-            csv += `Project Name,${projectMeta.name || ''}\n`;
-            csv += `Project Number,${projectMeta.number || ''}\n`;
-            csv += `Client,${projectMeta.client || ''}\n`;
-            csv += `Export Date,${formatExportDate(now)}\n`;
-            csv += `Export Time,${formatExportTime(now)}\n`;
-            csv += `Application Version,v1.6.7\n\n`;
-
-            csv += "Boring ID,Drill Rig,Driller,Field Logger,Additional Boring Notes,Latitude,Longitude,Accuracy,Elevation,Timestamp,GPS Source,Total Depth (ft),Offset (ft),Direction,Termination Reason,Refusal Type,Refusal Depth (ft),Start Date,End Date,Drilling Methods,GW Obs 1,GW Obs 2,GW Obs 3,Record Type,Top Depth (ft),Sample Type / Rock Type,LENGTH (IN),Run Length (ft),Bottom Depth (ft),Blow 1,Blow 2,Blow 3,N-Value,Recovery (in/ft),RQD (ft),USCS,Major Mod,Minor Mod,Moisture,Density/Consistency,Shade,Color(s),Weathering,Grain Size,Grain Shape,Strength,Bedding/Foliation,Joint Type,Joint Spacing,Joint Persistence,Joint Roughness,Joint Geometry,Joint Aperture,Joint Filling,Groundwater Condition,Natural Fractures/ft,Descriptors,Origin,Auto Description,Remarks\n";
-
-            const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
-
-            sortedBorings.forEach(b => {
-                const gw1 = b.gw && b.gw[0] ? `${b.gw[0].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[0])})` : "";
-                const gw2 = b.gw && b.gw[1] ? `${b.gw[1].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[1])})` : "";
-                const gw3 = b.gw && b.gw[2] ? `${b.gw[2].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[2])})` : "";
-                const methodStr = (b.methods || []).join('; ');
-                const addNotesEscaped = (b.additionalNotes || '').replace(/"/g, '""');
-
-                let currentSurfaceDepth = 0.0;
-                if (b.surfaceConditions) {
-                    b.surfaceConditions.forEach(sc => {
-                        const thickInches = parseFloat(sc.thickness) || 0;
-                        const thickFeet = thickInches / 12.0;
-                        const topDepth = currentSurfaceDepth;
-                        const botDepth = currentSurfaceDepth + thickFeet;
-                        currentSurfaceDepth = botDepth;
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SURFACE",${topDepth.toFixed(2)},"${sc.type || ''}",${sc.thickness || ''},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"${sc.remarks || ''}"\n`;
-                    });
-                }
-
-                if (b.samples) {
-                    const sortedSamples = [...b.samples].sort((x, y) => (parseFloat(x.whole) + parseFloat(x.dec)) - (parseFloat(y.whole) + parseFloat(y.dec)));
-
-                    sortedSamples.forEach(s => {
-                        const depth = `${s.whole}.${s.dec.replace('0.', '')}`;
-                        const nVal = computeN(s.b2, s.b3);
-                        const autoDensity = computeConsistencyDensity(nVal, s.uscs);
-
-                        const effectiveAttrs = { 
-                            origin: s.origin, 
-                            uscs: s.uscs, 
-                            major: s.major, 
-                            minor: s.minor, 
-                            moisture: s.moisture,
-                            shade: s.shade, 
-                            colors: s.colors, 
-                            density: autoDensity 
-                        };
-
-                        const desc = buildSoilDescription(s, effectiveAttrs);
-                        const colorsJoined = formatColorsString(effectiveAttrs.colors);
-                        const descriptorsJoined = (s.descriptors || []).join('; ');
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SOIL",${depth},"${s.type}","${s.length || ''}","",,"${s.b1}","${s.b2}","${s.b3}","${nVal}",${s.rec},,"${effectiveAttrs.uscs || ''}","${effectiveAttrs.major || ''}","${effectiveAttrs.minor || ''}","${effectiveAttrs.moisture ? effectiveAttrs.moisture.toUpperCase() : ''}","${effectiveAttrs.density || ''}","${effectiveAttrs.shade || ''}","${colorsJoined}",,,,,,,,,,,,,,,,"${descriptorsJoined}","${effectiveAttrs.origin || ''}","${desc}","${s.remarks || ''}"\n`;
-                    });
-                }
-
-                if (b.rockSamples) {
-                    const sortedRock = [...b.rockSamples].sort((x, y) => (parseFloat(x.whole) + parseFloat(x.dec)) - (parseFloat(y.whole) + parseFloat(y.dec)));
-
-                    sortedRock.forEach(r => {
-                        const topDepth = parseFloat(r.whole) + parseFloat(r.dec);
-                        const bottomDepth = (topDepth + (parseFloat(r.runLength) || 0)).toFixed(1);
-                        const colorsJoined = formatColorsString(r.colors);
-                        const descriptorsJoined = (r.descriptors || []).map(d => d.toUpperCase()).join('; ');
-                        const rockTypeCaps = r.rockType ? r.rockType.toUpperCase() : '';
-                        const weatheringCaps = r.weathering ? r.weathering.toUpperCase() : '';
-                        const grainSizeCaps = r.grainSize ? r.grainSize.toUpperCase() : '';
-                        const grainShapeCaps = r.grainShape ? r.grainShape.toUpperCase() : '';
-                        const strengthCaps = r.strength ? r.strength.toUpperCase() : '';
-                        const beddingCaps = r.bedding ? r.bedding.toUpperCase() : '';
-                        const jointTypeCaps = r.jointType ? r.jointType.toUpperCase() : '';
-                        const jointSpacingCaps = r.jointSpacing ? r.jointSpacing.toUpperCase() : '';
-                        const jointPersistenceCaps = r.jointPersistence ? r.jointPersistence.toUpperCase() : '';
-                        const jointRoughnessCaps = r.jointRoughness ? r.jointRoughness.toUpperCase() : '';
-                        const jointGeometryCaps = r.jointGeometry ? r.jointGeometry.toUpperCase() : '';
-                        const jointApertureCaps = r.jointAperture ? r.jointAperture.toUpperCase() : '';
-                        const jointFillingCaps = r.jointFilling ? r.jointFilling.toUpperCase() : '';
-                        const gwCondCaps = r.gwCondition ? r.gwCondition.toUpperCase() : '';
-                        const rockDesc = buildRockDescription(r);
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","ROCK",${topDepth},"${rockTypeCaps}","",${r.runLength},${bottomDepth},,,,,,,,,,${r.recovery || ''},${r.rqd || ''},,,,,,"${r.shade || ''}","${colorsJoined}","${weatheringCaps}","${grainSizeCaps}","${grainShapeCaps}","${strengthCaps}","${beddingCaps}","${jointTypeCaps}","${jointSpacingCaps}","${jointPersistenceCaps}","${jointRoughnessCaps}","${jointGeometryCaps}","${jointApertureCaps}","${jointFillingCaps}","${gwCondCaps}",${r.natFractures || ''},"${descriptorsJoined}",,"${rockDesc}","${r.remarks || ''}"\n`;
-                    });
-                }
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            showToast("CSV exported successfully.");
+            showToast("Project saved (JSON backup exported).");
         }
 
         function triggerJSONUpload() {
@@ -2880,133 +2994,101 @@
         function importJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = function(e) {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (!importedData.borings || !Array.isArray(importedData.borings)) {
-                        throw new Error("Invalid JSON structure.");
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.borings && Array.isArray(parsed.borings)) {
+                        borings = parsed.borings;
+                        if (parsed.projectMeta) projectMeta = parsed.projectMeta;
+                        activeBoringIndex = 0;
+                        updateBoringSelector();
+                        syncHeaderUI();
+                        renderTables();
+                        markUnsaved();
+                        saveLocal();
+                        showToast("Project successfully imported!");
+                    } else {
+                        alert("Invalid project JSON structure.");
                     }
-                    projectMeta = importedData.projectMeta || { client: "", name: "", number: "" };
-                    
-                    borings = importedData.borings.map(b => {
-                        if (!b.driller) b.driller = "";
-                        if (!b.additionalNotes) b.additionalNotes = "";
-                        if (!b.surfaceConditions) b.surfaceConditions = [];
-                        if (!b.gpsLat) b.gpsLat = "";
-                        if (!b.gpsLon) b.gpsLon = "";
-                        if (!b.gpsAccuracy) b.gpsAccuracy = "";
-                        if (!b.gpsElevation) b.gpsElevation = "";
-                        if (!b.gpsTimestamp) b.gpsTimestamp = "";
-                        if (!b.gpsSource) b.gpsSource = "";
-                        if (b.samples) {
-                            b.samples = b.samples.map(s => {
-                                if (s.uscs === "NONE") s.uscs = "";
-                                if (s.major === "NONE") s.major = "";
-                                if (s.minor === "NONE") s.minor = "";
-                                if (s.origin === "NONE") s.origin = "";
-                                if (s.shade === "NONE") s.shade = "";
-                                if (!s.colors && s.color) s.colors = [s.color];
-                                if (!s.colors) s.colors = [];
-                                if (!s.descriptors) s.descriptors = [];
-                                if (!s.moisture) s.moisture = "";
-                                if (s.length === 'N') s.length = "18\"";
-                                if (s.length && !s.length.includes('"') && s.length !== 'N/A') s.length += '"';
-                                return s;
-                            });
-                        }
-                        if (b.rockSamples) {
-                            b.rockSamples = b.rockSamples.map(r => {
-                                if (r.rockType === "NONE") r.rockType = "";
-                                if (r.shade === "NONE") r.shade = "";
-                                if (!r.colors && r.color) r.colors = [r.color];
-                                if (!r.colors) r.colors = [];
-                                if (!r.descriptors && r.addDesc) r.descriptors = r.addDesc;
-                                if (!r.descriptors) r.descriptors = [];
-                                return r;
-                            });
-                        }
-                        return b;
-                    });
-
-                    activeBoringIndex = 0;
-                    updateBoringSelector();
-                    syncHeaderUI();
-                    renderTables();
-                    saveLocal();
-
-                    isSaved = false;
-                    updateSaveStatusUI();
-                    showToast("Project successfully loaded from JSON.");
                 } catch (err) {
-                    console.error(err);
-                    showToast("Error importing JSON file.");
+                    alert("Failed to parse JSON file: " + err.message);
                 }
+                event.target.value = "";
             };
             reader.readAsText(file);
-            event.target.value = '';
         }
 
-        window.onload = () => {
-            const saved = localStorage.getItem('geoTabletLog_v1_6_7') || localStorage.getItem('geoTabletLog_v1_6_5') || localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2') || localStorage.getItem('geoTabletLog_v1_6_1') || localStorage.getItem('geoTabletLog_v1_6') || localStorage.getItem('geoTabletLog_v1_5');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.projectMeta) projectMeta = parsed.projectMeta;
-                    if (parsed.borings && parsed.borings.length > 0) {
-                        borings = parsed.borings.map(b => {
-                            if (!b.driller) b.driller = "";
-                            if (!b.additionalNotes) b.additionalNotes = "";
-                            if (!b.surfaceConditions) b.surfaceConditions = [];
-                            if (!b.gpsLat) b.gpsLat = "";
-                            if (!b.gpsLon) b.gpsLon = "";
-                            if (!b.gpsAccuracy) b.gpsAccuracy = "";
-                            if (!b.gpsElevation) b.gpsElevation = "";
-                            if (!b.gpsTimestamp) b.gpsTimestamp = "";
-                            if (!b.gpsSource) b.gpsSource = "";
-                            if (b.samples) {
-                                b.samples = b.samples.map(s => {
-                                    if (s.uscs === "NONE") s.uscs = "";
-                                    if (s.major === "NONE") s.major = "";
-                                    if (s.minor === "NONE") s.minor = "";
-                                    if (s.origin === "NONE") s.origin = "";
-                                    if (s.shade === "NONE") s.shade = "";
-                                    if (!s.colors && s.color) s.colors = [s.color];
-                                    if (!s.colors) s.colors = [];
-                                    if (!s.descriptors) s.descriptors = [];
-                                    if (!s.moisture) s.moisture = "";
-                                    return s;
-                                });
-                            }
-                            if (b.rockSamples) {
-                                b.rockSamples = b.rockSamples.map(r => {
-                                    if (r.rockType === "NONE") r.rockType = "";
-                                    if (r.shade === "NONE") r.shade = "";
-                                    if (!r.colors && r.color) r.colors = [r.color];
-                                    if (!r.colors) r.colors = [];
-                                    if (!r.descriptors && r.addDesc) r.descriptors = r.addDesc;
-                                    if (!r.descriptors) r.descriptors = [];
-                                    return r;
-                                });
-                            }
-                            return b;
-                        });
-                    }
-                    if (typeof parsed.activeBoringIndex === 'number' && parsed.activeBoringIndex < borings.length) {
-                        activeBoringIndex = parsed.activeBoringIndex;
-                    }
-                } catch(e) {
-                    console.warn("Could not load saved session.", e);
-                }
-            }
+        function exportCSV() {
+            let csvRows = [];
+            csvRows.push(["StrataScribe v1.6.8 Project CSV Export"]);
+            csvRows.push([`Client: "${projectMeta.client || ''}"`, `Project Name: "${projectMeta.name || ''}"`, `Project Number: "${projectMeta.number || ''}"`]);
+            csvRows.push([]);
+
+            borings.forEach((b, bIdx) => {
+                csvRows.push([`=== BORING: ${b.id || 'N/A'} ===`]);
+                csvRows.push([`Rig: "${b.rig || ''}"`, `Driller: "${b.driller || ''}"`, `Field Logger: "${b.logger || ''}"`, `Total Depth: "${b.totalDepth || ''}"`, `Offset: "${b.offset || ''}"`, `Direction: "${b.direction || ''}"`, `Termination Reason: "${b.terminationReason || ''}"`, `Refusal Type: "${b.refusalType || ''}"`, `Refusal Depth: "${b.refusalDepth || ''}"`]);
+                csvRows.push([`GPS Lat: "${b.gpsLat || ''}"`, `GPS Lon: "${b.gpsLon || ''}"`, `GPS Accuracy: "${b.gpsAccuracy || ''}"`]);
+                csvRows.push([]);
+
+                csvRows.push(["-- SURFACE CONDITIONS --"]);
+                csvRows.push(["Thickness (in)", "Type", "Remarks"]);
+                (b.surfaceConditions || []).forEach(sc => {
+                    csvRows.push([sc.thickness || "", `"${sc.type || ''}"`, `"${sc.remarks || ''}"`]);
+                });
+                csvRows.push([]);
+
+                csvRows.push(["-- SOIL SAMPLES --"]);
+                csvRows.push(["Depth (ft)", "Sample Type", "Length", "Blow 1", "Blow 2", "Blow 3", "N-Value", "Recovery (in)", "Description", "Remarks"]);
+                (b.samples || []).forEach(s => {
+                    const topDepth = (parseFloat(s.whole) + parseFloat(s.dec)).toFixed(1);
+                    const nVal = computeN(s.b2, s.b3);
+                    const calcDensity = computeConsistencyDensity(nVal, s.uscs);
+                    const desc = buildSoilDescription(s, { ...s, density: calcDensity });
+                    csvRows.push([topDepth, s.type || "", s.length || "", s.b1 || "", s.b2 || "", s.b3 || "", nVal, s.rec || "", `"${desc}"`, `"${s.remarks || ''}"`]);
+                });
+                csvRows.push([]);
+
+                csvRows.push(["-- ROCK CORE RUNS --"]);
+                csvRows.push(["Top Depth (ft)", "Run Length (ft)", "Bottom Depth (ft)", "Recovery (ft)", "RQD (ft)", "Description", "Remarks"]);
+                (b.rockSamples || []).forEach(r => {
+                    const topDepth = (parseFloat(r.whole) + parseFloat(r.dec)).toFixed(1);
+                    const runLen = parseFloat(r.runLength) || 0;
+                    const botDepth = (parseFloat(topDepth) + runLen).toFixed(1);
+                    const desc = buildRockDescription(r);
+                    csvRows.push([topDepth, r.runLength || "", botDepth, r.recovery || "", r.rqd || "", `"${desc}"`, `"${r.remarks || ''}"`]);
+                });
+                csvRows.push([]);
+                csvRows.push([]);
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", encodedUri);
+            dlAnchor.setAttribute("download", buildExportFilename("csv"));
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast("CSV export generated successfully.");
+        }
+
+        // --- Initialization on Load ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLocal();
             updateBoringSelector();
             syncHeaderUI();
             renderTables();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             isInitialized = true;
-            isSaved = true;
-            updateSaveStatusUI();
-        };
+        });
+
+        window.addEventListener('beforeunload', (e) => {
+            if (!isSaved) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        });
     </script>
 </body>
 </html>
