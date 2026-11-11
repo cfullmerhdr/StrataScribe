@@ -69,11 +69,11 @@
                 </button>
                 <button onclick="triggerJSONUpload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Import Project Session">
                     <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                    <span class="hidden md:inline">Import (JSON)</span>
+                    <span class="hidden md:inline">Import Project</span>
                 </button>
                 <button onclick="exportJSON()" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export Project (JSON)">
                     <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
-                    <span class="hidden md:inline">Export (JSON)</span>
+                    <span class="hidden md:inline">Export Project</span>
                 </button>
                 <button onclick="exportCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export CSV">
                     <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
@@ -179,6 +179,27 @@
                                 <option value="W">W</option>
                                 <option value="NW">NW</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- GPS Location Box (Above Termination & Refusal Parameters) -->
+                    <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Boring GPS Coordinates</span>
+                            <button onclick="getBoringGPS()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded transition flex items-center space-x-1 shadow">
+                                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                                <span>Get GPS Location</span>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Latitude</label>
+                                <input type="text" id="gpsLat" readonly class="table-input bg-white dark:bg-slate-900 text-xs font-semibold" placeholder="Not set">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Longitude</label>
+                                <input type="text" id="gpsLon" readonly class="table-input bg-white dark:bg-slate-900 text-xs font-semibold" placeholder="Not set">
+                            </div>
                         </div>
                     </div>
 
@@ -356,7 +377,7 @@
                     </div>
                 </div>
 
-                <!-- Additional Boring Notes Field (Above Surface Conditions) -->
+                <!-- Additional Boring Notes Field -->
                 <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-2">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Additional Boring Notes</label>
                     <textarea id="additionalBoringNotes" onchange="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
@@ -926,6 +947,12 @@
                 driller: "",
                 logger: "",
                 additionalNotes: "",
+                gpsLat: "",
+                gpsLon: "",
+                gpsAccuracy: "",
+                gpsElevation: "",
+                gpsTimestamp: "",
+                gpsSource: "",
                 totalDepth: "0.0",
                 offset: "0",
                 direction: "N/A",
@@ -1123,6 +1150,37 @@
             return labels[gw.time] || "GW";
         }
 
+        // --- GPS Location Retriever ---
+        function getBoringGPS() {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser");
+                return;
+            }
+            showToast("Retrieving GPS location...");
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude.toFixed(6);
+                const lon = position.coords.longitude.toFixed(6);
+                const accuracy = position.coords.accuracy ? `${Math.round(position.coords.accuracy * 3.28084)} ft` : "";
+                const elevation = position.coords.altitude !== null ? `${(position.coords.altitude * 3.28084).toFixed(1)} ft` : "";
+                const timestamp = new Date(position.timestamp || Date.now()).toISOString();
+                const source = "Device GPS";
+
+                const cur = borings[activeBoringIndex];
+                cur.gpsLat = lat;
+                cur.gpsLon = lon;
+                cur.gpsAccuracy = accuracy;
+                cur.gpsElevation = elevation;
+                cur.gpsTimestamp = timestamp;
+                cur.gpsSource = source;
+
+                syncHeaderUI();
+                saveLocal();
+                showToast("GPS location acquired successfully.");
+            }, (error) => {
+                alert("Unable to retrieve your location: " + error.message);
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        }
+
         function recalculateTotalDepth() {
             const cur = borings[activeBoringIndex];
             if (!cur) return;
@@ -1200,6 +1258,12 @@
                 driller: curBoring ? (curBoring.driller || "") : "",
                 logger: curBoring ? (curBoring.logger || "") : "",
                 additionalNotes: "",
+                gpsLat: "",
+                gpsLon: "",
+                gpsAccuracy: "",
+                gpsElevation: "",
+                gpsTimestamp: "",
+                gpsSource: "",
                 totalDepth: "0.0",
                 offset: "0",
                 direction: "N/A",
@@ -1249,7 +1313,7 @@
                     localStorage.removeItem('geoTabletLog_v1_6_3');
                     projectMeta = { client: "", name: "", number: "" };
                     borings = [{
-                        id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
+                        id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
                         gw: [{depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}],
                         samples: [],
                         rockSamples: []
@@ -1342,6 +1406,8 @@
             document.getElementById('drillerName').value = cur.driller || "";
             document.getElementById('loggerName').value = cur.logger || "";
             document.getElementById('additionalBoringNotes').value = cur.additionalNotes || "";
+            document.getElementById('gpsLat').value = cur.gpsLat || "";
+            document.getElementById('gpsLon').value = cur.gpsLon || "";
             document.getElementById('totalDepth').value = cur.totalDepth || "0.0";
             document.getElementById('boringOffset').value = cur.offset || "0";
             document.getElementById('boringDirection').value = cur.direction || "N/A";
@@ -2596,7 +2662,7 @@
             csv += `Export Time,${formatExportTime(now)}\n`;
             csv += `Application Version,v1.6.3\n\n`;
 
-            csv += "Boring ID,Drill Rig,Driller,Field Logger,Additional Boring Notes,Total Depth (ft),Offset (ft),Direction,Termination Reason,Refusal Type,Refusal Depth (ft),Start Date,End Date,Drilling Methods,GW Obs 1,GW Obs 2,GW Obs 3,Record Type,Top Depth (ft),Sample Type / Rock Type,LENGTH (IN),Run Length (ft),Bottom Depth (ft),Blow 1,Blow 2,Blow 3,N-Value,Recovery (in/ft),RQD (ft),USCS,Major Mod,Minor Mod,Moisture,Density/Consistency,Shade,Color(s),Weathering,Grain Size,Grain Shape,Strength,Bedding/Foliation,Joint Type,Joint Spacing,Joint Persistence,Joint Roughness,Joint Geometry,Joint Aperture,Joint Filling,Groundwater Condition,Natural Fractures/ft,Descriptors,Origin,Auto Description,Remarks\n";
+            csv += "Boring ID,Drill Rig,Driller,Field Logger,Additional Boring Notes,Latitude,Longitude,Accuracy,Elevation,Timestamp,GPS Source,Total Depth (ft),Offset (ft),Direction,Termination Reason,Refusal Type,Refusal Depth (ft),Start Date,End Date,Drilling Methods,GW Obs 1,GW Obs 2,GW Obs 3,Record Type,Top Depth (ft),Sample Type / Rock Type,LENGTH (IN),Run Length (ft),Bottom Depth (ft),Blow 1,Blow 2,Blow 3,N-Value,Recovery (in/ft),RQD (ft),USCS,Major Mod,Minor Mod,Moisture,Density/Consistency,Shade,Color(s),Weathering,Grain Size,Grain Shape,Strength,Bedding/Foliation,Joint Type,Joint Spacing,Joint Persistence,Joint Roughness,Joint Geometry,Joint Aperture,Joint Filling,Groundwater Condition,Natural Fractures/ft,Descriptors,Origin,Auto Description,Remarks\n";
 
             const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
 
@@ -2616,7 +2682,7 @@
                         const botDepth = currentSurfaceDepth + thickFeet;
                         currentSurfaceDepth = botDepth;
 
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SURFACE",${topDepth.toFixed(2)},"${sc.type || ''}",${sc.thickness || ''},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"${sc.remarks || ''}"\n`;
+                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SURFACE",${topDepth.toFixed(2)},"${sc.type || ''}",${sc.thickness || ''},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"${sc.remarks || ''}"\n`;
                     });
                 }
 
@@ -2643,7 +2709,7 @@
                         const colorsJoined = formatColorsString(effectiveAttrs.colors);
                         const descriptorsJoined = (s.descriptors || []).join('; ');
 
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SOIL",${depth},"${s.type}","${s.length || ''}","",,"${s.b1}","${s.b2}","${s.b3}","${nVal}",${s.rec},,"${effectiveAttrs.uscs || ''}","${effectiveAttrs.major || ''}","${effectiveAttrs.minor || ''}","${effectiveAttrs.moisture ? effectiveAttrs.moisture.toUpperCase() : ''}","${effectiveAttrs.density || ''}","${effectiveAttrs.shade || ''}","${colorsJoined}",,,,,,,,,,,,,,,,"${descriptorsJoined}","${effectiveAttrs.origin || ''}","${desc}","${s.remarks || ''}"\n`;
+                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SOIL",${depth},"${s.type}","${s.length || ''}","",,"${s.b1}","${s.b2}","${s.b3}","${nVal}",${s.rec},,"${effectiveAttrs.uscs || ''}","${effectiveAttrs.major || ''}","${effectiveAttrs.minor || ''}","${effectiveAttrs.moisture ? effectiveAttrs.moisture.toUpperCase() : ''}","${effectiveAttrs.density || ''}","${effectiveAttrs.shade || ''}","${colorsJoined}",,,,,,,,,,,,,,,,"${descriptorsJoined}","${effectiveAttrs.origin || ''}","${desc}","${s.remarks || ''}"\n`;
                     });
                 }
 
@@ -2671,7 +2737,7 @@
                         const gwCondCaps = r.gwCondition ? r.gwCondition.toUpperCase() : '';
                         const rockDesc = buildRockDescription(r);
 
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","ROCK",${topDepth},"${rockTypeCaps}","",${r.runLength},${bottomDepth},,,,,,,,,,${r.recovery || ''},${r.rqd || ''},,,,,,"${r.shade || ''}","${colorsJoined}","${weatheringCaps}","${grainSizeCaps}","${grainShapeCaps}","${strengthCaps}","${beddingCaps}","${jointTypeCaps}","${jointSpacingCaps}","${jointPersistenceCaps}","${jointRoughnessCaps}","${jointGeometryCaps}","${jointApertureCaps}","${jointFillingCaps}","${gwCondCaps}",${r.natFractures || ''},"${descriptorsJoined}",,"${rockDesc}","${r.remarks || ''}"\n`;
+                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","ROCK",${topDepth},"${rockTypeCaps}","",${r.runLength},${bottomDepth},,,,,,,,,,${r.recovery || ''},${r.rqd || ''},,,,,,"${r.shade || ''}","${colorsJoined}","${weatheringCaps}","${grainSizeCaps}","${grainShapeCaps}","${strengthCaps}","${beddingCaps}","${jointTypeCaps}","${jointSpacingCaps}","${jointPersistenceCaps}","${jointRoughnessCaps}","${jointGeometryCaps}","${jointApertureCaps}","${jointFillingCaps}","${gwCondCaps}",${r.natFractures || ''},"${descriptorsJoined}",,"${rockDesc}","${r.remarks || ''}"\n`;
                     });
                 }
             });
@@ -2706,6 +2772,12 @@
                         if (!b.driller) b.driller = "";
                         if (!b.additionalNotes) b.additionalNotes = "";
                         if (!b.surfaceConditions) b.surfaceConditions = [];
+                        if (!b.gpsLat) b.gpsLat = "";
+                        if (!b.gpsLon) b.gpsLon = "";
+                        if (!b.gpsAccuracy) b.gpsAccuracy = "";
+                        if (!b.gpsElevation) b.gpsElevation = "";
+                        if (!b.gpsTimestamp) b.gpsTimestamp = "";
+                        if (!b.gpsSource) b.gpsSource = "";
                         if (b.samples) {
                             b.samples = b.samples.map(s => {
                                 if (s.uscs === "NONE") s.uscs = "";
@@ -2762,6 +2834,12 @@
                             if (!b.driller) b.driller = "";
                             if (!b.additionalNotes) b.additionalNotes = "";
                             if (!b.surfaceConditions) b.surfaceConditions = [];
+                            if (!b.gpsLat) b.gpsLat = "";
+                            if (!b.gpsLon) b.gpsLon = "";
+                            if (!b.gpsAccuracy) b.gpsAccuracy = "";
+                            if (!b.gpsElevation) b.gpsElevation = "";
+                            if (!b.gpsTimestamp) b.gpsTimestamp = "";
+                            if (!b.gpsSource) b.gpsSource = "";
                             if (b.samples) {
                                 b.samples = b.samples.map(s => {
                                     if (s.uscs === "NONE") s.uscs = "";
