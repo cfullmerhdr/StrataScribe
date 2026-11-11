@@ -1,27 +1,21 @@
-const CACHE_NAME = 'strata-scribe-v1.7.0';
+const CACHE_NAME = 'strata-scribe-v1.6.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/lucide@latest'
+  './icon-512.png'
 ];
 
-// Install Event: Cache core application assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
-        console.warn('Some CDN assets failed to cache during install:', err);
-      });
+      return cache.addAll(ASSETS_TO_CACHE);
     })
   );
   self.skipWaiting();
 });
 
-// Activate Event: Clean up outdated cache versions instantly
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -38,7 +32,6 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event: Stale-while-revalidate / cache-first strategy
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
@@ -48,7 +41,7 @@ self.addEventListener('fetch', (event) => {
             cache.put(event.request, networkResponse);
           });
         }
-      }).catch(() => {/* Ignore network drops when offline */});
+      }).catch(() => {/* Ignore network drops */});
 
       return cachedResponse || fetchPromise;
     }).catch(() => {
