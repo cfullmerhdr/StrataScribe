@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strata Scribe v1.6.5 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>Strata Scribe v1.6.7 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -57,7 +57,7 @@
                     <i data-lucide="layers" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.5</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.7</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -66,30 +66,45 @@
             <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="importJSON(event)">
 
-                <button onclick="openProjectBoringProfilesModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="View All Project Boring Profiles">
-                    <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-amber-400"></i>
-                    <span class="hidden xs:inline sm:inline">Profiles</span>
-                </button>
-                <button onclick="triggerJSONUpload()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Import Project Session">
-                    <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
-                    <span class="hidden md:inline">Import Project</span>
-                </button>
                 <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm px-3.5 sm:px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow-lg border border-emerald-500" title="Save Project (JSON Backup)">
                     <i data-lucide="save" class="w-4 h-4"></i>
                     <span>Save Project</span>
                 </button>
-                <button onclick="exportCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export CSV">
-                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-400"></i>
-                    <span>CSV</span>
-                </button>
-                <button onclick="confirmResetAll()" class="bg-rose-950/60 hover:bg-rose-900 text-rose-200 border border-rose-800 font-bold text-[11px] sm:text-xs px-2 sm:px-2.5 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Clear All Data">
-                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                    <span class="hidden sm:inline">Reset</span>
-                </button>
-                <button id="themeToggleBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition border border-slate-700 shadow" title="Toggle Dark/Light Mode">
-                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
-                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-200"></i>
-                </button>
+                <span id="saveStatusIndicator" class="text-xs font-bold px-2.5 py-2 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 flex items-center space-x-1 shadow">✅ Saved</span>
+
+                <!-- Tools Dropdown Menu -->
+                <div class="relative" id="toolsDropdownContainer">
+                    <button onclick="toggleToolsMenu()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Tools Menu">
+                        <i data-lucide="settings" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Tools</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-0.5 text-slate-400"></i>
+                    </button>
+                    <div id="toolsDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 py-1.5">
+                        <button onclick="closeToolsMenu(); openProjectBoringProfilesModal();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-amber-500"></i>
+                            <span>Profiles</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); triggerJSONUpload();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
+                            <span>Import Project</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); exportCSV();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>Export CSV</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); toggleThemeFromTools();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400 hidden dark:block"></i>
+                            <i data-lucide="moon" class="w-3.5 h-3.5 text-slate-400 block dark:hidden"></i>
+                            <span class="dark:hidden">Dark Mode</span>
+                            <span class="hidden dark:inline">Light Mode</span>
+                        </button>
+                        <div class="border-t border-slate-200 dark:border-slate-800 my-1"></div>
+                        <button onclick="closeToolsMenu(); confirmResetAll();" class="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center space-x-2">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>Reset All Data</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -536,7 +551,7 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
-        Version: v1.6.5 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.5
+        Version: v1.6.7 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.7
     </footer>
 
     <!-- Project Boring Profiles Modal -->
@@ -863,6 +878,57 @@
             });
         }
 
+        // --- Save Status State ---
+        let isSaved = true;
+        let isInitialized = false;
+
+        function markUnsaved() {
+            if (isSaved) {
+                isSaved = false;
+                updateSaveStatusUI();
+            }
+        }
+
+        function updateSaveStatusUI() {
+            const indicator = document.getElementById('saveStatusIndicator');
+            if (!indicator) return;
+            if (isSaved) {
+                indicator.className = "text-xs font-bold px-2.5 py-2 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 flex items-center space-x-1 shadow";
+                indicator.textContent = "✅ Saved";
+            } else {
+                indicator.className = "text-xs font-bold px-2.5 py-2 rounded-lg bg-slate-800 text-amber-400 border border-slate-700 flex items-center space-x-1 shadow";
+                indicator.textContent = "● Unsaved";
+            }
+        }
+
+        // --- Tools Menu Toggle Handler ---
+        function toggleToolsMenu() {
+            const menu = document.getElementById('toolsDropdownMenu');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
+        }
+
+        function closeToolsMenu() {
+            const menu = document.getElementById('toolsDropdownMenu');
+            if (menu) {
+                menu.classList.add('hidden');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            const container = document.getElementById('toolsDropdownContainer');
+            if (container && !container.contains(e.target)) {
+                closeToolsMenu();
+            }
+        });
+
+        function toggleThemeFromTools() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('geoTabletTheme_v1_6_7', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+
         // --- Reference Data & Dropdowns ---
         const wholeFootOptions = Array.from({length: 151}, (_, i) => i);
         const decimalOptions = ["0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"];
@@ -1006,12 +1072,8 @@
             }
         ];
 
-        // Theme Toggle Handler
-        document.getElementById('themeToggleBtn').addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            localStorage.setItem('geoTabletTheme_v1_6_5', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-        });
-        if (localStorage.getItem('geoTabletTheme_v1_6_5') === 'dark') document.documentElement.classList.add('dark');
+        // Theme initialization
+        if (localStorage.getItem('geoTabletTheme_v1_6_7') === 'dark') document.documentElement.classList.add('dark');
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -1364,7 +1426,7 @@
             if (confirm("Are you sure you want to delete all borings and project information?")) {
                 const promptVal = prompt("Are you sure you want to delete all borings and project information?\n\nType \"YES\" to confirm:");
                 if (promptVal && promptVal.trim() === "YES") {
-                    localStorage.removeItem('geoTabletLog_v1_6_5');
+                    localStorage.removeItem('geoTabletLog_v1_6_7');
                     projectMeta = { client: "", name: "", number: "" };
                     borings = [{
                         id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
@@ -2676,7 +2738,10 @@
         // --- Save Local ---
         function saveLocal() {
             const dataToSave = { projectMeta, activeBoringIndex, borings };
-            localStorage.setItem('geoTabletLog_v1_6_5', JSON.stringify(dataToSave));
+            localStorage.setItem('geoTabletLog_v1_6_7', JSON.stringify(dataToSave));
+            if (isInitialized) {
+                markUnsaved();
+            }
         }
 
         // --- Export & Import Operations ---
@@ -2685,7 +2750,7 @@
             const filename = buildExportFilename('json');
             const exportPayload = {
                 application: "Strata Scribe",
-                applicationVersion: "v1.6.5",
+                applicationVersion: "v1.6.7",
                 exportFilename: filename,
                 exportDateISO: now.toISOString(),
                 exportDateDisplay: formatExportDate(now),
@@ -2701,6 +2766,9 @@
             a.href = url;
             a.download = filename;
             a.click();
+
+            isSaved = true;
+            updateSaveStatusUI();
             showToast("Project successfully saved.");
         }
 
@@ -2714,7 +2782,7 @@
             csv += `Client,${projectMeta.client || ''}\n`;
             csv += `Export Date,${formatExportDate(now)}\n`;
             csv += `Export Time,${formatExportTime(now)}\n`;
-            csv += `Application Version,v1.6.5\n\n`;
+            csv += `Application Version,v1.6.7\n\n`;
 
             csv += "Boring ID,Drill Rig,Driller,Field Logger,Additional Boring Notes,Latitude,Longitude,Accuracy,Elevation,Timestamp,GPS Source,Total Depth (ft),Offset (ft),Direction,Termination Reason,Refusal Type,Refusal Depth (ft),Start Date,End Date,Drilling Methods,GW Obs 1,GW Obs 2,GW Obs 3,Record Type,Top Depth (ft),Sample Type / Rock Type,LENGTH (IN),Run Length (ft),Bottom Depth (ft),Blow 1,Blow 2,Blow 3,N-Value,Recovery (in/ft),RQD (ft),USCS,Major Mod,Minor Mod,Moisture,Density/Consistency,Shade,Color(s),Weathering,Grain Size,Grain Shape,Strength,Bedding/Foliation,Joint Type,Joint Spacing,Joint Persistence,Joint Roughness,Joint Geometry,Joint Aperture,Joint Filling,Groundwater Condition,Natural Fractures/ft,Descriptors,Origin,Auto Description,Remarks\n";
 
@@ -2867,6 +2935,9 @@
                     syncHeaderUI();
                     renderTables();
                     saveLocal();
+
+                    isSaved = false;
+                    updateSaveStatusUI();
                     showToast("Project successfully loaded from JSON.");
                 } catch (err) {
                     console.error(err);
@@ -2878,7 +2949,7 @@
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('geoTabletLog_v1_6_5') || localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2') || localStorage.getItem('geoTabletLog_v1_6_1') || localStorage.getItem('geoTabletLog_v1_6') || localStorage.getItem('geoTabletLog_v1_5');
+            const saved = localStorage.getItem('geoTabletLog_v1_6_7') || localStorage.getItem('geoTabletLog_v1_6_5') || localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2') || localStorage.getItem('geoTabletLog_v1_6_1') || localStorage.getItem('geoTabletLog_v1_6') || localStorage.getItem('geoTabletLog_v1_5');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -2932,6 +3003,9 @@
             updateBoringSelector();
             syncHeaderUI();
             renderTables();
+            isInitialized = true;
+            isSaved = true;
+            updateSaveStatusUI();
         };
     </script>
 </body>
