@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Strata Scribe v1.6.3 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strata Scribe v1.7.0 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <!-- PWA Manifest & Theme Color -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f59e0b">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -54,7 +57,7 @@
                     <i data-lucide="layers" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.3</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.7.0</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -69,11 +72,11 @@
                 </button>
                 <button onclick="triggerJSONUpload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Import Project Session">
                     <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                    <span class="hidden md:inline">Import (JSON)</span>
+                    <span class="hidden md:inline">Import Project</span>
                 </button>
                 <button onclick="exportJSON()" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export Project (JSON)">
                     <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
-                    <span class="hidden md:inline">Export (JSON)</span>
+                    <span class="hidden md:inline">Export Project</span>
                 </button>
                 <button onclick="exportCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export CSV">
                     <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
@@ -182,7 +185,28 @@
                         </div>
                     </div>
 
-                    <!-- Single Consolidated Box: Total Depth & Termination / Refusal entries -->
+                    <!-- GPS Location Box -->
+                    <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Boring GPS Coordinates</span>
+                            <button onclick="getBoringGPS()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded transition flex items-center space-x-1 shadow">
+                                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                                <span>Get GPS Location</span>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Latitude</label>
+                                <input type="text" id="gpsLat" readonly class="table-input bg-white dark:bg-slate-900 text-xs font-semibold" placeholder="Not set">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Longitude</label>
+                                <input type="text" id="gpsLon" readonly class="table-input bg-white dark:bg-slate-900 text-xs font-semibold" placeholder="Not set">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Depth & Termination / Refusal Parameters -->
                     <div class="bg-amber-500/10 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-500/20 space-y-2">
                         <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Termination & Refusal Parameters</span>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -221,7 +245,7 @@
                         </div>
                     </div>
 
-                    <!-- Dates & Interactive Drilling Methods Row -->
+                    <!-- Dates & Drilling Methods -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Start Date</label>
@@ -356,7 +380,7 @@
                     </div>
                 </div>
 
-                <!-- Additional Boring Notes Field (Above Surface Conditions) -->
+                <!-- Additional Boring Notes Field -->
                 <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-2">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Additional Boring Notes</label>
                     <textarea id="additionalBoringNotes" onchange="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
@@ -450,7 +474,7 @@
                     </div>
                 </div>
 
-                <!-- Compact Rock Coring Table -->
+                <!-- Rock Coring Table -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
                         <table class="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[950px]">
@@ -544,50 +568,42 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-slate-50 dark:bg-slate-950/40">
-                <!-- SOIL DESCRIPTION & FAST CHIPS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="shield" class="w-4 h-4"></i>
                         <span>Soil Description Chips</span>
                     </h4>
 
-                    <!-- USCS Classification Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">USCS Classification</span>
                         <div id="chipContainer_uscs" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Major Modifier Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Major Modifier</span>
                         <div id="chipContainer_major" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Minor Modifier Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Minor Modifier</span>
                         <div id="chipContainer_minor" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Moisture Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Moisture</span>
                         <div id="chipContainer_moisture" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Origin Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Origin</span>
                         <div id="chipContainer_origin" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Density / Consistency Read-Only Display -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 max-w-xs">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Density / Consistency (Auto)</span>
                         <input type="text" id="soilModal_densityDisplay" readonly class="table-input font-bold bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 cursor-not-allowed mt-1">
                     </div>
 
-                    <!-- Shade & Ordered Color Workflow -->
                     <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">Shade & Colors (Ordered Selection)</label>
                         <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-2">
@@ -644,45 +660,37 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-slate-50 dark:bg-slate-950/40" id="rockPropsModalBody">
-                
-                <!-- SECTION 1: ROCK DESCRIPTION & FAST CHIPS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="shield" class="w-4 h-4"></i>
                         <span>Rock Description Chips</span>
                     </h4>
 
-                    <!-- Rock Type Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Rock Type</span>
                         <div id="chipContainer_rockType" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Weathering Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Weathering</span>
                         <div id="chipContainer_weathering" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Grain Size Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Grain Size</span>
                         <div id="chipContainer_grainSize" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Grain Shape Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Grain Shape</span>
                         <div id="chipContainer_grainShape" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Strength Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Strength</span>
                         <div id="chipContainer_strength" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Rock Shade & Ordered Color Workflow -->
                     <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">Shade & Colors (Ordered Selection)</label>
                         <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-2">
@@ -708,69 +716,58 @@
                     </div>
                 </div>
 
-                <!-- SECTION 2: DISCONTINUITIES & GEOMECHANICS CHIPS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="git-commit" class="w-4 h-4"></i>
                         <span>Discontinuities & Geomechanics Chips</span>
                     </h4>
 
-                    <!-- Bedding / Foliation Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Bedding / Foliation</span>
                         <div id="chipContainer_bedding" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Type Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Type</span>
                         <div id="chipContainer_jointType" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Spacing Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Spacing</span>
                         <div id="chipContainer_jointSpacing" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Persistence Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Persistence</span>
                         <div id="chipContainer_jointPersistence" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Surface Roughness Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Surface Roughness</span>
                         <div id="chipContainer_jointRoughness" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Geometry Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Geometry</span>
                         <div id="chipContainer_jointGeometry" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Aperture Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Aperture</span>
                         <div id="chipContainer_jointAperture" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Filling Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Filling</span>
                         <div id="chipContainer_jointFilling" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Groundwater Condition Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Groundwater Condition</span>
                         <div id="chipContainer_gwCondition" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
                 </div>
 
-                <!-- SECTION 3: NUMERIC ROCK DATA -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="hash" class="w-4 h-4"></i>
@@ -782,7 +779,6 @@
                     </div>
                 </div>
 
-                <!-- SECTION 4: DESCRIPTORS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="check-square" class="w-4 h-4"></i>
@@ -809,6 +805,15 @@
     </div>
 
     <script>
+        // --- Register Service Worker ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('ServiceWorker registration successful with scope: ', reg.scope))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+
         // --- Reference Data & Dropdowns ---
         const wholeFootOptions = Array.from({length: 151}, (_, i) => i);
         const decimalOptions = ["0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"];
@@ -846,38 +851,10 @@
 
         const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
-        // Surface Condition Types
         const surfaceConditionTypes = [
-            "Asphalt",
-            "Concrete",
-            "Mineral Aggregate Base",
-            "Crushed Stone Base",
-            "Base Stone",
-            "Shot Rock",
-            "Gravel Surface",
-            "Chip Seal",
-            "Asphalt Millings",
-            "Topsoil",
-            "Mulch",
-            "Landscaping Rock",
-            "Riprap",
-            "Structural Fill",
-            "Existing Fill",
-            "Brick",
-            "Pavement",
-            "Sidewalk",
-            "Crushed Concrete",
-            "Flowable Fill",
-            "Peat",
-            "Organics",
-            "Debris",
-            "Cinders",
-            "Slag",
-            "Coal Ash",
-            "Other (Custom)"
+            "Asphalt", "Concrete", "Mineral Aggregate Base", "Crushed Stone Base", "Base Stone", "Shot Rock", "Gravel Surface", "Chip Seal", "Asphalt Millings", "Topsoil", "Mulch", "Landscaping Rock", "Riprap", "Structural Fill", "Existing Fill", "Brick", "Pavement", "Sidewalk", "Crushed Concrete", "Flowable Fill", "Peat", "Organics", "Debris", "Cinders", "Slag", "Coal Ash", "Other (Custom)"
         ];
 
-        // --- Rock Reference Lists ---
         const rockTypes = ["LIMESTONE", "DOLOMITE", "SHALE", "SANDSTONE", "SILTSTONE", "MUDSTONE", "CHERT", "MARL", "SLATE", "PHYLLITE", "SCHIST", "GNEISS", "QUARTZITE", "GRANITE", "BASALT", "RHYOLITE", "CONGLOMERATE", "BRECCIA", "COAL", "VOID", "CAVITY", "OTHER"];
         const rockWeathering = ["FRESH", "SLIGHTLY WEATHERED", "MODERATELY WEATHERED", "HIGHLY WEATHERED", "COMPLETELY WEATHERED", "RESIDUAL SOIL"];
         const rockGrainSize = ["VERY FINE GRAINED", "FINE GRAINED", "MEDIUM GRAINED", "COARSE GRAINED", "VERY COARSE GRAINED"];
@@ -911,47 +888,19 @@
         }
 
         // --- Session State ---
-        let projectMeta = {
-            client: "",
-            name: "",
-            number: ""
-        };
-
+        let projectMeta = { client: "", name: "", number: "" };
         let activeBoringIndex = 0;
+        let borings = [{
+            id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
+            gw: [{depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}],
+            samples: [], rockSamples: []
+        }];
 
-        let borings = [
-            {
-                id: "B-01",
-                rig: "",
-                driller: "",
-                logger: "",
-                additionalNotes: "",
-                totalDepth: "0.0",
-                offset: "0",
-                direction: "N/A",
-                startDate: "",
-                endDate: "",
-                terminationReason: "Completed at Planned Depth",
-                refusalType: "None",
-                refusalDepth: "",
-                methods: [],
-                surfaceConditions: [],
-                gw: [
-                    { depth: "", time: "N/A", customTime: "" },
-                    { depth: "", time: "N/A", customTime: "" },
-                    { depth: "", time: "N/A", customTime: "" }
-                ],
-                samples: [],
-                rockSamples: []
-            }
-        ];
-
-        // Theme Toggle Handler
         document.getElementById('themeToggleBtn').addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');
-            localStorage.setItem('geoTabletTheme_v1_6_3', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            localStorage.setItem('geoTabletTheme_v1_7_0', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         });
-        if (localStorage.getItem('geoTabletTheme_v1_6_3') === 'dark') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('geoTabletTheme_v1_7_0') === 'dark') document.documentElement.classList.add('dark');
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -961,50 +910,33 @@
         }
 
         function formatExportDate(d = new Date()) {
-            const day = String(d.getDate()).padStart(2, '0');
-            const mmm = monthNames[d.getMonth()];
-            const yyyy = d.getFullYear();
-            return `${day}${mmm}${yyyy}`;
+            return `${String(d.getDate()).padStart(2, '0')}${monthNames[d.getMonth()]}${d.getFullYear()}`;
         }
-
         function formatExportTime(d = new Date()) {
-            const hh = String(d.getHours()).padStart(2, '0');
-            const mm = String(d.getMinutes()).padStart(2, '0');
-            return `${hh}${mm}`;
+            return `${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
         }
-
         function sanitizeFilenamePart(str) {
             if (!str) return "Project";
             return str.replace(/\s+/g, '').replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 40);
         }
-
         function buildExportFilename(extension) {
             const now = new Date();
             const ext = extension.startsWith('.') ? extension.substring(1) : extension;
-            const projName = sanitizeFilenamePart(projectMeta.name) || "Project";
-            const projNum = sanitizeFilenamePart(projectMeta.number) || "000";
-            return `StrataScribe.${projName}.${projNum}.${formatExportDate(now)}.${formatExportTime(now)}.${ext}`;
+            return `StrataScribe.${sanitizeFilenamePart(projectMeta.name)}.${sanitizeFilenamePart(projectMeta.number)}.${formatExportDate(now)}.${formatExportTime(now)}.${ext}`;
         }
 
         function parseBoringId(idStr) {
             const cleaned = (idStr || "B-01").trim();
             const match = cleaned.match(/^([A-Za-z-]+?)(\d+)$/);
-            if (match) {
-                return { prefix: match[1].toUpperCase(), number: parseInt(match[2], 10) };
-            }
+            if (match) return { prefix: match[1].toUpperCase(), number: parseInt(match[2], 10) };
             const numMatch = cleaned.match(/\d+/);
-            const num = numMatch ? parseInt(numMatch[0], 10) : 0;
-            const pref = cleaned.replace(/\d+/g, '').toUpperCase() || 'B-';
-            return { prefix: pref, number: num };
+            return { prefix: cleaned.replace(/\d+/g, '').toUpperCase() || 'B-', number: numMatch ? parseInt(numMatch[0], 10) : 0 };
         }
 
         function compareBoringIds(aId, bId) {
-            const parsedA = parseBoringId(aId);
-            const parsedB = parseBoringId(bId);
-            if (parsedA.prefix !== parsedB.prefix) {
-                return parsedA.prefix.localeCompare(parsedB.prefix);
-            }
-            return parsedA.number - parsedB.number;
+            const pa = parseBoringId(aId), pb = parseBoringId(bId);
+            if (pa.prefix !== pb.prefix) return pa.prefix.localeCompare(pb.prefix);
+            return pa.number - pb.number;
         }
 
         function parseBlow(val) {
@@ -1016,8 +948,7 @@
 
         function computeN(b2Val, b3Val) {
             if (!b2Val && !b3Val) return "";
-            const v2 = parseBlow(b2Val);
-            const v3 = parseBlow(b3Val);
+            const v2 = parseBlow(b2Val), v3 = parseBlow(b3Val);
             if (v2 === 'REF' || v3 === 'REF') return "Refusal";
             if (v2 !== null && v3 !== null) return v2 + v3;
             if (v2 !== null) return v2;
@@ -1029,20 +960,10 @@
             if (nVal === "" || nVal === null || nVal === undefined) return "";
             const isCoarse = coarseUSCS.includes(uscs);
             const n = (nVal === "Refusal") ? 999 : parseInt(nVal);
-
             if (isCoarse) {
-                if (n < 4) return "VERY LOOSE";
-                if (n < 10) return "LOOSE";
-                if (n < 30) return "MEDIUM DENSE";
-                if (n < 50) return "DENSE";
-                return "VERY DENSE";
+                if (n < 4) return "VERY LOOSE"; if (n < 10) return "LOOSE"; if (n < 30) return "MEDIUM DENSE"; if (n < 50) return "DENSE"; return "VERY DENSE";
             } else {
-                if (n < 2) return "VERY SOFT";
-                if (n < 4) return "SOFT";
-                if (n < 8) return "FIRM";
-                if (n < 15) return "STIFF";
-                if (n < 30) return "VERY STIFF";
-                return "HARD";
+                if (n < 2) return "VERY SOFT"; if (n < 4) return "SOFT"; if (n < 8) return "FIRM"; if (n < 15) return "STIFF"; if (n < 30) return "VERY STIFF"; return "HARD";
             }
         }
 
@@ -1053,50 +974,39 @@
 
         function buildSoilDescription(sample, effectiveAttributes) {
             const parts = [];
-            if (effectiveAttributes.origin && effectiveAttributes.origin !== '') parts.push(effectiveAttributes.origin.toUpperCase());
-            
+            if (effectiveAttributes.origin) parts.push(effectiveAttributes.origin.toUpperCase());
             let uscsPart = effectiveAttributes.uscs || "";
-            if (effectiveAttributes.major && effectiveAttributes.major !== '') uscsPart += ` ${effectiveAttributes.major}`;
+            if (effectiveAttributes.major) uscsPart += ` ${effectiveAttributes.major}`;
             if (uscsPart.trim()) parts.push(uscsPart.trim().toUpperCase());
-
-            if (effectiveAttributes.minor && effectiveAttributes.minor !== '') parts.push(effectiveAttributes.minor.toUpperCase());
-            
-            const nVal = computeN(sample.b2, sample.b3);
-            const density = computeConsistencyDensity(nVal, effectiveAttributes.uscs);
+            if (effectiveAttributes.minor) parts.push(effectiveAttributes.minor.toUpperCase());
+            const density = computeConsistencyDensity(computeN(sample.b2, sample.b3), effectiveAttributes.uscs);
             if (density) parts.push(density.toUpperCase());
-
-            if (effectiveAttributes.moisture && effectiveAttributes.moisture !== '') parts.push(effectiveAttributes.moisture.toUpperCase());
-
+            if (effectiveAttributes.moisture) parts.push(effectiveAttributes.moisture.toUpperCase());
             const colorStr = formatColorsString(effectiveAttributes.colors);
             if (colorStr) parts.push(colorStr);
-
             return parts.join(", ");
         }
 
         function buildRockDescription(r) {
             const parts = [];
-            if (r.rockType && r.rockType !== '') parts.push(r.rockType.toUpperCase());
-            
+            if (r.rockType) parts.push(r.rockType.toUpperCase());
             const colorStr = formatColorsString(r.colors);
             if (colorStr) parts.push(colorStr);
-
-            if (r.weathering && r.weathering !== '') parts.push(r.weathering.toUpperCase());
-            if (r.grainSize && r.grainSize !== '') parts.push(r.grainSize.toUpperCase());
-            if (r.grainShape && r.grainShape !== '') parts.push(r.grainShape.toUpperCase());
-            if (r.strength && r.strength !== '') parts.push(r.strength.toUpperCase());
-            if (r.bedding && r.bedding !== '') parts.push(r.bedding.toUpperCase());
-            if (r.jointType && r.jointType !== '') parts.push(r.jointType.toUpperCase());
-            if (r.jointSpacing && r.jointSpacing !== '') parts.push(`${r.jointSpacing.toUpperCase()} SPACED`);
-            if (r.jointPersistence && r.jointPersistence !== '') parts.push(`PERSISTENCE ${r.jointPersistence.toUpperCase()}`);
-            if (r.jointRoughness && r.jointRoughness !== '') parts.push(r.jointRoughness.toUpperCase());
-            if (r.jointGeometry && r.jointGeometry !== '') parts.push(r.jointGeometry.toUpperCase());
-            if (r.jointAperture && r.jointAperture !== '') parts.push(`APERTURE ${r.jointAperture.toUpperCase()}`);
-            if (r.jointFilling && r.jointFilling !== '') parts.push(r.jointFilling.toUpperCase());
-            if (r.gwCondition && r.gwCondition !== '') parts.push(r.gwCondition.toUpperCase());
-            if (r.natFractures !== undefined && r.natFractures !== "" && r.natFractures !== "0") parts.push(`${r.natFractures} NAT. FRACTURES/FT`);
-            if (r.descriptors && r.descriptors.length > 0) {
-                parts.push(r.descriptors.map(d => d.toUpperCase()).join(', '));
-            }
+            if (r.weathering) parts.push(r.weathering.toUpperCase());
+            if (r.grainSize) parts.push(r.grainSize.toUpperCase());
+            if (r.grainShape) parts.push(r.grainShape.toUpperCase());
+            if (r.strength) parts.push(r.strength.toUpperCase());
+            if (r.bedding) parts.push(r.bedding.toUpperCase());
+            if (r.jointType) parts.push(r.jointType.toUpperCase());
+            if (r.jointSpacing) parts.push(`${r.jointSpacing.toUpperCase()} SPACED`);
+            if (r.jointPersistence) parts.push(`PERSISTENCE ${r.jointPersistence.toUpperCase()}`);
+            if (r.jointRoughness) parts.push(r.jointRoughness.toUpperCase());
+            if (r.jointGeometry) parts.push(r.jointGeometry.toUpperCase());
+            if (r.jointAperture) parts.push(`APERTURE ${r.jointAperture.toUpperCase()}`);
+            if (r.jointFilling) parts.push(r.jointFilling.toUpperCase());
+            if (r.gwCondition) parts.push(r.gwCondition.toUpperCase());
+            if (r.natFractures && r.natFractures !== "0") parts.push(`${r.natFractures} NAT. FRACTURES/FT`);
+            if (r.descriptors && r.descriptors.length > 0) parts.push(r.descriptors.map(d => d.toUpperCase()).join(', '));
             return parts.length > 0 ? parts.join(', ') : "CLICK TO EDIT PROPERTIES...";
         }
 
@@ -1108,40 +1018,39 @@
 
         function getGWProfileLabel(gw) {
             if (!gw || !gw.time) return "";
-
-            const labels = {
-                "ATD": "GW: ATD",
-                "Next Day": "GW: ND",
-                "Cave In": "GW: CI",
-                "After Coring": "GW: AC",
-                "After Mud Rotary": "GW: AMR",
-                "N/E": "GW: NE",
-                "N/A": "GW: NA",
-                "Other": "GW: NOTE"
-            };
-
+            const labels = { "ATD": "GW: ATD", "Next Day": "GW: ND", "Cave In": "GW: CI", "After Coring": "GW: AC", "After Mud Rotary": "GW: AMR", "N/E": "GW: NE", "N/A": "GW: NA", "Other": "GW: NOTE" };
             return labels[gw.time] || "GW";
+        }
+
+        function getBoringGPS() {
+            if (!navigator.geolocation) { alert("Geolocation is not supported by your browser"); return; }
+            showToast("Retrieving GPS location...");
+            navigator.geolocation.getCurrentPosition((position) => {
+                const cur = borings[activeBoringIndex];
+                cur.gpsLat = position.coords.latitude.toFixed(6);
+                cur.gpsLon = position.coords.longitude.toFixed(6);
+                cur.gpsAccuracy = position.coords.accuracy ? `${Math.round(position.coords.accuracy * 3.28084)} ft` : "";
+                cur.gpsElevation = position.coords.altitude !== null ? `${(position.coords.altitude * 3.28084).toFixed(1)} ft` : "";
+                cur.gpsTimestamp = new Date(position.timestamp || Date.now()).toISOString();
+                cur.gpsSource = "Device GPS";
+                syncHeaderUI();
+                saveLocal();
+                showToast("GPS location acquired successfully.");
+            }, (error) => { alert("Unable to retrieve location: " + error.message); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
         }
 
         function recalculateTotalDepth() {
             const cur = borings[activeBoringIndex];
             if (!cur) return;
             let maxDepth = parseFloat(cur.totalDepth) || 0;
-
             let cumulativeDepth = 0;
             if (cur.surfaceConditions) {
-                cur.surfaceConditions.forEach(sc => {
-                    const thickInches = parseFloat(sc.thickness) || 0;
-                    cumulativeDepth += thickInches / 12.0;
-                });
+                cur.surfaceConditions.forEach(sc => { cumulativeDepth += (parseFloat(sc.thickness) || 0) / 12.0; });
             }
-
             if (cur.samples) {
                 cur.samples.forEach(s => {
                     const top = parseFloat(s.whole) + parseFloat(s.dec);
-                    const lenStr = String(s.length || "18").replace(/[^0-9.]/g, '');
-                    const lenInches = parseFloat(lenStr) || 18.0;
-                    const lenFeet = lenInches / 12.0;
+                    const lenFeet = (parseFloat(String(s.length || "18").replace(/[^0-9.]/g, '')) || 18.0) / 12.0;
                     if (top + lenFeet > maxDepth) maxDepth = top + lenFeet;
                 });
             }
@@ -1152,7 +1061,6 @@
                     if (top + runLen > maxDepth) maxDepth = top + runLen;
                 });
             }
-
             cur.totalDepth = maxDepth.toFixed(1);
             const tdInput = document.getElementById('totalDepth');
             if (tdInput) tdInput.value = cur.totalDepth;
@@ -1164,19 +1072,11 @@
             saveLocal();
         }
 
-        function formatBoringId(prefix, num) {
-            return `${prefix}-${String(num).padStart(2, '0')}`;
-        }
-
         function updateBoringSelector() {
             const sel = document.getElementById('boringSelector');
             if (!sel) return;
-
-            const sortedIndices = borings.map((b, idx) => ({b, idx})).sort((x, y) => compareBoringIds(x.b.id, y.b.id));
-
-            sel.innerHTML = sortedIndices.map(item => 
-                `<option value="${item.idx}" ${item.idx === activeBoringIndex ? 'selected' : ''}>${item.b.id || 'B-01'}</option>`
-            ).join('');
+            const sorted = borings.map((b, idx) => ({b, idx})).sort((x, y) => compareBoringIds(x.b.id, y.b.id));
+            sel.innerHTML = sorted.map(item => `<option value="${item.idx}" ${item.idx === activeBoringIndex ? 'selected' : ''}>${item.b.id || 'B-01'}</option>`).join('');
         }
 
         function switchBoring(index) {
@@ -1189,36 +1089,15 @@
             const curBoring = borings[activeBoringIndex];
             const parsed = parseBoringId(curBoring ? curBoring.id : "B-01");
             const prefix = parsed.prefix.replace(/-$/, '');
-            
             const existingNums = borings.filter(b => parseBoringId(b.id).prefix.includes(prefix)).map(b => parseBoringId(b.id).number);
             const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : borings.length + 1;
-            const newBoringId = formatBoringId(prefix || 'B', nextNum);
+            const newBoringId = `${prefix || 'B'}-${String(nextNum).padStart(2, '0')}`;
             
-            const newBoring = {
-                id: newBoringId,
-                rig: curBoring ? (curBoring.rig || "") : "",
-                driller: curBoring ? (curBoring.driller || "") : "",
-                logger: curBoring ? (curBoring.logger || "") : "",
-                additionalNotes: "",
-                totalDepth: "0.0",
-                offset: "0",
-                direction: "N/A",
-                startDate: "",
-                endDate: "",
-                terminationReason: "Completed at Planned Depth",
-                refusalType: "None",
-                refusalDepth: "",
-                methods: [],
-                surfaceConditions: [],
-                gw: [
-                    { depth: "", time: "N/A", customTime: "" },
-                    { depth: "", time: "N/A", customTime: "" },
-                    { depth: "", time: "N/A", customTime: "" }
-                ],
-                samples: [],
-                rockSamples: []
-            };
-            borings.push(newBoring);
+            borings.push({
+                id: newBoringId, rig: curBoring?.rig || "", driller: curBoring?.driller || "", logger: curBoring?.logger || "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
+                gw: [{depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}],
+                samples: [], rockSamples: []
+            });
             activeBoringIndex = borings.length - 1;
             updateBoringSelector();
             syncHeaderUI();
@@ -1227,10 +1106,7 @@
         }
 
         function deleteCurrentBoring() {
-            if (borings.length <= 1) {
-                showToast("Cannot delete the only boring log.");
-                return;
-            }
+            if (borings.length <= 1) { showToast("Cannot delete the only boring log."); return; }
             const deletedId = borings[activeBoringIndex].id;
             if (confirm("Are you sure you want to delete the current boring?")) {
                 borings.splice(activeBoringIndex, 1);
@@ -1244,37 +1120,28 @@
 
         function confirmResetAll() {
             if (confirm("Are you sure you want to delete all borings and project information?")) {
-                const promptVal = prompt("Are you sure you want to delete all borings and project information?\n\nType \"YES\" to confirm:");
+                const promptVal = prompt("Type \"YES\" to confirm resetting all data:");
                 if (promptVal && promptVal.trim() === "YES") {
-                    localStorage.removeItem('geoTabletLog_v1_6_3');
+                    localStorage.removeItem('geoTabletLog_v1_7_0');
                     projectMeta = { client: "", name: "", number: "" };
                     borings = [{
-                        id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
+                        id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
                         gw: [{depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}],
-                        samples: [],
-                        rockSamples: []
+                        samples: [], rockSamples: []
                     }];
                     activeBoringIndex = 0;
                     updateBoringSelector();
                     syncHeaderUI();
                     renderTables();
                     showToast("All project data has been reset.");
-                } else {
-                    showToast("Reset canceled.");
                 }
             }
         }
 
-        function updateProjectMeta(field, val) {
-            projectMeta[field] = val;
-            saveLocal();
-        }
-
+        function updateProjectMeta(field, val) { projectMeta[field] = val; saveLocal(); }
         function updateActiveBoringHeader(field, val) {
             borings[activeBoringIndex][field] = val;
-            if (field === 'id') {
-                updateBoringSelector();
-            }
+            if (field === 'id') updateBoringSelector();
             saveLocal();
         }
 
@@ -1293,8 +1160,7 @@
         }
 
         function removeDrillingMethod(methodName) {
-            const curMethods = borings[activeBoringIndex].methods || [];
-            borings[activeBoringIndex].methods = curMethods.filter(m => m !== methodName);
+            borings[activeBoringIndex].methods = (borings[activeBoringIndex].methods || []).filter(m => m !== methodName);
             renderDrillingBadges();
             saveLocal();
         }
@@ -1316,9 +1182,7 @@
         }
 
         function updateActiveBoringGW(index, field, val) {
-            if (!borings[activeBoringIndex].gw[index]) {
-                borings[activeBoringIndex].gw[index] = { depth: "", time: "N/A", customTime: "" };
-            }
+            if (!borings[activeBoringIndex].gw[index]) borings[activeBoringIndex].gw[index] = { depth: "", time: "N/A", customTime: "" };
             borings[activeBoringIndex].gw[index][field] = val;
             updateLiveProfile();
             saveLocal();
@@ -1327,8 +1191,7 @@
         function onGWTypeChange(index, val) {
             updateActiveBoringGW(index, 'time', val);
             const customWrap = document.getElementById(`gwCustomWrap${index+1}`);
-            if (val === 'Other') customWrap.classList.remove('hidden');
-            else customWrap.classList.add('hidden');
+            if (val === 'Other') customWrap.classList.remove('hidden'); else customWrap.classList.add('hidden');
         }
 
         function syncHeaderUI() {
@@ -1342,6 +1205,8 @@
             document.getElementById('drillerName').value = cur.driller || "";
             document.getElementById('loggerName').value = cur.logger || "";
             document.getElementById('additionalBoringNotes').value = cur.additionalNotes || "";
+            document.getElementById('gpsLat').value = cur.gpsLat || "";
+            document.getElementById('gpsLon').value = cur.gpsLon || "";
             document.getElementById('totalDepth').value = cur.totalDepth || "0.0";
             document.getElementById('boringOffset').value = cur.offset || "0";
             document.getElementById('boringDirection').value = cur.direction || "N/A";
@@ -1358,22 +1223,16 @@
                 document.getElementById(`gwDepth${i+1}`).value = gw.depth || "";
                 document.getElementById(`gwTime${i+1}`).value = gw.time || "N/A";
                 const customWrap = document.getElementById(`gwCustomWrap${i+1}`);
-                const customInput = document.getElementById(`gwCustom${i+1}`);
-                customInput.value = gw.customTime || "";
-                if (gw.time === 'Other') customWrap.classList.remove('hidden');
-                else customWrap.classList.add('hidden');
+                document.getElementById(`gwCustom${i+1}`).value = gw.customTime || "";
+                if (gw.time === 'Other') customWrap.classList.remove('hidden'); else customWrap.classList.add('hidden');
             }
         }
 
         function sortActiveBoringSamples() {
             const activeBoring = borings[activeBoringIndex];
             if (!activeBoring) return;
-            if (activeBoring.samples) {
-                activeBoring.samples.sort((a, b) => (parseFloat(a.whole) + parseFloat(a.dec)) - (parseFloat(b.whole) + parseFloat(b.dec)));
-            }
-            if (activeBoring.rockSamples) {
-                activeBoring.rockSamples.sort((a, b) => (parseFloat(a.whole) + parseFloat(a.dec)) - (parseFloat(b.whole) + parseFloat(b.dec)));
-            }
+            if (activeBoring.samples) activeBoring.samples.sort((a, b) => (parseFloat(a.whole) + parseFloat(a.dec)) - (parseFloat(b.whole) + parseFloat(b.dec)));
+            if (activeBoring.rockSamples) activeBoring.rockSamples.sort((a, b) => (parseFloat(a.whole) + parseFloat(a.dec)) - (parseFloat(b.whole) + parseFloat(b.dec)));
         }
 
         function renderTables() {
@@ -1386,46 +1245,34 @@
             saveLocal();
         }
 
-        // --- Surface Conditions Table Logic ---
         function renderSurfaceConditionsTable() {
             const tbody = document.getElementById('surfaceConditionsTbody');
             if (!tbody) return;
             tbody.innerHTML = '';
             const activeBoring = borings[activeBoringIndex];
-            if (!activeBoring) return;
             if (!activeBoring.surfaceConditions) activeBoring.surfaceConditions = [];
 
-            const scList = activeBoring.surfaceConditions;
-
-            scList.forEach((sc, idx) => {
+            activeBoring.surfaceConditions.forEach((sc, idx) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/40 transition";
-
                 const isCustomType = !surfaceConditionTypes.includes(sc.type) && sc.type !== "";
                 const selectedTypeVal = isCustomType ? "Other (Custom)" : (sc.type || "");
-
                 const typeOptionsHtml = surfaceConditionTypes.map(t => `<option value="${t}" ${selectedTypeVal === t ? 'selected' : ''}>${t}</option>`).join('');
 
                 tr.innerHTML = `
-                    <td class="py-2.5 px-3">
-                        <input type="number" step="0.5" value="${sc.thickness || ''}" onchange="updateSurfaceCondition(${idx}, 'thickness', this.value)" placeholder="inches" class="table-input font-bold text-amber-600 text-center">
-                    </td>
+                    <td class="py-2.5 px-3"><input type="number" step="0.5" value="${sc.thickness || ''}" onchange="updateSurfaceCondition(${idx}, 'thickness', this.value)" placeholder="inches" class="table-input font-bold text-amber-600 text-center"></td>
                     <td class="py-2.5 px-3 space-y-1">
                         <select onchange="onSurfaceConditionTypeChange(${idx}, this.value)" class="table-select font-bold">${typeOptionsHtml}</select>
                         <input type="text" id="customTypeInput_${idx}" value="${isCustomType ? sc.type : ''}" onchange="updateSurfaceCondition(${idx}, 'type', this.value)" placeholder="Specify custom type..." class="table-input text-xs ${isCustomType ? '' : 'hidden'} mt-1">
                     </td>
-                    <td class="py-2.5 px-3">
-                        <input type="text" value="${sc.remarks || ''}" onchange="updateSurfaceCondition(${idx}, 'remarks', this.value)" placeholder="Remarks..." class="table-input">
-                    </td>
+                    <td class="py-2.5 px-3"><input type="text" value="${sc.remarks || ''}" onchange="updateSurfaceCondition(${idx}, 'remarks', this.value)" placeholder="Remarks..." class="table-input"></td>
                     <td class="py-2.5 px-3 text-center">
                         <div class="flex items-center justify-center space-x-1">
-                            <button onclick="moveSurfaceCondition(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-30" title="Move Up"><i data-lucide="arrow-up" class="w-3.5 h-3.5"></i></button>
-                            <button onclick="moveSurfaceCondition(${idx}, 1)" ${idx === scList.length - 1 ? 'disabled' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-30" title="Move Down"><i data-lucide="arrow-down" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="moveSurfaceCondition(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-30"><i data-lucide="arrow-up" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="moveSurfaceCondition(${idx}, 1)" ${idx === activeBoring.surfaceConditions.length - 1 ? 'disabled' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-30"><i data-lucide="arrow-down" class="w-3.5 h-3.5"></i></button>
                         </div>
                     </td>
-                    <td class="py-2.5 px-3 text-center">
-                        <button onclick="deleteSurfaceCondition(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </td>
+                    <td class="py-2.5 px-3 text-center"><button onclick="deleteSurfaceCondition(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1433,49 +1280,32 @@
         }
 
         function addSurfaceConditionRow() {
-            const activeBoring = borings[activeBoringIndex];
-            if (!activeBoring.surfaceConditions) activeBoring.surfaceConditions = [];
-            activeBoring.surfaceConditions.push({ thickness: "", type: "Asphalt", remarks: "" });
+            if (!borings[activeBoringIndex].surfaceConditions) borings[activeBoringIndex].surfaceConditions = [];
+            borings[activeBoringIndex].surfaceConditions.push({ thickness: "", type: "Asphalt", remarks: "" });
             renderTables();
             showToast("Surface condition added.");
         }
 
-        function updateSurfaceCondition(idx, field, val) {
-            const activeBoring = borings[activeBoringIndex];
-            activeBoring.surfaceConditions[idx][field] = val;
-            renderTables();
-        }
-
+        function updateSurfaceCondition(idx, field, val) { borings[activeBoringIndex].surfaceConditions[idx][field] = val; renderTables(); }
         function onSurfaceConditionTypeChange(idx, val) {
-            const activeBoring = borings[activeBoringIndex];
             const customInput = document.getElementById(`customTypeInput_${idx}`);
             if (val === "Other (Custom)") {
-                activeBoring.surfaceConditions[idx].type = customInput ? customInput.value : "";
+                borings[activeBoringIndex].surfaceConditions[idx].type = customInput ? customInput.value : "";
                 if (customInput) customInput.classList.remove('hidden');
             } else {
-                activeBoring.surfaceConditions[idx].type = val;
+                borings[activeBoringIndex].surfaceConditions[idx].type = val;
                 if (customInput) customInput.classList.add('hidden');
             }
             renderTables();
         }
-
         function moveSurfaceCondition(idx, direction) {
-            const activeBoring = borings[activeBoringIndex];
-            const scList = activeBoring.surfaceConditions;
+            const scList = borings[activeBoringIndex].surfaceConditions;
             const newIdx = idx + direction;
             if (newIdx < 0 || newIdx >= scList.length) return;
-            const temp = scList[idx];
-            scList[idx] = scList[newIdx];
-            scList[newIdx] = temp;
+            const temp = scList[idx]; scList[idx] = scList[newIdx]; scList[newIdx] = temp;
             renderTables();
         }
-
-        function deleteSurfaceCondition(idx) {
-            const activeBoring = borings[activeBoringIndex];
-            activeBoring.surfaceConditions.splice(idx, 1);
-            renderTables();
-            showToast("Surface condition deleted.");
-        }
+        function deleteSurfaceCondition(idx) { borings[activeBoringIndex].surfaceConditions.splice(idx, 1); renderTables(); showToast("Surface condition deleted."); }
 
         function renderSoilTable() {
             const tbody = document.getElementById('soilLogTbody');
@@ -1487,46 +1317,22 @@
             activeBoring.samples.forEach((s, idx) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/40 transition";
-
                 const nVal = computeN(s.b2, s.b3);
                 const autoDensity = computeConsistencyDensity(nVal, s.uscs);
-
-                const effectiveAttrs = { 
-                    origin: s.origin, 
-                    uscs: s.uscs, 
-                    major: s.major, 
-                    minor: s.minor, 
-                    moisture: s.moisture,
-                    shade: s.shade, 
-                    colors: s.colors, 
-                    density: autoDensity 
-                };
-
-                const wholeOpts = wholeFootOptions.map(w => `<option value="${w}" ${s.whole == w ? 'selected' : ''}>${w}'</option>`).join('');
-                const decOpts = decimalOptions.map(d => `<option value="${d}" ${s.dec == d ? 'selected' : ''}>${d}</option>`).join('');
-                const typeOpts = sampleTypes.map(t => `<option value="${t}" ${s.type === t ? 'selected' : ''}>${t}</option>`).join('');
-                const b1Opts = blowOptions.map(b => `<option value="${b}" ${s.b1 === b ? 'selected' : ''}>${b}</option>`).join('');
-                const b2Opts = blowOptions.map(b => `<option value="${b}" ${s.b2 === b ? 'selected' : ''}>${b}</option>`).join('');
-                const b3Opts = blowOptions.map(b => `<option value="${b}" ${s.b3 === b ? 'selected' : ''}>${b}</option>`).join('');
-
-                const soilSummary = buildSoilDescription(s, effectiveAttrs) || "Click to edit soil properties...";
+                const soilSummary = buildSoilDescription(s, { ...s, density: autoDensity }) || "Click to edit soil properties...";
 
                 tr.innerHTML = `
                     <td class="py-2.5 px-3">
                         <div class="flex space-x-1">
-                            <select onchange="updateSoilRow(${idx}, 'whole', this.value)" class="table-select font-bold w-18">${wholeOpts}</select>
-                            <select onchange="updateSoilRow(${idx}, 'dec', this.value)" class="table-select w-16">${decOpts}</select>
+                            <select onchange="updateSoilRow(${idx}, 'whole', this.value)" class="table-select font-bold w-18">${wholeFootOptions.map(w => `<option value="${w}" ${s.whole == w ? 'selected' : ''}>${w}'</option>`).join('')}</select>
+                            <select onchange="updateSoilRow(${idx}, 'dec', this.value)" class="table-select w-16">${decimalOptions.map(d => `<option value="${d}" ${s.dec == d ? 'selected' : ''}>${d}</option>`).join('')}</select>
                         </div>
                     </td>
-                    <td class="py-2.5 px-3">
-                        <select onchange="onSampleTypeChange(${idx}, this.value)" class="table-select font-bold">${typeOpts}</select>
-                    </td>
-                    <td class="py-2.5 px-3">
-                        <input type="text" value="${s.length || '18\"'}" onchange="updateSoilRow(${idx}, 'length', this.value)" class="table-input font-semibold text-amber-600 dark:text-amber-400 text-center" placeholder="e.g. 18&quot;">
-                    </td>
-                    <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b1', this.value)" class="table-select">${b1Opts}</select></td>
-                    <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b2', this.value)" class="table-select">${b2Opts}</select></td>
-                    <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b3', this.value)" class="table-select">${b3Opts}</select></td>
+                    <td class="py-2.5 px-3"><select onchange="onSampleTypeChange(${idx}, this.value)" class="table-select font-bold">${sampleTypes.map(t => `<option value="${t}" ${s.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
+                    <td class="py-2.5 px-3"><input type="text" value="${s.length || '18\"'}" onchange="updateSoilRow(${idx}, 'length', this.value)" class="table-input font-semibold text-amber-600 dark:text-amber-400 text-center"></td>
+                    <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b1', this.value)" class="table-select">${blowOptions.map(b => `<option value="${b}" ${s.b1 === b ? 'selected' : ''}>${b}</option>`).join('')}</select></td>
+                    <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b2', this.value)" class="table-select">${blowOptions.map(b => `<option value="${b}" ${s.b2 === b ? 'selected' : ''}>${b}</option>`).join('')}</select></td>
+                    <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b3', this.value)" class="table-select">${blowOptions.map(b => `<option value="${b}" ${s.b3 === b ? 'selected' : ''}>${b}</option>`).join('')}</select></td>
                     <td class="py-2.5 px-3 text-center font-extrabold text-amber-600 dark:text-amber-400 text-sm">${nVal}</td>
                     <td class="py-2.5 px-3"><input type="number" value="${s.rec || ''}" onchange="updateSoilRow(${idx}, 'rec', this.value)" placeholder="in" class="table-input text-center"></td>
                     <td class="py-2.5 px-3">
@@ -1546,225 +1352,94 @@
         function onSampleTypeChange(idx, val) {
             const sample = borings[activeBoringIndex].samples[idx];
             sample.type = val;
-            if (sampleLengthDefaults[val] !== undefined) {
-                sample.length = sampleLengthDefaults[val];
-            }
+            if (sampleLengthDefaults[val] !== undefined) sample.length = sampleLengthDefaults[val];
             renderTables();
         }
 
-        function updateSoilRow(idx, field, val) {
-            borings[activeBoringIndex].samples[idx][field] = val;
-            renderTables();
-        }
-
+        function updateSoilRow(idx, field, val) { borings[activeBoringIndex].samples[idx][field] = val; renderTables(); }
         function addSoilRow() {
             const curSamples = borings[activeBoringIndex].samples;
             const last = curSamples[curSamples.length - 1];
             const nextWhole = last ? parseInt(last.whole) + 2 : 0;
             const defaultType = last ? last.type : "SS";
-            
-            curSamples.push({
-                whole: nextWhole, 
-                dec: "0.0", 
-                type: defaultType, 
-                length: sampleLengthDefaults[defaultType] || "18\"",
-                b1: "", b2: "", b3: "", rec: "", 
-                uscs: last ? last.uscs : "", 
-                major: last ? last.major : "", 
-                minor: last ? last.minor : "", 
-                moisture: last ? last.moisture : "", 
-                shade: "", 
-                colors: last && last.colors ? [...last.colors] : [], 
-                origin: last ? last.origin : "", 
-                descriptors: last && last.descriptors ? [...last.descriptors] : [], 
-                remarks: ""
-            });
+            curSamples.push({ whole: nextWhole, dec: "0.0", type: defaultType, length: sampleLengthDefaults[defaultType] || "18\"", b1: "", b2: "", b3: "", rec: "", uscs: last?.uscs || "", major: last?.major || "", minor: last?.minor || "", moisture: last?.moisture || "", shade: "", colors: last?.colors ? [...last.colors] : [], origin: last?.origin || "", descriptors: last?.descriptors ? [...last.descriptors] : [], remarks: "" });
             renderTables();
             showToast("Soil sample row added.");
         }
+        function deleteSoilRow(idx) { borings[activeBoringIndex].samples.splice(idx, 1); renderTables(); showToast("Soil sample row deleted."); }
 
-        function deleteSoilRow(idx) {
-            borings[activeBoringIndex].samples.splice(idx, 1);
-            renderTables();
-            showToast("Soil sample row deleted.");
-        }
-
-        // --- Soil Property Modal Logic ---
         let currentModalSoilIndex = null;
-
         function renderChipGroup(containerId, options, currentValue, callbackName) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            
             const normCurrent = (currentValue === undefined || currentValue === null) ? "" : String(currentValue).trim();
-            const fullOptions = ["", ...options.filter(o => o !== "")];
-
-            container.innerHTML = fullOptions.map(opt => {
-                const displayLabel = (opt === "") ? "-- Blank --" : opt;
+            container.innerHTML = ["", ...options.filter(o => o !== "")].map(opt => {
                 const isSelected = (String(opt).trim() === normCurrent);
-                const activeClass = isSelected 
-                    ? "bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-sm" 
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 font-medium";
-                const escapedOpt = opt.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
-                return `<button type="button" onclick="${callbackName}('${escapedOpt}')" class="px-2.5 py-1.5 rounded-lg border text-xs transition ${activeClass}">${displayLabel}</button>`;
+                const activeClass = isSelected ? "bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-sm" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 font-medium";
+                return `<button type="button" onclick="${callbackName}('${opt.replace(/"/g, '&quot;')}')" class="px-2.5 py-1.5 rounded-lg border text-xs transition ${activeClass}">${opt === "" ? "-- Blank --" : opt}</button>`;
             }).join('');
         }
 
         function openSoilPropsModal(idx) {
             currentModalSoilIndex = idx;
             const s = borings[activeBoringIndex].samples[idx];
-
             document.getElementById('soilModalSubtitle').textContent = `Boring ${borings[activeBoringIndex].id || ''} — Depth: ${(parseFloat(s.whole) + parseFloat(s.dec)).toFixed(1)} ft`;
-
             renderChipGroup('chipContainer_uscs', uscsList, s.uscs || '', 'selectSoilUscs');
             renderChipGroup('chipContainer_major', majorMods, s.major || '', 'selectSoilMajor');
             renderChipGroup('chipContainer_minor', minorMods, s.minor || '', 'selectSoilMinor');
             renderChipGroup('chipContainer_moisture', moistureList, s.moisture || '', 'selectSoilMoisture');
             renderChipGroup('chipContainer_origin', origins, s.origin || '', 'selectSoilOrigin');
             renderChipGroup('chipContainer_soilShade', shades, s.shade || '', 'selectSoilShade');
-            
             populateSoilModalColorPicker('soilColorPicker', colorPalette, '');
-
-            const nVal = computeN(s.b2, s.b3);
-            const calculatedDensity = computeConsistencyDensity(nVal, s.uscs);
-            document.getElementById('soilModal_densityDisplay').value = calculatedDensity || "Auto-calculated from N-value & USCS";
-
+            document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(computeN(s.b2, s.b3), s.uscs) || "Auto-calculated from N-value & USCS";
             renderSoilColorChips(s.colors || []);
-
             document.getElementById('soilPropsModal').classList.remove('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function clearSoilPreviousDescription() {
             if (currentModalSoilIndex === null) return;
             const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
-            s.uscs = "";
-            s.major = "";
-            s.minor = "";
-            s.moisture = "";
-            s.origin = "";
-            s.shade = "";
-            s.colors = [];
-
-            renderChipGroup('chipContainer_uscs', uscsList, '', 'selectSoilUscs');
-            renderChipGroup('chipContainer_major', majorMods, '', 'selectSoilMajor');
-            renderChipGroup('chipContainer_minor', minorMods, '', 'selectSoilMinor');
-            renderChipGroup('chipContainer_moisture', moistureList, '', 'selectSoilMoisture');
-            renderChipGroup('chipContainer_origin', origins, '', 'selectSoilOrigin');
-            renderChipGroup('chipContainer_soilShade', shades, '', 'selectSoilShade');
-            
-            const nVal = computeN(s.b2, s.b3);
-            document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
-            renderSoilColorChips([]);
+            s.uscs = ""; s.major = ""; s.minor = ""; s.moisture = ""; s.origin = ""; s.shade = ""; s.colors = [];
+            openSoilPropsModal(currentModalSoilIndex);
             renderTables();
             showToast("Soil properties cleared.");
         }
 
-        function selectSoilUscs(val) {
-            if (currentModalSoilIndex === null) return;
-            borings[activeBoringIndex].samples[currentModalSoilIndex].uscs = val;
-            const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
-            const nVal = computeN(s.b2, s.b3);
-            document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
-            renderChipGroup('chipContainer_uscs', uscsList, val, 'selectSoilUscs');
-            renderTables();
-        }
-
-        function selectSoilMajor(val) {
-            if (currentModalSoilIndex === null) return;
-            borings[activeBoringIndex].samples[currentModalSoilIndex].major = val;
-            renderChipGroup('chipContainer_major', majorMods, val, 'selectSoilMajor');
-            renderTables();
-        }
-
-        function selectSoilMinor(val) {
-            if (currentModalSoilIndex === null) return;
-            borings[activeBoringIndex].samples[currentModalSoilIndex].minor = val;
-            renderChipGroup('chipContainer_minor', minorMods, val, 'selectSoilMinor');
-            renderTables();
-        }
-
-        function selectSoilMoisture(val) {
-            if (currentModalSoilIndex === null) return;
-            borings[activeBoringIndex].samples[currentModalSoilIndex].moisture = val;
-            renderChipGroup('chipContainer_moisture', moistureList, val, 'selectSoilMoisture');
-            renderTables();
-        }
-
-        function selectSoilOrigin(val) {
-            if (currentModalSoilIndex === null) return;
-            borings[activeBoringIndex].samples[currentModalSoilIndex].origin = val;
-            renderChipGroup('chipContainer_origin', origins, val, 'selectSoilOrigin');
-            renderTables();
-        }
-
-        function selectSoilShade(val) {
-            if (currentModalSoilIndex === null) return;
-            borings[activeBoringIndex].samples[currentModalSoilIndex].shade = val;
-            renderChipGroup('chipContainer_soilShade', shades, val, 'selectSoilShade');
-            renderTables();
-        }
+        function selectSoilUscs(val) { borings[activeBoringIndex].samples[currentModalSoilIndex].uscs = val; renderChipGroup('chipContainer_uscs', uscsList, val, 'selectSoilUscs'); renderTables(); }
+        function selectSoilMajor(val) { borings[activeBoringIndex].samples[currentModalSoilIndex].major = val; renderChipGroup('chipContainer_major', majorMods, val, 'selectSoilMajor'); renderTables(); }
+        function selectSoilMinor(val) { borings[activeBoringIndex].samples[currentModalSoilIndex].minor = val; renderChipGroup('chipContainer_minor', minorMods, val, 'selectSoilMinor'); renderTables(); }
+        function selectSoilMoisture(val) { borings[activeBoringIndex].samples[currentModalSoilIndex].moisture = val; renderChipGroup('chipContainer_moisture', moistureList, val, 'selectSoilMoisture'); renderTables(); }
+        function selectSoilOrigin(val) { borings[activeBoringIndex].samples[currentModalSoilIndex].origin = val; renderChipGroup('chipContainer_origin', origins, val, 'selectSoilOrigin'); renderTables(); }
+        function selectSoilShade(val) { borings[activeBoringIndex].samples[currentModalSoilIndex].shade = val; renderChipGroup('chipContainer_soilShade', shades, val, 'selectSoilShade'); renderTables(); }
 
         function populateSoilModalColorPicker(id, list, selectedVal) {
-            const select = document.getElementById(id);
-            if (!select) return;
-            select.innerHTML = list.map(item => `<option value="${item}" ${item === selectedVal ? 'selected' : ''}>${item || '-- Blank --'}</option>`).join('');
+            document.getElementById(id).innerHTML = list.map(item => `<option value="${item}" ${item === selectedVal ? 'selected' : ''}>${item || '-- Blank --'}</option>`).join('');
         }
-
         function addSoilColor() {
             if (currentModalSoilIndex === null) return;
             const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
-            const shadeVal = s.shade || '';
-            const colorPicker = document.getElementById('soilColorPicker');
-            const colorVal = colorPicker.value;
+            const colorVal = document.getElementById('soilColorPicker').value;
             if (!colorVal) return;
-
-            let entry = colorVal;
-            if (shadeVal && shadeVal !== '') {
-                entry = `${shadeVal} ${colorVal}`;
-            }
-
+            const entry = s.shade ? `${s.shade} ${colorVal}` : colorVal;
             if (!s.colors) s.colors = [];
             s.colors.push(entry);
-
             s.shade = "";
-            colorPicker.value = "";
-            renderChipGroup('chipContainer_soilShade', shades, s.shade, 'selectSoilShade');
-
+            renderChipGroup('chipContainer_soilShade', shades, '', 'selectSoilShade');
             renderSoilColorChips(s.colors);
             renderTables();
         }
-
         function removeSoilColor(colorIndex) {
-            if (currentModalSoilIndex === null) return;
-            const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
-            s.colors.splice(colorIndex, 1);
-            renderSoilColorChips(s.colors);
+            borings[activeBoringIndex].samples[currentModalSoilIndex].colors.splice(colorIndex, 1);
+            renderSoilColorChips(borings[activeBoringIndex].samples[currentModalSoilIndex].colors);
             renderTables();
         }
-
         function renderSoilColorChips(colorsList) {
             const container = document.getElementById('soilColorsList');
             if (!container) return;
-            if (colorsList.length === 0) {
-                container.innerHTML = `<span class="text-[11px] text-slate-400 italic">No colors selected (Default).</span>`;
-                return;
-            }
-            container.innerHTML = colorsList.map((c, i) => `
-                <span class="inline-flex items-center bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-sm">
-                    ${i+1}. ${c}
-                    <button type="button" onclick="removeSoilColor(${i})" class="ml-1.5 text-amber-700 dark:text-amber-400 hover:text-rose-600 font-bold px-1">&times;</button>
-                </span>
-            `).join('');
+            if (colorsList.length === 0) { container.innerHTML = `<span class="text-[11px] text-slate-400 italic">No colors selected (Default).</span>`; return; }
+            container.innerHTML = colorsList.map((c, i) => `<span class="inline-flex items-center bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-sm">${i+1}. ${c}<button type="button" onclick="removeSoilColor(${i})" class="ml-1.5 text-amber-700 dark:text-amber-400 hover:text-rose-600 font-bold px-1">&times;</button></span>`).join('');
         }
-
-        function closeSoilPropsModal() {
-            currentModalSoilIndex = null;
-            document.getElementById('soilPropsModal').classList.add('hidden');
-        }
-
-        // --- Rock Table & Property Panel Logic ---
-        let currentModalRockIndex = null;
+        function closeSoilPropsModal() { currentModalSoilIndex = null; document.getElementById('soilPropsModal').classList.add('hidden'); }
 
         function renderRockTable() {
             const tbody = document.getElementById('rockLogTbody');
@@ -1776,191 +1451,60 @@
             activeBoring.rockSamples.forEach((r, idx) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/40 transition";
-
                 const topVal = parseFloat(r.whole) + parseFloat(r.dec);
-                const runLen = parseFloat(r.runLength) || 0;
-                const bottomDepth = (topVal + runLen).toFixed(1);
-
-                const wholeOpts = wholeFootOptions.map(w => `<option value="${w}" ${r.whole == w ? 'selected' : ''}>${w}'</option>`).join('');
-                const decOpts = decimalOptions.map(d => `<option value="${d}" ${r.dec == d ? 'selected' : ''}>${d}</option>`).join('');
-
+                const bottomDepth = (topVal + (parseFloat(r.runLength) || 0)).toFixed(1);
                 const rockSummary = buildRockDescription(r);
 
                 tr.innerHTML = `
                     <td class="py-2.5 px-3">
                         <div class="flex space-x-1">
-                            <select onchange="updateRockTopDepth(${idx}, 'whole', this.value)" class="table-select font-bold w-18">${wholeOpts}</select>
-                            <select onchange="updateRockTopDepth(${idx}, 'dec', this.value)" class="table-select w-16">${decOpts}</select>
+                            <select onchange="updateRockTopDepth(${idx}, 'whole', this.value)" class="table-select font-bold w-18">${wholeFootOptions.map(w => `<option value="${w}" ${r.whole == w ? 'selected' : ''}>${w}'</option>`).join('')}</select>
+                            <select onchange="updateRockTopDepth(${idx}, 'dec', this.value)" class="table-select w-16">${decimalOptions.map(d => `<option value="${d}" ${r.dec == d ? 'selected' : ''}>${d}</option>`).join('')}</select>
                         </div>
                     </td>
-                    <td class="py-2.5 px-3">
-                        <input type="number" step="0.1" value="${r.runLength || '5.0'}" onchange="updateRockRow(${idx}, 'runLength', this.value)" class="table-input font-bold text-amber-600 text-center">
-                    </td>
-                    <td class="py-2.5 px-3 text-center font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded">
-                        ${bottomDepth}'
-                    </td>
-                    <td class="py-2.5 px-3">
-                        <input type="number" step="0.1" value="${r.recovery || ''}" onchange="updateRockRowWithRecoveryValidation(${idx}, 'recovery', this.value)" placeholder="ft" class="table-input text-center">
-                    </td>
-                    <td class="py-2.5 px-3">
-                        <input type="number" step="0.1" value="${r.rqd || ''}" onchange="updateRockRowWithRqdValidation(${idx}, 'rqd', this.value)" placeholder="ft" class="table-input text-center">
-                    </td>
+                    <td class="py-2.5 px-3"><input type="number" step="0.1" value="${r.runLength || '5.0'}" onchange="updateRockRow(${idx}, 'runLength', this.value)" class="table-input font-bold text-amber-600 text-center"></td>
+                    <td class="py-2.5 px-3 text-center font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded">${bottomDepth}'</td>
+                    <td class="py-2.5 px-3"><input type="number" step="0.1" value="${r.recovery || ''}" onchange="updateRockRow(${idx}, 'recovery', this.value)" placeholder="ft" class="table-input text-center"></td>
+                    <td class="py-2.5 px-3"><input type="number" step="0.1" value="${r.rqd || ''}" onchange="updateRockRow(${idx}, 'rqd', this.value)" placeholder="ft" class="table-input text-center"></td>
                     <td class="py-2.5 px-3">
                         <button onclick="openRockPropsModal(${idx})" class="w-full table-input text-left whitespace-normal break-words bg-amber-500/10 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30 hover:bg-amber-500/25 transition flex items-center justify-between px-3 py-2 min-h-[36px]">
                             <span class="flex-1 pr-2">${rockSummary}</span>
                             <i data-lucide="edit-3" class="w-3.5 h-3.5 flex-shrink-0"></i>
                         </button>
                     </td>
-                    <td class="py-2.5 px-3">
-                        <input type="text" value="${r.remarks || ''}" onchange="updateRockRow(${idx}, 'remarks', this.value)" class="table-input" placeholder="Remarks...">
-                    </td>
-                    <td class="py-2.5 px-3 text-center">
-                        <button onclick="deleteRockRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </td>
+                    <td class="py-2.5 px-3"><input type="text" value="${r.remarks || ''}" onchange="updateRockRow(${idx}, 'remarks', this.value)" class="table-input" placeholder="Remarks..."></td>
+                    <td class="py-2.5 px-3 text-center"><button onclick="deleteRockRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        // Recovery vs Run Length validation
-        function updateRockRowWithRecoveryValidation(idx, field, val) {
-            const rockSample = borings[activeBoringIndex].rockSamples[idx];
-            const numVal = parseFloat(val);
-            const runLen = parseFloat(rockSample.runLength) || 0;
-
-            if (!isNaN(numVal) && numVal > runLen) {
-                alert("Warning: Recovery exceeds Run Length. Verify entry.");
-            }
-            rockSample[field] = val;
-            renderTables();
-        }
-
-        // RQD validation against Recovery
-        function updateRockRowWithRqdValidation(idx, field, val) {
-            const rockSample = borings[activeBoringIndex].rockSamples[idx];
-            const numVal = parseFloat(val);
-            const recoveryVal = parseFloat(rockSample.recovery);
-
-            if (!isNaN(numVal) && !isNaN(recoveryVal) && numVal > recoveryVal) {
-                alert("RQD cannot exceed Recovery.");
-                rockSample[field] = "";
-                renderTables();
-                return;
-            }
-            rockSample[field] = val;
-            renderTables();
-        }
-
-        function updateRockTopDepth(idx, part, val) {
-            const rockSample = borings[activeBoringIndex].rockSamples[idx];
-            rockSample[part] = val;
-            const newTop = parseFloat(rockSample.whole) + parseFloat(rockSample.dec);
-            const refusalDep = parseFloat(borings[activeBoringIndex].refusalDepth);
-
-            if (!isNaN(refusalDep) && newTop < refusalDep) {
-                alert(`WARNING: Top depth (${newTop.toFixed(1)} ft) is shallower than the recorded Refusal Depth (${refusalDep.toFixed(1)} ft)!`);
-            }
-            renderTables();
-        }
-
-        function updateRockRow(idx, field, val) {
-            borings[activeBoringIndex].rockSamples[idx][field] = val;
-            renderTables();
-        }
-
+        function updateRockTopDepth(idx, part, val) { borings[activeBoringIndex].rockSamples[idx][part] = val; renderTables(); }
+        function updateRockRow(idx, field, val) { borings[activeBoringIndex].rockSamples[idx][field] = val; renderTables(); }
         function addRockRow() {
             const activeBoring = borings[activeBoringIndex];
-            const refusalDep = parseFloat(activeBoring.refusalDepth);
-
             if (!activeBoring.rockSamples) activeBoring.rockSamples = [];
-            
-            const isFirstRun = (activeBoring.rockSamples.length === 0);
-            
-            let nextTop = !isNaN(refusalDep) ? refusalDep : 0.0;
-            const last = !isFirstRun ? activeBoring.rockSamples[activeBoring.rockSamples.length - 1] : null;
-
-            if (last) {
-                nextTop = (parseFloat(last.whole) + parseFloat(last.dec)) + (parseFloat(last.runLength) || 5.0);
-            }
-
-            const wholePart = Math.floor(nextTop);
-            const decPart = (nextTop - wholePart).toFixed(1);
-
-            let newRockRun = {
-                whole: wholePart, 
-                dec: decPart, 
-                runLength: "5.0", 
-                recovery: "", 
-                rqd: "",
-                rockType: "", 
-                shade: "", 
-                colors: [], 
-                weathering: "",
-                grainSize: "", 
-                grainShape: "", 
-                strength: "",
-                bedding: "", 
-                jointType: "", 
-                jointSpacing: "",
-                jointPersistence: "", 
-                jointRoughness: "", 
-                jointGeometry: "",
-                jointAperture: "", 
-                jointFilling: "", 
-                gwCondition: "",
-                natFractures: "0", 
-                descriptors: [], 
-                remarks: ""
-            };
-
-            if (!isFirstRun && last) {
-                newRockRun.rockType = last.rockType || "";
-                newRockRun.shade = last.shade || "";
-                newRockRun.colors = last.colors ? [...last.colors] : [];
-                newRockRun.weathering = last.weathering || "";
-                newRockRun.grainSize = last.grainSize || "";
-                newRockRun.grainShape = last.grainShape || "";
-                newRockRun.strength = last.strength || "";
-                newRockRun.bedding = last.bedding || "";
-                newRockRun.jointType = last.jointType || "";
-                newRockRun.jointSpacing = last.jointSpacing || "";
-                newRockRun.jointPersistence = last.jointPersistence || "";
-                newRockRun.jointRoughness = last.jointRoughness || "";
-                newRockRun.jointGeometry = last.jointGeometry || "";
-                newRockRun.jointAperture = last.jointAperture || "";
-                newRockRun.jointFilling = last.jointFilling || "";
-                newRockRun.gwCondition = last.gwCondition || "";
-                newRockRun.natFractures = last.natFractures || "0";
-                newRockRun.descriptors = last.descriptors ? [...last.descriptors] : [];
-            }
-
-            activeBoring.rockSamples.push(newRockRun);
+            const last = activeBoring.rockSamples[activeBoring.rockSamples.length - 1];
+            const nextTop = last ? (parseFloat(last.whole) + parseFloat(last.dec)) + (parseFloat(last.runLength) || 5.0) : 0.0;
+            activeBoring.rockSamples.push({ whole: Math.floor(nextTop), dec: (nextTop - Math.floor(nextTop)).toFixed(1), runLength: "5.0", recovery: "", rqd: "", rockType: "", shade: "", colors: [], weathering: "", grainSize: "", grainShape: "", strength: "", bedding: "", jointType: "", jointSpacing: "", jointPersistence: "", jointRoughness: "", jointGeometry: "", jointAperture: "", jointFilling: "", gwCondition: "", natFractures: "0", descriptors: [], remarks: "" });
             renderTables();
             showToast("Rock core run added.");
         }
+        function deleteRockRow(idx) { borings[activeBoringIndex].rockSamples.splice(idx, 1); renderTables(); showToast("Rock core run deleted."); }
 
-        function deleteRockRow(idx) {
-            borings[activeBoringIndex].rockSamples.splice(idx, 1);
-            renderTables();
-            showToast("Rock core run deleted.");
-        }
-
+        let currentModalRockIndex = null;
         function openRockPropsModal(idx) {
             currentModalRockIndex = idx;
             const r = borings[activeBoringIndex].rockSamples[idx];
-
             document.getElementById('rockModalSubtitle').textContent = `Boring ${borings[activeBoringIndex].id || ''} — Run Top Depth: ${(parseFloat(r.whole) + parseFloat(r.dec)).toFixed(1)} ft`;
-
             renderChipGroup('chipContainer_rockType', rockTypes, r.rockType || '', 'selectRockType');
             renderChipGroup('chipContainer_weathering', rockWeathering, r.weathering || '', 'selectRockWeathering');
             renderChipGroup('chipContainer_grainSize', rockGrainSize, r.grainSize || '', 'selectRockGrainSize');
             renderChipGroup('chipContainer_grainShape', rockGrainShape, r.grainShape || '', 'selectRockGrainShape');
             renderChipGroup('chipContainer_strength', rockStrength, r.strength || '', 'selectRockStrength');
-            
             renderChipGroup('chipContainer_rockShade', shades, r.shade || '', 'selectRockShade');
             populateSoilModalColorPicker('rockColorPicker', colorPalette, '');
-
             renderChipGroup('chipContainer_bedding', rockBedding, r.bedding || '', 'selectRockBedding');
             renderChipGroup('chipContainer_jointType', rockJointType, r.jointType || '', 'selectRockJointType');
             renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, r.jointSpacing || '', 'selectRockJointSpacing');
@@ -1970,203 +1514,61 @@
             renderChipGroup('chipContainer_jointAperture', rockAperture, r.jointAperture || '', 'selectRockJointAperture');
             renderChipGroup('chipContainer_jointFilling', rockFilling, r.jointFilling || '', 'selectRockJointFilling');
             renderChipGroup('chipContainer_gwCondition', rockGWCondition, r.gwCondition || '', 'selectRockGwCondition');
-
             document.getElementById('modal_natFractures').value = r.natFractures !== undefined ? r.natFractures : "0";
-
             renderRockColorChips(r.colors || []);
             renderModalDescriptors(r.descriptors || []);
-
             document.getElementById('rockPropsModal').classList.remove('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function clearRockPreviousDescription() {
             if (currentModalRockIndex === null) return;
             const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
-            r.rockType = "";
-            r.weathering = "";
-            r.grainSize = "";
-            r.grainShape = "";
-            r.strength = "";
-            r.shade = "";
-            r.colors = [];
-            r.bedding = "";
-            r.jointType = "";
-            r.jointSpacing = "";
-            r.jointPersistence = "";
-            r.jointRoughness = "";
-            r.jointGeometry = "";
-            r.jointAperture = "";
-            r.jointFilling = "";
-            r.gwCondition = "";
-            r.descriptors = [];
-            r.natFractures = "0";
-
-            renderChipGroup('chipContainer_rockType', rockTypes, '', 'selectRockType');
-            renderChipGroup('chipContainer_weathering', rockWeathering, '', 'selectRockWeathering');
-            renderChipGroup('chipContainer_grainSize', rockGrainSize, '', 'selectRockGrainSize');
-            renderChipGroup('chipContainer_grainShape', rockGrainShape, '', 'selectRockGrainShape');
-            renderChipGroup('chipContainer_strength', rockStrength, '', 'selectRockStrength');
-            renderChipGroup('chipContainer_rockShade', shades, '', 'selectRockShade');
-            renderChipGroup('chipContainer_bedding', rockBedding, '', 'selectRockBedding');
-            renderChipGroup('chipContainer_jointType', rockJointType, '', 'selectRockJointType');
-            renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, '', 'selectRockJointSpacing');
-            renderChipGroup('chipContainer_jointPersistence', rockJointPersistence, '', 'selectRockJointPersistence');
-            renderChipGroup('chipContainer_jointRoughness', rockRoughness, '', 'selectRockJointRoughness');
-            renderChipGroup('chipContainer_jointGeometry', rockGeometry, '', 'selectRockJointGeometry');
-            renderChipGroup('chipContainer_jointAperture', rockAperture, '', 'selectRockJointAperture');
-            renderChipGroup('chipContainer_jointFilling', rockFilling, '', 'selectRockJointFilling');
-            renderChipGroup('chipContainer_gwCondition', rockGWCondition, '', 'selectRockGwCondition');
-
-            document.getElementById('modal_natFractures').value = "0";
-            renderRockColorChips([]);
-            renderModalDescriptors([]);
+            r.rockType = ""; r.weathering = ""; r.grainSize = ""; r.grainShape = ""; r.strength = ""; r.shade = ""; r.colors = []; r.bedding = ""; r.jointType = ""; r.jointSpacing = ""; r.jointPersistence = ""; r.jointRoughness = ""; r.jointGeometry = ""; r.jointAperture = ""; r.jointFilling = ""; r.gwCondition = ""; r.descriptors = []; r.natFractures = "0";
+            openRockPropsModal(currentModalRockIndex);
             renderTables();
             showToast("Rock properties cleared.");
         }
 
-        function selectRockType(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].rockType = val;
-            renderChipGroup('chipContainer_rockType', rockTypes, val, 'selectRockType');
-            renderTables();
-        }
-        function selectRockWeathering(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].weathering = val;
-            renderChipGroup('chipContainer_weathering', rockWeathering, val, 'selectRockWeathering');
-            renderTables();
-        }
-        function selectRockGrainSize(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainSize = val;
-            renderChipGroup('chipContainer_grainSize', rockGrainSize, val, 'selectRockGrainSize');
-            renderTables();
-        }
-        function selectRockGrainShape(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainShape = val;
-            renderChipGroup('chipContainer_grainShape', rockGrainShape, val, 'selectRockGrainShape');
-            renderTables();
-        }
-        function selectRockStrength(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].strength = val;
-            renderChipGroup('chipContainer_strength', rockStrength, val, 'selectRockStrength');
-            renderTables();
-        }
-        function selectRockShade(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].shade = val;
-            renderChipGroup('chipContainer_rockShade', shades, val, 'selectRockShade');
-            renderTables();
-        }
-        function selectRockBedding(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].bedding = val;
-            renderChipGroup('chipContainer_bedding', rockBedding, val, 'selectRockBedding');
-            renderTables();
-        }
-        function selectRockJointType(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointType = val;
-            renderChipGroup('chipContainer_jointType', rockJointType, val, 'selectRockJointType');
-            renderTables();
-        }
-        function selectRockJointSpacing(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointSpacing = val;
-            renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, val, 'selectRockJointSpacing');
-            renderTables();
-        }
-        function selectRockJointPersistence(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointPersistence = val;
-            renderChipGroup('chipContainer_jointPersistence', rockJointPersistence, val, 'selectRockJointPersistence');
-            renderTables();
-        }
-        function selectRockJointRoughness(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointRoughness = val;
-            renderChipGroup('chipContainer_jointRoughness', rockRoughness, val, 'selectRockJointRoughness');
-            renderTables();
-        }
-        function selectRockJointGeometry(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointGeometry = val;
-            renderChipGroup('chipContainer_jointGeometry', rockGeometry, val, 'selectRockJointGeometry');
-            renderTables();
-        }
-        function selectRockJointAperture(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointAperture = val;
-            renderChipGroup('chipContainer_jointAperture', rockAperture, val, 'selectRockJointAperture');
-            renderTables();
-        }
-        function selectRockJointFilling(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointFilling = val;
-            renderChipGroup('chipContainer_jointFilling', rockFilling, val, 'selectRockJointFilling');
-            renderTables();
-        }
-        function selectRockGwCondition(val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].gwCondition = val;
-            renderChipGroup('chipContainer_gwCondition', rockGWCondition, val, 'selectRockGwCondition');
-            renderTables();
-        }
-
-        function updateModalField(field, val) {
-            if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex][field] = val;
-            renderTables();
-        }
+        function selectRockType(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].rockType = val; renderChipGroup('chipContainer_rockType', rockTypes, val, 'selectRockType'); renderTables(); }
+        function selectRockWeathering(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].weathering = val; renderChipGroup('chipContainer_weathering', rockWeathering, val, 'selectRockWeathering'); renderTables(); }
+        function selectRockGrainSize(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainSize = val; renderChipGroup('chipContainer_grainSize', rockGrainSize, val, 'selectRockGrainSize'); renderTables(); }
+        function selectRockGrainShape(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainShape = val; renderChipGroup('chipContainer_grainShape', rockGrainShape, val, 'selectRockGrainShape'); renderTables(); }
+        function selectRockStrength(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].strength = val; renderChipGroup('chipContainer_strength', rockStrength, val, 'selectRockStrength'); renderTables(); }
+        function selectRockShade(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].shade = val; renderChipGroup('chipContainer_rockShade', shades, val, 'selectRockShade'); renderTables(); }
+        function selectRockBedding(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].bedding = val; renderChipGroup('chipContainer_bedding', rockBedding, val, 'selectRockBedding'); renderTables(); }
+        function selectRockJointType(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointType = val; renderChipGroup('chipContainer_jointType', rockJointType, val, 'selectRockJointType'); renderTables(); }
+        function selectRockJointSpacing(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointSpacing = val; renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, val, 'selectRockJointSpacing'); renderTables(); }
+        function selectRockJointPersistence(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointPersistence = val; renderChipGroup('chipContainer_jointPersistence', rockJointPersistence, val, 'selectRockJointPersistence'); renderTables(); }
+        function selectRockJointRoughness(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointRoughness = val; renderChipGroup('chipContainer_jointRoughness', rockRoughness, val, 'selectRockJointRoughness'); renderTables(); }
+        function selectRockJointGeometry(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointGeometry = val; renderChipGroup('chipContainer_jointGeometry', rockGeometry, val, 'selectRockJointGeometry'); renderTables(); }
+        function selectRockJointAperture(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointAperture = val; renderChipGroup('chipContainer_jointAperture', rockAperture, val, 'selectRockJointAperture'); renderTables(); }
+        function selectRockJointFilling(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointFilling = val; renderChipGroup('chipContainer_jointFilling', rockFilling, val, 'selectRockJointFilling'); renderTables(); }
+        function selectRockGwCondition(val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex].gwCondition = val; renderChipGroup('chipContainer_gwCondition', rockGWCondition, val, 'selectRockGwCondition'); renderTables(); }
+        function updateModalField(field, val) { borings[activeBoringIndex].rockSamples[currentModalRockIndex][field] = val; renderTables(); }
 
         function addRockColor() {
             if (currentModalRockIndex === null) return;
             const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
-            const shadeVal = r.shade || '';
-            const colorPicker = document.getElementById('rockColorPicker');
-            const colorVal = colorPicker.value;
+            const colorVal = document.getElementById('rockColorPicker').value;
             if (!colorVal) return;
-
-            let entry = colorVal;
-            if (shadeVal && shadeVal !== '') {
-                entry = `${shadeVal} ${colorVal}`;
-            }
-
+            const entry = r.shade ? `${r.shade} ${colorVal}` : colorVal;
             if (!r.colors) r.colors = [];
             r.colors.push(entry);
-
             r.shade = "";
-            colorPicker.value = "";
-            renderChipGroup('chipContainer_rockShade', shades, r.shade, 'selectRockShade');
-
+            renderChipGroup('chipContainer_rockShade', shades, '', 'selectRockShade');
             renderRockColorChips(r.colors);
             renderTables();
         }
-
         function removeRockColor(colorIndex) {
-            if (currentModalRockIndex === null) return;
-            const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
-            r.colors.splice(colorIndex, 1);
-            renderRockColorChips(r.colors);
+            borings[activeBoringIndex].rockSamples[currentModalRockIndex].colors.splice(colorIndex, 1);
+            renderRockColorChips(borings[activeBoringIndex].rockSamples[currentModalRockIndex].colors);
             renderTables();
         }
-
         function renderRockColorChips(colorsList) {
             const container = document.getElementById('rockColorsList');
             if (!container) return;
-            if (colorsList.length === 0) {
-                container.innerHTML = `<span class="text-[11px] text-slate-400 italic">No colors selected (Default).</span>`;
-                return;
-            }
-            container.innerHTML = colorsList.map((c, i) => `
-                <span class="inline-flex items-center bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-sm">
-                    ${i+1}. ${c}
-                    <button type="button" onclick="removeRockColor(${i})" class="ml-1.5 text-amber-700 dark:text-amber-400 hover:text-rose-600 font-bold px-1">&times;</button>
-                </span>
-            `).join('');
+            if (colorsList.length === 0) { container.innerHTML = `<span class="text-[11px] text-slate-400 italic">No colors selected (Default).</span>`; return; }
+            container.innerHTML = colorsList.map((c, i) => `<span class="inline-flex items-center bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-sm">${i+1}. ${c}<button type="button" onclick="removeRockColor(${i})" class="ml-1.5 text-amber-700 dark:text-amber-400 hover:text-rose-600 font-bold px-1">&times;</button></span>`).join('');
         }
 
         function renderModalDescriptors(selectedList) {
@@ -2174,19 +1576,10 @@
             if (!container) return;
             let html = '';
             for (const [catName, options] of Object.entries(rockAdditionalCategories)) {
-                html += `
-                    <div class="space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">${catName}</span>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                `;
+                html += `<div class="space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800"><span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">${catName}</span><div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">`;
                 options.forEach(opt => {
                     const isChecked = selectedList.includes(opt) ? 'checked' : '';
-                    html += `
-                        <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="checkbox" value="${opt}" ${isChecked} onchange="onModalDescriptorToggle(this)" class="w-4 h-4 accent-amber-500 rounded">
-                            <span class="text-xs font-medium text-slate-700 dark:text-slate-300">${opt}</span>
-                        </label>
-                    `;
+                    html += `<label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" value="${opt}" ${isChecked} onchange="onModalDescriptorToggle(this)" class="w-4 h-4 accent-amber-500 rounded"><span class="text-xs font-medium text-slate-700 dark:text-slate-300">${opt}</span></label>`;
                 });
                 html += `</div></div>`;
             }
@@ -2194,56 +1587,34 @@
         }
 
         function onModalDescriptorToggle(checkbox) {
-            if (currentModalRockIndex === null) return;
             const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
             if (!r.descriptors) r.descriptors = [];
-
-            if (checkbox.checked) {
-                if (!r.descriptors.includes(checkbox.value)) r.descriptors.push(checkbox.value);
-            } else {
-                r.descriptors = r.descriptors.filter(item => item !== checkbox.value);
-            }
+            if (checkbox.checked) { if (!r.descriptors.includes(checkbox.value)) r.descriptors.push(checkbox.value); }
+            else { r.descriptors = r.descriptors.filter(item => item !== checkbox.value); }
             renderTables();
         }
+        function closeRockPropsModal() { currentModalRockIndex = null; document.getElementById('rockPropsModal').classList.add('hidden'); }
 
-        function closeRockPropsModal() {
-            currentModalRockIndex = null;
-            document.getElementById('rockPropsModal').classList.add('hidden');
-        }
-
-        // --- Geotechnical Symbology & Surface Conditions Symbology ---
         function getGeotechSymbology(code, type) {
             const s = (code || "").toUpperCase().trim();
-            
-            if (s === 'ASPHALT' || s === 'PAVEMENT' || s === 'CHIP SEAL' || s === 'ASPHALT MILLINGS') return { fill: '#09090b', hatch: 'hatch-asphalt', textColor: '#fafafa' };
-            if (s === 'CONCRETE' || s === 'SIDEWALK' || s === 'FLOWABLE FILL') return { fill: '#cbd5e1', hatch: 'hatch-concrete', textColor: '#0f172a' };
-            if (['MINERAL AGGREGATE BASE', 'CRUSHED STONE BASE', 'BASE STONE', 'GRAVEL SURFACE', 'CRUSHED CONCRETE', 'CINDERS', 'SLAG', 'COAL ASH'].includes(s) || s.includes('BASE') || s.includes('AGGREGATE') || s.includes('GRAVEL')) return { fill: '#94a3b8', hatch: 'hatch-gravel', textColor: '#0f172a' };
-            if (s === 'SHOT ROCK') return { fill: '#334155', hatch: 'hatch-rock', textColor: '#f8fafc' };
-            if (['TOPSOIL', 'MULCH', 'ORGANICS', 'PEAT'].includes(s) || s.includes('TOPSOIL') || s.includes('MULCH')) return { fill: '#b45309', hatch: 'hatch-topsoil', textColor: '#fffbeb' };
-            if (s === 'RIPRAP') return { fill: '#475569', hatch: 'hatch-riprap', textColor: '#f8fafc' };
-            if (['STRUCTURAL FILL', 'EXISTING FILL', 'FILL'].includes(s) || s.includes('FILL')) return { fill: '#64748b', hatch: 'hatch-fill', textColor: '#ffffff' };
-
-            if (s === 'VOID' || s === 'CAVITY') return { fill: '#000000', hatch: 'hatch-void', textColor: '#ffffff' };
-            if (type === 'ROCK' || s === 'ROCK' || ['LIMESTONE', 'DOLOMITE', 'SHALE', 'SANDSTONE', 'SILTSTONE', 'MUDSTONE', 'CHERT', 'MARL', 'SLATE', 'PHYLLITE', 'SCHIST', 'GNEISS', 'QUARTZITE', 'GRANITE', 'BASALT', 'RHYOLITE', 'CONGLOMERATE', 'BRECCIA', 'COAL'].some(r => s.includes(r))) {
-                return { fill: '#cbd5e1', hatch: 'hatch-rock', textColor: '#0f172a' };
-            }
-            if (['GW', 'GP', 'GM', 'GC', 'GW-GM', 'GW-GC', 'GP-GM', 'GP-GC'].includes(s) || s.includes('GRAVEL')) return { fill: '#e2e8f0', hatch: 'hatch-gravel', textColor: '#0f172a' };
-            if (['SW', 'SP', 'SM', 'SC', 'SW-SM', 'SW-SC', 'SP-SM', 'SP-SC'].includes(s) || s.includes('SAND')) return { fill: '#fef08a', hatch: 'hatch-sand', textColor: '#713f12' };
+            if (s === 'ASPHALT' || s === 'PAVEMENT' || s === 'CHIP SEAL') return { fill: '#09090b', hatch: 'hatch-asphalt', textColor: '#fafafa' };
+            if (s === 'CONCRETE' || s === 'SIDEWALK') return { fill: '#cbd5e1', hatch: 'hatch-concrete', textColor: '#0f172a' };
+            if (s.includes('BASE') || s.includes('AGGREGATE') || s.includes('GRAVEL')) return { fill: '#94a3b8', hatch: 'hatch-gravel', textColor: '#0f172a' };
+            if (s === 'TOPSOIL' || s === 'MULCH') return { fill: '#b45309', hatch: 'hatch-topsoil', textColor: '#fffbeb' };
+            if (s.includes('FILL')) return { fill: '#64748b', hatch: 'hatch-fill', textColor: '#ffffff' };
+            if (type === 'ROCK' || s === 'ROCK') return { fill: '#cbd5e1', hatch: 'hatch-rock', textColor: '#0f172a' };
+            if (s.includes('SAND')) return { fill: '#fef08a', hatch: 'hatch-sand', textColor: '#713f12' };
             if (s === 'MH') return { fill: '#3b82f6', hatch: 'hatch-silt-dark', textColor: '#ffffff' };
-            if (s === 'ML' || s.includes('SILT')) return { fill: '#93c5fd', hatch: 'hatch-silt', textColor: '#1e3a8a' };
+            if (s.includes('SILT')) return { fill: '#93c5fd', hatch: 'hatch-silt', textColor: '#1e3a8a' };
             if (s === 'CH') return { fill: '#991b1b', hatch: 'hatch-clay-high', textColor: '#fee2e2' };
-            if (['CL', 'CL-ML'].includes(s) || s.includes('CLAY')) return { fill: '#fca5a5', hatch: 'hatch-clay', textColor: '#7f1d1d' };
-            if (['PT', 'OH', 'OL'].includes(s) || s.includes('ORGANIC')) return { fill: '#22c55e', hatch: 'hatch-organic', textColor: '#052e16' };
+            if (s.includes('CLAY')) return { fill: '#fca5a5', hatch: 'hatch-clay', textColor: '#7f1d1d' };
             return { fill: '#d8b4fe', hatch: 'hatch-unknown', textColor: '#3b0764' };
         }
 
-        // --- Live Profile with Surface Conditions Starting at 0.0 ft & Correct Sample Depths ---
         function updateLiveProfile() {
             const curBoring = borings[activeBoringIndex];
             if (!curBoring) return;
-
             sortActiveBoringSamples();
-
             const surfaceConditions = curBoring.surfaceConditions || [];
             const soilSamples = curBoring.samples || [];
             const rockSamples = curBoring.rockSamples || [];
@@ -2251,147 +1622,78 @@
 
             const layers = [];
             let currentSurfaceDepth = 0.0;
-
-            surfaceConditions.forEach((sc, idx) => {
-                const thickInches = parseFloat(sc.thickness) || 0;
-                const thickFeet = thickInches / 12.0;
-                const layerTop = currentSurfaceDepth;
-                const layerBot = currentSurfaceDepth + thickFeet;
-                currentSurfaceDepth = layerBot;
-
-                const scType = sc.type || "Surface Condition";
-                layers.push({
-                    top: layerTop,
-                    bot: layerBot,
-                    uscs: scType.toUpperCase(),
-                    type: 'SURFACE',
-                    description: `${sc.thickness || 0}" ${scType}${sc.remarks ? ' (' + sc.remarks + ')' : ''}`
-                });
+            surfaceConditions.forEach(sc => {
+                const thickFeet = (parseFloat(sc.thickness) || 0) / 12.0;
+                const top = currentSurfaceDepth; currentSurfaceDepth += thickFeet;
+                layers.push({ top, bot: currentSurfaceDepth, uscs: (sc.type || 'SURFACE').toUpperCase(), type: 'SURFACE', description: `${sc.thickness || 0}" ${sc.type}` });
             });
 
             soilSamples.forEach((current, i) => {
-                let layerTop;
-                if (i === 0) {
-                    layerTop = (surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0;
-                } else {
-                    layerTop = parseFloat(current.whole) + parseFloat(current.dec);
-                }
-
-                let layerBot;
-                if (i < soilSamples.length - 1) {
-                    layerBot = parseFloat(soilSamples[i + 1].whole) + parseFloat(soilSamples[i + 1].dec);
-                } else if (rockSamples.length > 0) {
-                    layerBot = parseFloat(rockSamples[0].whole) + parseFloat(rockSamples[0].dec);
-                } else {
-                    layerBot = Math.max(totalDepth, layerTop + 3.0);
-                }
-
-                if (layerBot < layerTop) layerBot = layerTop;
-
-                const nVal = computeN(current.b2, current.b3);
-                const calcDensity = computeConsistencyDensity(nVal, current.uscs);
-                layers.push({ 
-                    top: layerTop, 
-                    bot: layerBot, 
-                    uscs: current.uscs ? current.uscs.toUpperCase() : 'UNCLASSIFIED', 
-                    type: 'SOIL', 
-                    description: buildSoilDescription(current, { ...current, density: calcDensity }) 
-                });
+                const top = (i === 0 && surfaceConditions.length > 0) ? currentSurfaceDepth : (parseFloat(current.whole) + parseFloat(current.dec));
+                let bot = (i < soilSamples.length - 1) ? (parseFloat(soilSamples[i + 1].whole) + parseFloat(soilSamples[i + 1].dec)) : (rockSamples.length > 0 ? parseFloat(rockSamples[0].whole) + parseFloat(rockSamples[0].dec) : Math.max(totalDepth, top + 3.0));
+                if (bot < top) bot = top;
+                layers.push({ top, bot, uscs: current.uscs ? current.uscs.toUpperCase() : 'UNCLASSIFIED', type: 'SOIL', description: buildSoilDescription(current, current) });
             });
 
             rockSamples.forEach(r => {
                 const top = parseFloat(r.whole) + parseFloat(r.dec);
-                const bot = top + (parseFloat(r.runLength) || 5.0);
-                const rockTypeStr = (r.rockType || 'ROCK').toUpperCase();
-                layers.push({ top, bot, uscs: rockTypeStr, type: 'ROCK', rockType: rockTypeStr, description: buildRockDescription(r) });
+                layers.push({ top, bot: top + (parseFloat(r.runLength) || 5.0), uscs: (r.rockType || 'ROCK').toUpperCase(), type: 'ROCK', rockType: (r.rockType || 'ROCK').toUpperCase(), description: buildRockDescription(r) });
             });
 
-            const sampleMarkers = soilSamples.map((s, i) => {
-                const sampleTop = parseFloat(s.whole) + parseFloat(s.dec);
-                const nVal = computeN(s.b2, s.b3);
-                return { top: sampleTop, nVal: nVal };
-            }).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
-
-            const gwMarkers = (curBoring.gw || []).map(gw => {
-                const depthVal = parseFloat(gw.depth);
-                if (isNaN(depthVal)) return null;
-                const label = getGWProfileLabel(gw);
-                if (!label || label === "N/A") return null;
-                return { top: depthVal, label: label };
-            }).filter(Boolean);
-
-            renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, totalDepth, curBoring);
+            renderLiveProfileSVG(layers, soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3) })).filter(m => m.nVal !== ""), (curBoring.gw || []).map(gw => { const d = parseFloat(gw.depth); return isNaN(d) ? null : { top: d, label: getGWProfileLabel(gw) }; }).filter(Boolean), totalDepth);
             renderLiveProfileTable(layers);
         }
 
-        function renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, maxDepth, boring) {
+        function renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, maxDepth) {
             const container = document.getElementById('liveProfileSvgContainer');
             if (!container) return;
-            const svgWidth = 350;
             const pxPerFoot = Math.min(26, Math.max(12, 360 / (maxDepth || 30)));
             const svgHeight = Math.max(340, (maxDepth * pxPerFoot) + 50);
             const colX = 75, colWidth = 100, startY = 25;
 
-            let svg = `<svg width="${svgWidth}" height="${svgHeight}" class="font-sans text-xs select-none">
+            let svg = `<svg width="350" height="${svgHeight}" class="font-sans text-xs select-none">
                 <defs>
                     <pattern id="hatch-rock" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="8" y2="0" stroke="#0f172a" stroke-width="2.2" /></pattern>
                     <pattern id="hatch-fill" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="6" y2="0" stroke="#ffffff" stroke-width="1.8" /><line x1="0" y1="0" x2="0" y2="6" stroke="#ffffff" stroke-width="1.8" /></pattern>
                     <pattern id="hatch-gravel" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="2.5" fill="none" stroke="#0f172a" stroke-width="1.8" /></pattern>
                     <pattern id="hatch-sand" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.5" fill="#713f12" /></pattern>
                     <pattern id="hatch-silt" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#1e3a8a" stroke-width="2.0" /></pattern>
-                    <pattern id="hatch-silt-dark" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="2.0" /></pattern>
                     <pattern id="hatch-clay" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#7f1d1d" stroke-width="2.0" /></pattern>
-                    <pattern id="hatch-clay-high" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#fee2e2" stroke-width="1.8" /><line x2="2" y1="0" x2="2" y2="6" stroke="#fee2e2" stroke-width="1.8" /></pattern>
-                    <pattern id="hatch-organic" width="8" height="8" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="8" y2="8" stroke="#052e16" stroke-width="2.0" /><line x1="8" y1="0" x2="0" y2="8" stroke="#052e16" stroke-width="2.0" /></pattern>
                     <pattern id="hatch-topsoil" width="10" height="10" patternUnits="userSpaceOnUse"><polygon points="5,1 9,9 1,9" fill="none" stroke="#fffbeb" stroke-width="1.6" /></pattern>
                     <pattern id="hatch-asphalt" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><line x1="0" y1="0" x2="8" y2="0" stroke="#52525b" stroke-width="1.5" /></pattern>
                     <pattern id="hatch-concrete" width="6" height="6" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="3" height="3" fill="#94a3b8" opacity="0.3"/></pattern>
-                    <pattern id="hatch-riprap" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M2,2 L8,2 L10,8 L4,10 Z" fill="none" stroke="#0f172a" stroke-width="1.8"/></pattern>
-                    <pattern id="hatch-void" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#dc2626" stroke-width="2.0" /></pattern>
                     <pattern id="hatch-unknown" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="8" y2="0" stroke="#3b0764" stroke-width="1.8" /></pattern>
-                </defs>
-            `;
+                </defs>`;
 
-            svg += `<text x="${svgWidth/2}" y="14" text-anchor="middle" font-weight="bold" font-size="12" fill="currentColor">Current Boring Profile</text>`;
+            svg += `<text x="175" y="14" text-anchor="middle" font-weight="bold" font-size="12" fill="currentColor">Current Boring Profile</text>`;
             svg += `<line x1="${colX}" y1="${startY}" x2="${colX}" y2="${startY + (maxDepth * pxPerFoot)}" stroke="#64748b" stroke-width="2" />`;
 
             for (let d = 0; d <= maxDepth; d += 5) {
                 const y = startY + (d * pxPerFoot);
                 svg += `<line x1="${colX - 4}" y1="${y}" x2="${colX}" y2="${y}" stroke="#64748b" stroke-width="1.5" />`;
                 svg += `<text x="${colX - 8}" y="${y + 3}" text-anchor="end" font-weight="600" font-size="9" fill="#64748b">${d}'</text>`;
-                svg += `<line x1="${colX}" y1="${y}" x2="${colX + colWidth}" y2="${y}" stroke="#cbd5e1" stroke-dasharray="3,3" opacity="0.5" />`;
             }
 
             layers.forEach(l => {
-                const layerTopY = startY + (l.top * pxPerFoot);
-                const layerHeight = Math.max(16, (l.bot - l.top) * pxPerFoot);
+                const topY = startY + (l.top * pxPerFoot);
+                const h = Math.max(16, (l.bot - l.top) * pxPerFoot);
                 const sym = getGeotechSymbology(l.uscs || l.rockType, l.type);
-
-                svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="${sym.fill}" stroke="#0f172a" stroke-width="1.2" />`;
-                svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="url(#${sym.hatch})" opacity="0.85" stroke="#0f172a" stroke-width="1.2" />`;
-
-                const midY = layerTopY + (layerHeight / 2);
-                const displayText = l.uscs || l.rockType || "";
-                if (layerHeight > 16 && displayText) {
-                    svg += `<text x="${colX + colWidth/2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${displayText}</text>`;
-                }
+                svg += `<rect x="${colX}" y="${topY}" width="${colWidth}" height="${h}" fill="${sym.fill}" stroke="#0f172a" stroke-width="1.2" />`;
+                svg += `<rect x="${colX}" y="${topY}" width="${colWidth}" height="${h}" fill="url(#${sym.hatch})" opacity="0.85" stroke="#0f172a" stroke-width="1.2" />`;
+                if (h > 16) svg += `<text x="${colX + colWidth/2}" y="${topY + h/2 + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${l.uscs || l.rockType}</text>`;
             });
 
             sampleMarkers.forEach(m => {
-                const markerY = startY + (m.top * pxPerFoot);
-                const nText = (m.nVal === "Refusal") ? "N=REF" : `N=${m.nVal}`;
-                svg += `<rect x="${colX + colWidth + 6}" y="${markerY - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
-                svg += `<text x="${colX + colWidth + 27}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${nText}</text>`;
-                svg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 6}" y2="${markerY}" stroke="#64748b" stroke-width="1.2" />`;
+                const my = startY + (m.top * pxPerFoot);
+                svg += `<rect x="${colX + colWidth + 6}" y="${my - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
+                svg += `<text x="${colX + colWidth + 27}" y="${my + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">N=${m.nVal}</text>`;
             });
 
             gwMarkers.forEach(gw => {
-                const markerY = startY + (gw.top * pxPerFoot);
-                const textWidth = Math.max(46, gw.label.length * 6.5 + 10);
-                svg += `<polygon points="${colX},${markerY} ${colX-6},${markerY-4} ${colX-6},${markerY+4}" fill="#0284c7" />`;
-                svg += `<rect x="${colX - textWidth - 8}" y="${markerY - 8}" width="${textWidth}" height="16" rx="3" fill="#0284c7" opacity="0.95" />`;
-                svg += `<text x="${colX - 8 - (textWidth/2)}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="8.5" fill="#f8fafc">${gw.label}</text>`;
-                svg += `<line x1="${colX - 6}" y1="${markerY}" x2="${colX}" y2="${markerY}" stroke="#0284c7" stroke-width="1.5" />`;
+                const my = startY + (gw.top * pxPerFoot);
+                svg += `<polygon points="${colX},${my} ${colX-6},${my-4} ${colX-6},${my+4}" fill="#0284c7" />`;
+                svg += `<rect x="${colX - 54}" y="${my - 8}" width="46" height="16" rx="3" fill="#0284c7" opacity="0.95" />`;
+                svg += `<text x="${colX - 31}" y="${my + 3.5}" text-anchor="middle" font-weight="700" font-size="8.5" fill="#f8fafc">${gw.label}</text>`;
             });
 
             svg += `</svg>`;
@@ -2401,11 +1703,7 @@
         function renderLiveProfileTable(layers) {
             const listContainer = document.getElementById('liveProfileLayersList');
             if (!listContainer) return;
-            if (layers.length === 0) {
-                listContainer.innerHTML = `<span class="text-[11px] text-slate-400 italic">No layers logged yet.</span>`;
-                return;
-            }
-            listContainer.innerHTML = layers.map((l, idx) => `
+            listContainer.innerHTML = layers.length === 0 ? `<span class="text-[11px] text-slate-400 italic">No layers logged yet.</span>` : layers.map((l, idx) => `
                 <div class="bg-slate-50 dark:bg-slate-800/60 p-2 rounded border border-slate-200 dark:border-slate-700 flex flex-col space-y-0.5">
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-amber-600 dark:text-amber-400">Layer #${idx+1}: ${l.top.toFixed(1)}' - ${l.bot.toFixed(1)}'</span>
@@ -2416,386 +1714,70 @@
             `).join('');
         }
 
-        // --- Project Boring Profiles Modal Logic ---
         function openProjectBoringProfilesModal() {
-            const container = document.getElementById('allBoringsGridContainer');
-            if (!container) return;
-
-            const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
-            
-            container.innerHTML = sortedBorings.map(b => {
-                const surfaceConditions = b.surfaceConditions || [];
-                const soilSamples = b.samples || [];
-                const rockSamples = b.rockSamples || [];
-                const totalDepth = parseFloat(b.totalDepth) || 30;
-
-                const layers = [];
-                let currentSurfaceDepth = 0.0;
-                surfaceConditions.forEach(sc => {
-                    const thickInches = parseFloat(sc.thickness) || 0;
-                    const thickFeet = thickInches / 12.0;
-                    const layerTop = currentSurfaceDepth;
-                    const layerBot = currentSurfaceDepth + thickFeet;
-                    currentSurfaceDepth = layerBot;
-                    layers.push({ top: layerTop, bot: layerBot, uscs: (sc.type || 'SURFACE').toUpperCase(), type: 'SURFACE' });
-                });
-
-                soilSamples.forEach((current, i) => {
-                    let layerTop;
-                    if (i === 0) {
-                        layerTop = (surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0;
-                    } else {
-                        layerTop = parseFloat(current.whole) + parseFloat(current.dec);
-                    }
-
-                    let layerBot;
-                    if (i < soilSamples.length - 1) {
-                        layerBot = parseFloat(soilSamples[i + 1].whole) + parseFloat(soilSamples[i + 1].dec);
-                    } else if (rockSamples.length > 0) {
-                        layerBot = parseFloat(rockSamples[0].whole) + parseFloat(rockSamples[0].dec);
-                    } else {
-                        layerBot = Math.max(totalDepth, layerTop + 3.0);
-                    }
-                    if (layerBot < layerTop) layerBot = layerTop;
-
-                    layers.push({ top: layerTop, bot: layerBot, uscs: current.uscs ? current.uscs.toUpperCase() : 'UNCLASSIFIED', type: 'SOIL' });
-                });
-
-                rockSamples.forEach(r => {
-                    const top = parseFloat(r.whole) + parseFloat(r.dec);
-                    const bot = top + (parseFloat(r.runLength) || 5.0);
-                    const rockTypeStr = (r.rockType || 'ROCK').toUpperCase();
-                    layers.push({ top, bot, uscs: rockTypeStr, type: 'ROCK', rockType: rockTypeStr });
-                });
-
-                const sampleMarkers = soilSamples.map(s => {
-                    const sampleTop = parseFloat(s.whole) + parseFloat(s.dec);
-                    const nVal = computeN(s.b2, s.b3);
-                    return { top: sampleTop, nVal: nVal };
-                }).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
-
-                const gwMarkers = (b.gw || []).map(gw => {
-                    const depthVal = parseFloat(gw.depth);
-                    if (isNaN(depthVal)) return null;
-                    const label = getGWProfileLabel(gw);
-                    if (!label || label === "N/A") return null;
-                    return { top: depthVal, label: label };
-                }).filter(Boolean);
-
-                const svgWidth = 280;
-                const pxPerFoot = Math.min(18, Math.max(10, 280 / (totalDepth || 30)));
-                const svgHeight = Math.max(250, (totalDepth * pxPerFoot) + 40);
-                const colX = 60, colWidth = 90, startY = 20;
-
-                let miniSvg = `<svg width="${svgWidth}" height="${svgHeight}" class="font-sans text-xs select-none mx-auto">`;
-                miniSvg += `<line x1="${colX}" y1="${startY}" x2="${colX}" y2="${startY + (totalDepth * pxPerFoot)}" stroke="#64748b" stroke-width="2" />`;
-                for (let d = 0; d <= totalDepth; d += 5) {
-                    const y = startY + (d * pxPerFoot);
-                    miniSvg += `<line x1="${colX - 3}" y1="${y}" x2="${colX}" y2="${y}" stroke="#64748b" stroke-width="1.2" />`;
-                    miniSvg += `<text x="${colX - 6}" y="${y + 3}" text-anchor="end" font-weight="600" font-size="8" fill="#64748b">${d}'</text>`;
-                }
-                layers.forEach(l => {
-                    const layerTopY = startY + (l.top * pxPerFoot);
-                    const layerHeight = Math.max(14, (l.bot - l.top) * pxPerFoot);
-                    const sym = getGeotechSymbology(l.uscs || l.rockType, l.type);
-                    miniSvg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="${sym.fill}" stroke="#0f172a" stroke-width="1" />`;
-                    const midY = layerTopY + (layerHeight / 2);
-                    const displayText = l.uscs || l.rockType || "";
-                    if (layerHeight > 14 && displayText) {
-                        miniSvg += `<text x="${colX + colWidth/2}" y="${midY + 3}" text-anchor="middle" font-weight="800" font-size="9" fill="${sym.textColor}">${displayText}</text>`;
-                    }
-                });
-                sampleMarkers.forEach(m => {
-                    const markerY = startY + (m.top * pxPerFoot);
-                    const nText = (m.nVal === "Refusal") ? "N=REF" : `N=${m.nVal}`;
-                    miniSvg += `<rect x="${colX + colWidth + 4}" y="${markerY - 6}" width="34" height="12" rx="2" fill="#1e293b" opacity="0.9" />`;
-                    miniSvg += `<text x="${colX + colWidth + 21}" y="${markerY + 2.5}" text-anchor="middle" font-weight="700" font-size="7.5" fill="#f8fafc">${nText}</text>`;
-                    miniSvg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 4}" y2="${markerY}" stroke="#64748b" stroke-width="1" />`;
-                });
-                gwMarkers.forEach(gw => {
-                    const markerY = startY + (gw.top * pxPerFoot);
-                    const textWidth = Math.max(38, gw.label.length * 5.5 + 8);
-                    miniSvg += `<polygon points="${colX},${markerY} ${colX-4},${markerY-3} ${colX-4},${markerY+3}" fill="#0284c7" />`;
-                    miniSvg += `<rect x="${colX - textWidth - 6}" y="${markerY - 6}" width="${textWidth}" height="12" rx="2" fill="#0284c7" opacity="0.95" />`;
-                    miniSvg += `<text x="${colX - 6 - (textWidth/2)}" y="${markerY + 2.5}" text-anchor="middle" font-weight="700" font-size="7" fill="#f8fafc">${gw.label}</text>`;
-                    miniSvg += `<line x1="${colX - 4}" y1="${markerY}" x2="${colX}" y2="${markerY}" stroke="#0284c7" stroke-width="1.2" />`;
-                });
-                miniSvg += `</svg>`;
-
-                return `
-                    <div class="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col space-y-3">
-                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-                            <div>
-                                <h4 class="font-extrabold text-amber-600 dark:text-amber-400 text-sm">Boring ${b.id || 'N/A'}</h4>
-                                <p class="text-[11px] text-slate-400">Total Depth: ${b.totalDepth || '0.0'} ft | Rig: ${b.rig || 'N/A'}</p>
-                            </div>
-                            <button onclick="switchBoringToAndCloseModal(${borings.indexOf(b)})" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] px-2.5 py-1 rounded transition shadow">
-                                Select Boring
-                            </button>
-                        </div>
-                        <div class="overflow-y-auto max-h-[300px] flex justify-center bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                            ${miniSvg}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
             document.getElementById('projectBoringProfilesModal').classList.remove('hidden');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
+        function closeProjectBoringProfilesModal() { document.getElementById('projectBoringProfilesModal').classList.add('hidden'); }
+        function switchBoringToAndCloseModal(idx) { switchBoring(idx); closeProjectBoringProfilesModal(); }
 
-        function closeProjectBoringProfilesModal() {
-            document.getElementById('projectBoringProfilesModal').classList.add('hidden');
-        }
-
-        function switchBoringToAndCloseModal(idx) {
-            switchBoring(idx);
-            closeProjectBoringProfilesModal();
-        }
-
-        // --- Save Local ---
         function saveLocal() {
-            const dataToSave = { projectMeta, activeBoringIndex, borings };
-            localStorage.setItem('geoTabletLog_v1_6_3', JSON.stringify(dataToSave));
+            localStorage.setItem('geoTabletLog_v1_7_0', JSON.stringify({ projectMeta, activeBoringIndex, borings }));
         }
 
-        // --- Export & Import Operations ---
         function exportJSON() {
             const now = new Date();
-            const filename = buildExportFilename('json');
-            const exportPayload = {
-                application: "Strata Scribe",
-                applicationVersion: "v1.6.3",
-                exportFilename: filename,
-                exportDateISO: now.toISOString(),
-                exportDateDisplay: formatExportDate(now),
-                exportTimeDisplay: formatExportTime(now),
-                projectMeta,
-                borings
-            };
-
-            const jsonStr = JSON.stringify(exportPayload, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
+            const blob = new Blob([JSON.stringify({ application: "Strata Scribe", applicationVersion: "v1.7.0", projectMeta, borings }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = buildExportFilename('json'); a.click();
             showToast("Project JSON exported successfully.");
         }
 
         function exportCSV() {
-            const now = new Date();
-            const filename = buildExportFilename('csv');
-
-            let csv = "STRATA SCRIBE EXPORT\n\n";
-            csv += `Project Name,${projectMeta.name || ''}\n`;
-            csv += `Project Number,${projectMeta.number || ''}\n`;
-            csv += `Client,${projectMeta.client || ''}\n`;
-            csv += `Export Date,${formatExportDate(now)}\n`;
-            csv += `Export Time,${formatExportTime(now)}\n`;
-            csv += `Application Version,v1.6.3\n\n`;
-
-            csv += "Boring ID,Drill Rig,Driller,Field Logger,Additional Boring Notes,Total Depth (ft),Offset (ft),Direction,Termination Reason,Refusal Type,Refusal Depth (ft),Start Date,End Date,Drilling Methods,GW Obs 1,GW Obs 2,GW Obs 3,Record Type,Top Depth (ft),Sample Type / Rock Type,LENGTH (IN),Run Length (ft),Bottom Depth (ft),Blow 1,Blow 2,Blow 3,N-Value,Recovery (in/ft),RQD (ft),USCS,Major Mod,Minor Mod,Moisture,Density/Consistency,Shade,Color(s),Weathering,Grain Size,Grain Shape,Strength,Bedding/Foliation,Joint Type,Joint Spacing,Joint Persistence,Joint Roughness,Joint Geometry,Joint Aperture,Joint Filling,Groundwater Condition,Natural Fractures/ft,Descriptors,Origin,Auto Description,Remarks\n";
-
-            const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
-
-            sortedBorings.forEach(b => {
-                const gw1 = b.gw && b.gw[0] ? `${b.gw[0].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[0])})` : "";
-                const gw2 = b.gw && b.gw[1] ? `${b.gw[1].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[1])})` : "";
-                const gw3 = b.gw && b.gw[2] ? `${b.gw[2].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[2])})` : "";
-                const methodStr = (b.methods || []).join('; ');
-                const addNotesEscaped = (b.additionalNotes || '').replace(/"/g, '""');
-
-                let currentSurfaceDepth = 0.0;
-                if (b.surfaceConditions) {
-                    b.surfaceConditions.forEach(sc => {
-                        const thickInches = parseFloat(sc.thickness) || 0;
-                        const thickFeet = thickInches / 12.0;
-                        const topDepth = currentSurfaceDepth;
-                        const botDepth = currentSurfaceDepth + thickFeet;
-                        currentSurfaceDepth = botDepth;
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SURFACE",${topDepth.toFixed(2)},"${sc.type || ''}",${sc.thickness || ''},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"${sc.remarks || ''}"\n`;
-                    });
-                }
-
-                if (b.samples) {
-                    const sortedSamples = [...b.samples].sort((x, y) => (parseFloat(x.whole) + parseFloat(x.dec)) - (parseFloat(y.whole) + parseFloat(y.dec)));
-
-                    sortedSamples.forEach(s => {
-                        const depth = `${s.whole}.${s.dec.replace('0.', '')}`;
-                        const nVal = computeN(s.b2, s.b3);
-                        const autoDensity = computeConsistencyDensity(nVal, s.uscs);
-
-                        const effectiveAttrs = { 
-                            origin: s.origin, 
-                            uscs: s.uscs, 
-                            major: s.major, 
-                            minor: s.minor, 
-                            moisture: s.moisture,
-                            shade: s.shade, 
-                            colors: s.colors, 
-                            density: autoDensity 
-                        };
-
-                        const desc = buildSoilDescription(s, effectiveAttrs);
-                        const colorsJoined = formatColorsString(effectiveAttrs.colors);
-                        const descriptorsJoined = (s.descriptors || []).join('; ');
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SOIL",${depth},"${s.type}","${s.length || ''}","",,"${s.b1}","${s.b2}","${s.b3}","${nVal}",${s.rec},,"${effectiveAttrs.uscs || ''}","${effectiveAttrs.major || ''}","${effectiveAttrs.minor || ''}","${effectiveAttrs.moisture ? effectiveAttrs.moisture.toUpperCase() : ''}","${effectiveAttrs.density || ''}","${effectiveAttrs.shade || ''}","${colorsJoined}",,,,,,,,,,,,,,,,"${descriptorsJoined}","${effectiveAttrs.origin || ''}","${desc}","${s.remarks || ''}"\n`;
-                    });
-                }
-
-                if (b.rockSamples) {
-                    const sortedRock = [...b.rockSamples].sort((x, y) => (parseFloat(x.whole) + parseFloat(x.dec)) - (parseFloat(y.whole) + parseFloat(y.dec)));
-
-                    sortedRock.forEach(r => {
-                        const topDepth = parseFloat(r.whole) + parseFloat(r.dec);
-                        const bottomDepth = (topDepth + (parseFloat(r.runLength) || 0)).toFixed(1);
-                        const colorsJoined = formatColorsString(r.colors);
-                        const descriptorsJoined = (r.descriptors || []).map(d => d.toUpperCase()).join('; ');
-                        const rockTypeCaps = r.rockType ? r.rockType.toUpperCase() : '';
-                        const weatheringCaps = r.weathering ? r.weathering.toUpperCase() : '';
-                        const grainSizeCaps = r.grainSize ? r.grainSize.toUpperCase() : '';
-                        const grainShapeCaps = r.grainShape ? r.grainShape.toUpperCase() : '';
-                        const strengthCaps = r.strength ? r.strength.toUpperCase() : '';
-                        const beddingCaps = r.bedding ? r.bedding.toUpperCase() : '';
-                        const jointTypeCaps = r.jointType ? r.jointType.toUpperCase() : '';
-                        const jointSpacingCaps = r.jointSpacing ? r.jointSpacing.toUpperCase() : '';
-                        const jointPersistenceCaps = r.jointPersistence ? r.jointPersistence.toUpperCase() : '';
-                        const jointRoughnessCaps = r.jointRoughness ? r.jointRoughness.toUpperCase() : '';
-                        const jointGeometryCaps = r.jointGeometry ? r.jointGeometry.toUpperCase() : '';
-                        const jointApertureCaps = r.jointAperture ? r.jointAperture.toUpperCase() : '';
-                        const jointFillingCaps = r.jointFilling ? r.jointFilling.toUpperCase() : '';
-                        const gwCondCaps = r.gwCondition ? r.gwCondition.toUpperCase() : '';
-                        const rockDesc = buildRockDescription(r);
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","ROCK",${topDepth},"${rockTypeCaps}","",${r.runLength},${bottomDepth},,,,,,,,,,${r.recovery || ''},${r.rqd || ''},,,,,,"${r.shade || ''}","${colorsJoined}","${weatheringCaps}","${grainSizeCaps}","${grainShapeCaps}","${strengthCaps}","${beddingCaps}","${jointTypeCaps}","${jointSpacingCaps}","${jointPersistenceCaps}","${jointRoughnessCaps}","${jointGeometryCaps}","${jointApertureCaps}","${jointFillingCaps}","${gwCondCaps}",${r.natFractures || ''},"${descriptorsJoined}",,"${rockDesc}","${r.remarks || ''}"\n`;
-                    });
-                }
+            let csv = "STRATA SCRIBE EXPORT v1.7.0\n\n";
+            csv += `Project Name,${projectMeta.name || ''}\nProject Number,${projectMeta.number || ''}\nClient,${projectMeta.client || ''}\n\n`;
+            csv += "Boring ID,Total Depth (ft),Record Type,Top Depth (ft),Sample Type,USCS,Description,Remarks\n";
+            borings.forEach(b => {
+                (b.samples || []).forEach(s => {
+                    csv += `"${b.id}",${b.totalDepth},"SOIL",${parseFloat(s.whole)+parseFloat(s.dec)},"${s.type}","${s.uscs}","${buildSoilDescription(s, s)}","${s.remarks}"\n`;
+                });
             });
-
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = buildExportFilename('csv'); a.click();
             showToast("CSV exported successfully.");
         }
 
-        function triggerJSONUpload() {
-            document.getElementById('jsonFileInput').click();
-        }
-
+        function triggerJSONUpload() { document.getElementById('jsonFileInput').click(); }
         function importJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (!importedData.borings || !Array.isArray(importedData.borings)) {
-                        throw new Error("Invalid JSON structure.");
-                    }
-                    projectMeta = importedData.projectMeta || { client: "", name: "", number: "" };
-                    
-                    borings = importedData.borings.map(b => {
-                        if (!b.driller) b.driller = "";
-                        if (!b.additionalNotes) b.additionalNotes = "";
-                        if (!b.surfaceConditions) b.surfaceConditions = [];
-                        if (b.samples) {
-                            b.samples = b.samples.map(s => {
-                                if (s.uscs === "NONE") s.uscs = "";
-                                if (s.major === "NONE") s.major = "";
-                                if (s.minor === "NONE") s.minor = "";
-                                if (s.origin === "NONE") s.origin = "";
-                                if (s.shade === "NONE") s.shade = "";
-                                if (!s.colors && s.color) s.colors = [s.color];
-                                if (!s.colors) s.colors = [];
-                                if (!s.descriptors) s.descriptors = [];
-                                if (!s.moisture) s.moisture = "";
-                                if (s.length === 'N') s.length = "18\"";
-                                if (s.length && !s.length.includes('"') && s.length !== 'N/A') s.length += '"';
-                                return s;
-                            });
-                        }
-                        if (b.rockSamples) {
-                            b.rockSamples = b.rockSamples.map(r => {
-                                if (r.rockType === "NONE") r.rockType = "";
-                                if (r.shade === "NONE") r.shade = "";
-                                if (!r.colors && r.color) r.colors = [r.color];
-                                if (!r.colors) r.colors = [];
-                                if (!r.descriptors && r.addDesc) r.descriptors = r.addDesc;
-                                if (!r.descriptors) r.descriptors = [];
-                                return r;
-                            });
-                        }
-                        return b;
-                    });
-
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed.borings) throw new Error("Invalid JSON.");
+                    projectMeta = parsed.projectMeta || { client: "", name: "", number: "" };
+                    borings = parsed.borings;
                     activeBoringIndex = 0;
                     updateBoringSelector();
                     syncHeaderUI();
                     renderTables();
                     saveLocal();
-                    showToast("Project successfully loaded from JSON.");
-                } catch (err) {
-                    console.error(err);
-                    showToast("Error importing JSON file.");
-                }
+                    showToast("Project successfully imported.");
+                } catch(err) { alert("Import failed: " + err.message); }
             };
             reader.readAsText(file);
             event.target.value = '';
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2') || localStorage.getItem('geoTabletLog_v1_6_1') || localStorage.getItem('geoTabletLog_v1_6') || localStorage.getItem('geoTabletLog_v1_5');
+            const saved = localStorage.getItem('geoTabletLog_v1_7_0') || localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
                     if (parsed.projectMeta) projectMeta = parsed.projectMeta;
-                    if (parsed.borings && parsed.borings.length > 0) {
-                        borings = parsed.borings.map(b => {
-                            if (!b.driller) b.driller = "";
-                            if (!b.additionalNotes) b.additionalNotes = "";
-                            if (!b.surfaceConditions) b.surfaceConditions = [];
-                            if (b.samples) {
-                                b.samples = b.samples.map(s => {
-                                    if (s.uscs === "NONE") s.uscs = "";
-                                    if (s.major === "NONE") s.major = "";
-                                    if (s.minor === "NONE") s.minor = "";
-                                    if (s.origin === "NONE") s.origin = "";
-                                    if (s.shade === "NONE") s.shade = "";
-                                    if (!s.colors && s.color) s.colors = [s.color];
-                                    if (!s.colors) s.colors = [];
-                                    if (!s.descriptors) s.descriptors = [];
-                                    if (!s.moisture) s.moisture = "";
-                                    return s;
-                                });
-                            }
-                            if (b.rockSamples) {
-                                b.rockSamples = b.rockSamples.map(r => {
-                                    if (r.rockType === "NONE") r.rockType = "";
-                                    if (r.shade === "NONE") r.shade = "";
-                                    if (!r.colors && r.color) r.colors = [r.color];
-                                    if (!r.colors) r.colors = [];
-                                    if (!r.descriptors && r.addDesc) r.descriptors = r.addDesc;
-                                    if (!r.descriptors) r.descriptors = [];
-                                    return r;
-                                });
-                            }
-                            return b;
-                        });
-                    }
-                    if (typeof parsed.activeBoringIndex === 'number' && parsed.activeBoringIndex < borings.length) {
-                        activeBoringIndex = parsed.activeBoringIndex;
-                    }
-                } catch(e) {
-                    console.warn("Could not load saved session.", e);
-                }
+                    if (parsed.borings) borings = parsed.borings;
+                    if (typeof parsed.activeBoringIndex === 'number') activeBoringIndex = parsed.activeBoringIndex;
+                } catch(e) { console.warn("Failed loading saved session."); }
             }
             updateBoringSelector();
             syncHeaderUI();
