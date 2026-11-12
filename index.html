@@ -54,6 +54,10 @@
             width: 100%;
             height: 75vh;
             border-radius: 0.75rem;
+            background-color: #f8fafc;
+        }
+        .dark #boringMap {
+            background-color: #0f172a;
         }
         .dark .leaflet-popup-content-wrapper, .dark .leaflet-popup-tip {
             background-color: #0f172a !important;
@@ -62,6 +66,19 @@
         }
         .dark .leaflet-tile {
             filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+        }
+        .boring-round-label {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            font-weight: 800;
+            font-size: 11px;
+            color: #0f172a;
+            text-shadow: 0 0 3px #ffffff, 0 0 3px #ffffff;
+        }
+        .dark .boring-round-label {
+            color: #f8fafc;
+            text-shadow: 0 0 3px #0f172a, 0 0 3px #0f172a;
         }
     </style>
 </head>
@@ -246,10 +263,20 @@
                     <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 ml-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Boring GPS Coordinates</span>
-                            <button onclick="getBoringGPS()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded transition flex items-center space-x-1 shadow">
-                                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
-                                <span>Get GPS Location</span>
-                            </button>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <label class="inline-flex items-center cursor-pointer select-none bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 px-2.5 py-1 rounded-lg shadow-sm" title="Lock GPS coordinates to prevent accidental overwrite">
+                                    <input type="checkbox" id="gpsLockToggle" onchange="toggleGPSLock(this.checked)" class="sr-only peer">
+                                    <div class="relative w-8 h-4 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                                    <span id="gpsLockLabel" class="ms-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center space-x-1">
+                                        <i data-lucide="unlock" class="w-3 h-3 text-slate-400"></i>
+                                        <span>Unlocked</span>
+                                    </span>
+                                </label>
+                                <button id="getGpsBtn" onclick="getBoringGPS()" class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:text-slate-200 dark:disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold text-xs px-3 py-1.5 rounded transition flex items-center space-x-1 shadow">
+                                    <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                                    <span>Get GPS Location</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
@@ -776,7 +803,7 @@
                     <i data-lucide="map" class="w-5 h-5 text-blue-400"></i>
                     <div>
                         <h3 class="font-bold text-sm">Project Boring Map</h3>
-                        <p class="text-[11px] text-slate-400">Spatial QA/QC & Boring Locations</p>
+                        <p id="boringMapSubtitle" class="text-[11px] text-slate-400">Spatial QA/QC & Boring Locations</p>
                     </div>
                 </div>
                 <button onclick="closeProjectBoringMapModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition shadow">
@@ -791,7 +818,11 @@
                     <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No GPS coordinates available in this project.</p>
                     <p class="text-xs text-slate-400 max-w-sm">Capture GPS coordinates on your borings to view them interactively on the map.</p>
                 </div>
-                <div id="boringMap" class="w-full h-[550px] rounded-xl border border-slate-300 dark:border-slate-700 shadow-inner z-10"></div>
+                <div id="boringMap" class="w-full h-[550px] rounded-xl border border-slate-300 dark:border-slate-700 shadow-inner z-10 overflow-hidden relative"></div>
+                <div id="boringMapOfflineNotice" class="hidden mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between px-1">
+                    <span>Offline / Tile-Free Coordinate View — displaying relative spatial locations on a blank grid.</span>
+                    <span id="boringMapOfflineSelection" class="font-bold text-amber-600 dark:text-amber-400"></span>
+                </div>
             </div>
         </div>
     </div>
@@ -1379,7 +1410,7 @@
             {
                 id: "B-01",
                 rig: "", driller: "", logger: "", additionalNotes: "",
-                gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "",
+                gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", gpsLocked: false,
                 totalDepth: "0.0", offset: "0", direction: "N/A",
                 startDate: "", endDate: "",
                 terminationReason: "Completed at Planned Depth",
@@ -1567,12 +1598,47 @@
             return labels[gw.time] || "GW";
         }
 
+        function syncGPSLockUI() {
+            const cur = borings[activeBoringIndex];
+            const isLocked = Boolean(cur && cur.gpsLocked);
+            const toggle = document.getElementById('gpsLockToggle');
+            const label = document.getElementById('gpsLockLabel');
+            const btn = document.getElementById('getGpsBtn');
+
+            if (toggle) toggle.checked = isLocked;
+            if (btn) btn.disabled = isLocked;
+            if (label) {
+                if (isLocked) {
+                    label.className = "ms-2 text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center space-x-1";
+                    label.innerHTML = `<i data-lucide="lock" class="w-3 h-3 text-amber-500"></i><span>GPS Locked</span>`;
+                } else {
+                    label.className = "ms-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center space-x-1";
+                    label.innerHTML = `<i data-lucide="unlock" class="w-3 h-3 text-slate-400"></i><span>Unlocked</span>`;
+                }
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+
+        function toggleGPSLock(locked) {
+            const cur = borings[activeBoringIndex];
+            if (!cur) return;
+            cur.gpsLocked = Boolean(locked);
+            syncGPSLockUI();
+            markUnsaved();
+            saveLocal();
+            showToast(cur.gpsLocked ? "GPS location locked." : "GPS location unlocked.");
+        }
+
         function getBoringGPS() {
+            const cur = borings[activeBoringIndex];
+            if (cur && cur.gpsLocked) {
+                showToast("GPS location is locked. Unlock it first to update.");
+                return;
+            }
             if (!navigator.geolocation) {
                 alert("Geolocation is not supported by your browser");
                 return;
             }
-            const cur = borings[activeBoringIndex];
             cur.gpsLat = ""; cur.gpsLon = ""; cur.gpsAccuracy = "";
             syncHeaderUI();
             showToast("Retrieving GPS location...");
@@ -1590,11 +1656,12 @@
                 cur.gpsElevation = elevation;
                 cur.gpsTimestamp = timestamp;
                 cur.gpsSource = "Device GPS";
+                cur.gpsLocked = true;
 
                 syncHeaderUI();
                 markUnsaved();
                 saveLocal();
-                showToast("GPS location acquired successfully.");
+                showToast("GPS location acquired and locked.");
             }, (error) => {
                 cur.gpsLat = ""; cur.gpsLon = ""; cur.gpsAccuracy = "";
                 syncHeaderUI();
@@ -1678,7 +1745,7 @@
                 driller: curBoring ? (curBoring.driller || "") : "",
                 logger: curBoring ? (curBoring.logger || "") : "",
                 additionalNotes: "",
-                gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "",
+                gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", gpsLocked: false,
                 totalDepth: "0.0", offset: "0", direction: "N/A",
                 startDate: "", endDate: "",
                 terminationReason: "Completed at Planned Depth",
@@ -1724,7 +1791,7 @@
                     localStorage.removeItem(LOCAL_STORAGE_KEY);
                     projectMeta = { client: "", name: "", number: "" };
                     borings = [{
-                        id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
+                        id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", gpsLocked: false, totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
                         gw: [{depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}],
                         samples: [], rockSamples: []
                     }];
@@ -1823,6 +1890,7 @@
             document.getElementById('gpsLat').value = cur.gpsLat || "";
             document.getElementById('gpsLon').value = cur.gpsLon || "";
             document.getElementById('gpsAccuracy').value = cur.gpsAccuracy || "";
+            syncGPSLockUI();
             document.getElementById('totalDepth').value = cur.totalDepth || "0.0";
             document.getElementById('boringOffset').value = cur.offset || "0";
             document.getElementById('boringDirection').value = cur.direction || "N/A";
@@ -2751,6 +2819,243 @@
         function closeRockPropsModal() {
             currentModalRockIndex = null;
             document.getElementById('rockPropsModal').classList.add('hidden');
+        }
+
+        // --- Project Boring Map Modal (Online Leaflet + Offline Blank-Page Canvas Fallback, Round Markers) ---
+        let boringMapInstance = null;
+        let boringOfflineCanvasPoints = [];
+
+        function getValidGPSBorings() {
+            return borings.map((b, idx) => {
+                const lat = parseFloat(b.gpsLat);
+                const lon = parseFloat(b.gpsLon);
+                if (isNaN(lat) || isNaN(lon)) return null;
+                return {
+                    index: idx,
+                    id: b.id || `B-${String(idx + 1).padStart(2, '0')}`,
+                    lat: lat,
+                    lon: lon,
+                    accuracy: b.gpsAccuracy || 'N/A',
+                    totalDepth: b.totalDepth || '0.0',
+                    rig: b.rig || 'N/A',
+                    isActive: idx === activeBoringIndex
+                };
+            }).filter(Boolean).sort((a, b) => compareBoringIds(a.id, b.id));
+        }
+
+        function openProjectBoringMapModal() {
+            const modal = document.getElementById('projectBoringMapModal');
+            const mapDiv = document.getElementById('boringMap');
+            const emptyState = document.getElementById('boringMapEmptyState');
+            const offlineNotice = document.getElementById('boringMapOfflineNotice');
+            if (!modal || !mapDiv || !emptyState) return;
+
+            modal.classList.remove('hidden');
+            const validBorings = getValidGPSBorings();
+
+            if (boringMapInstance) {
+                try { boringMapInstance.remove(); } catch (e) {}
+                boringMapInstance = null;
+            }
+            mapDiv.innerHTML = '';
+
+            if (validBorings.length === 0) {
+                emptyState.classList.remove('hidden');
+                mapDiv.classList.add('hidden');
+                if (offlineNotice) offlineNotice.classList.add('hidden');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            mapDiv.classList.remove('hidden');
+
+            const canUseLeaflet = (typeof L !== 'undefined') && navigator.onLine;
+
+            if (canUseLeaflet) {
+                try {
+                    if (offlineNotice) offlineNotice.classList.add('hidden');
+                    boringMapInstance = L.map('boringMap', { zoomControl: true });
+
+                    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap'
+                    });
+
+                    let tileErrors = 0;
+                    tileLayer.on('tileerror', () => {
+                        tileErrors++;
+                        if (tileErrors >= 2 && offlineNotice) {
+                            offlineNotice.classList.remove('hidden');
+                        }
+                    });
+                    tileLayer.addTo(boringMapInstance);
+
+                    const boundsPoints = [];
+                    validBorings.forEach(item => {
+                        boundsPoints.push([item.lat, item.lon]);
+                        const marker = L.circleMarker([item.lat, item.lon], {
+                            radius: 9,
+                            fillColor: item.isActive ? '#f59e0b' : '#2563eb',
+                            color: '#ffffff',
+                            weight: 2.5,
+                            opacity: 1,
+                            fillOpacity: 0.95
+                        }).addTo(boringMapInstance);
+
+                        marker.bindTooltip(item.id, {
+                            permanent: true,
+                            direction: 'top',
+                            offset: [0, -8],
+                            className: 'boring-round-label'
+                        });
+
+                        marker.bindPopup(`
+                            <div style="font-size:12px;line-height:1.4;">
+                                <strong>${item.id}</strong><br>
+                                Lat: ${item.lat.toFixed(6)}<br>
+                                Lon: ${item.lon.toFixed(6)}<br>
+                                Accuracy: ${item.accuracy}<br>
+                                Total Depth: ${item.totalDepth} ft
+                            </div>
+                        `);
+                    });
+
+                    setTimeout(() => {
+                        if (!boringMapInstance) return;
+                        boringMapInstance.invalidateSize();
+                        if (boundsPoints.length === 1) {
+                            boringMapInstance.setView(boundsPoints[0], 17);
+                        } else {
+                            boringMapInstance.fitBounds(L.latLngBounds(boundsPoints), { padding: [50, 50], maxZoom: 18 });
+                        }
+                    }, 80);
+                    return;
+                } catch (err) {
+                    console.warn("Falling back to offline map view:", err);
+                }
+            }
+
+            // Offline / Blank-Page Round Marker Canvas Renderer
+            renderOfflineBlankBoringMap(mapDiv, validBorings);
+            if (offlineNotice) offlineNotice.classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function renderOfflineBlankBoringMap(container, validBorings) {
+            const isDark = document.documentElement.classList.contains('dark');
+            container.innerHTML = `<canvas id="offlineBoringCanvas" class="w-full h-full block cursor-pointer"></canvas>`;
+            const canvas = document.getElementById('offlineBoringCanvas');
+            const selLabel = document.getElementById('boringMapOfflineSelection');
+            if (!canvas) return;
+
+            const rect = container.getBoundingClientRect();
+            const width = Math.max(300, Math.floor(rect.width || 800));
+            const height = Math.max(300, Math.floor(rect.height || 550));
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            // Clean blank background with subtle coordinate grid
+            ctx.fillStyle = isDark ? '#0f172a' : '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(100, 116, 139, 0.15)';
+            ctx.lineWidth = 1;
+            const gridStep = 50;
+            for (let x = gridStep; x < width; x += gridStep) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+            }
+            for (let y = gridStep; y < height; y += gridStep) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+            }
+
+            // North arrow indicator
+            ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('N', width - 28, 22);
+            ctx.beginPath();
+            ctx.moveTo(width - 28, 26);
+            ctx.lineTo(width - 28, 46);
+            ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            const lats = validBorings.map(b => b.lat);
+            const lons = validBorings.map(b => b.lon);
+            const minLat = Math.min(...lats);
+            const maxLat = Math.max(...lats);
+            const minLon = Math.min(...lons);
+            const maxLon = Math.max(...lons);
+            const midLatRad = ((minLat + maxLat) / 2) * (Math.PI / 180);
+            const cosLat = Math.max(0.1, Math.cos(midLatRad));
+
+            const pad = 70;
+            const plotW = Math.max(60, width - pad * 2);
+            const plotH = Math.max(60, height - pad * 2);
+
+            const spanLon = (maxLon - minLon) * cosLat;
+            const spanLat = (maxLat - minLat);
+            const maxSpan = Math.max(spanLon, spanLat);
+
+            boringOfflineCanvasPoints = validBorings.map(item => {
+                let cx, cy;
+                if (maxSpan < 1e-8) {
+                    cx = width / 2;
+                    cy = height / 2;
+                } else {
+                    const scale = Math.min(plotW / maxSpan, plotH / maxSpan);
+                    const normX = ((item.lon - minLon) * cosLat - spanLon / 2) * scale;
+                    const normY = ((item.lat - minLat) - spanLat / 2) * scale;
+                    cx = width / 2 + normX;
+                    cy = height / 2 - normY;
+                }
+                return { ...item, cx, cy, r: 9 };
+            });
+
+            // Draw round markers & labels
+            boringOfflineCanvasPoints.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.cx, pt.cy, pt.r, 0, Math.PI * 2);
+                ctx.fillStyle = pt.isActive ? '#f59e0b' : '#2563eb';
+                ctx.fill();
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+                ctx.stroke();
+
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+                ctx.fillText(pt.id, pt.cx, pt.cy - 14);
+            });
+
+            if (selLabel && boringOfflineCanvasPoints.length > 0) {
+                const activePt = boringOfflineCanvasPoints.find(p => p.isActive) || boringOfflineCanvasPoints[0];
+                selLabel.textContent = `${activePt.id}: ${activePt.lat.toFixed(6)}, ${activePt.lon.toFixed(6)} (${activePt.accuracy})`;
+            }
+
+            canvas.onclick = (evt) => {
+                const cRect = canvas.getBoundingClientRect();
+                const clickX = evt.clientX - cRect.left;
+                const clickY = evt.clientY - cRect.top;
+                const hit = boringOfflineCanvasPoints.find(p => Math.hypot(clickX - p.cx, clickY - p.cy) <= 16);
+                if (hit && selLabel) {
+                    selLabel.textContent = `${hit.id}: ${hit.lat.toFixed(6)}, ${hit.lon.toFixed(6)} | Accuracy: ${hit.accuracy} | Depth: ${hit.totalDepth} ft`;
+                }
+            };
+        }
+
+        function closeProjectBoringMapModal() {
+            const modal = document.getElementById('projectBoringMapModal');
+            if (modal) modal.classList.add('hidden');
+            if (boringMapInstance) {
+                try { boringMapInstance.remove(); } catch (e) {}
+                boringMapInstance = null;
+            }
         }
 
         // --- Geotechnical Symbology & Profile Rendering ---
