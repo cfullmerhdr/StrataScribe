@@ -1302,15 +1302,16 @@
                 projectMeta: projectMeta,
                 borings: borings
             };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
             const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", buildExportFilename("json"));
+            dlAnchor.href = url;
+            dlAnchor.download = buildExportFilename("json");
             document.body.appendChild(dlAnchor);
             dlAnchor.click();
             dlAnchor.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-            // Save-state verification requirement
             isSaved = true;
             unsavedSinceTime = null;
             lastSaveOrBackupTime = Date.now();
@@ -2097,6 +2098,9 @@
             borings[activeBoringIndex].samples[idx][field] = val;
             markUnsaved();
             saveLocal();
+            if (['b1', 'b2', 'b3'].includes(field)) {
+                renderTables();
+            }
         }
 
         function addSoilRow() {
@@ -3626,13 +3630,15 @@
                 projectMeta: projectMeta,
                 borings: borings
             };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
             const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", buildExportFilename("json"));
+            dlAnchor.href = url;
+            dlAnchor.download = buildExportFilename("json");
             document.body.appendChild(dlAnchor);
             dlAnchor.click();
             dlAnchor.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
 
             markSavedNow();
             showToast("Project saved (JSON backup exported).");
