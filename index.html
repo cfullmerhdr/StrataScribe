@@ -2,12 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Strata Scribe v1.6.3 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strata Scribe v1.6.9 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <!-- PWA Manifest & Theme Color -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f59e0b">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js for Summary Figures & Histograms -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = { darkMode: 'class' };
     </script>
@@ -42,53 +50,104 @@
             background-color: #0f172a;
             color: #f8fafc;
         }
+        #boringMap {
+            width: 100%;
+            height: 75vh;
+            border-radius: 0.75rem;
+        }
+        .dark .leaflet-popup-content-wrapper, .dark .leaflet-popup-tip {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155;
+        }
+        .dark .leaflet-tile {
+            filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
 
     <!-- Stationary Project Controls -->
-    <div class="bg-slate-900 text-white px-3 sm:px-4 py-3 shadow-md border-b border-slate-700">
+    <div class="bg-slate-900 text-white px-3 sm:px-4 py-3 shadow-md border-b border-slate-700 sticky top-0 z-40">
         <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-2.5">
             <div class="flex items-center space-x-2.5">
                 <div class="bg-amber-500 p-2 rounded-lg text-slate-950 font-bold flex items-center justify-center shadow">
                     <i data-lucide="layers" class="w-5 h-5"></i>
                 </div>
+
+                <img
+                    src="hdr_logo_forms_white.png"
+                    alt="HDR"
+                    class="h-11 w-auto object-contain"
+                >
+
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.3</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.9</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
 
-            <!-- Project Actions Toolbar -->
             <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="importJSON(event)">
 
-                <button onclick="openProjectBoringProfilesModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="View All Project Boring Profiles">
-                    <i data-lucide="folder-kanban" class="w-3.5 h-3.5"></i>
-                    <span class="hidden xs:inline sm:inline">Profiles</span>
+                <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm px-3.5 sm:px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow-lg border border-emerald-500" title="Save Project (JSON Backup)">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Save Project</span>
                 </button>
-                <button onclick="triggerJSONUpload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Import Project Session">
-                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                    <span class="hidden md:inline">Import Project</span>
-                </button>
-                <button onclick="exportJSON()" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export Project (JSON)">
-                    <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
-                    <span class="hidden md:inline">Export Project</span>
-                </button>
-                <button onclick="exportCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Export CSV">
-                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
-                    <span>CSV</span>
-                </button>
-                <button onclick="confirmResetAll()" class="bg-rose-700 hover:bg-rose-800 text-white font-bold text-[11px] sm:text-xs px-2 sm:px-2.5 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Clear All Data">
-                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                    <span class="hidden sm:inline">Reset</span>
-                </button>
-                <button id="themeToggleBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition border border-slate-700">
-                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
-                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-200"></i>
-                </button>
+                <div id="saveStatusIndicator" class="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 flex items-center shadow">✅ Saved</div>
+
+                <!-- Tools Dropdown Menu -->
+                <div class="relative" id="toolsDropdownContainer">
+                    <button onclick="toggleToolsMenu()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] sm:text-xs px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow" title="Tools Menu">
+                        <i data-lucide="settings" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Tools</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-0.5 text-slate-400"></i>
+                    </button>
+                    <div id="toolsDropdownMenu" class="hidden absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 py-1.5">
+                        <button onclick="closeToolsMenu(); openProjectBoringProfilesModal();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-amber-500"></i>
+                            <span>Profiles</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); openSummaryFiguresModal();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="pie-chart" class="w-3.5 h-3.5 text-indigo-400"></i>
+                            <span>Summary Figures</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); openProjectBoringMapModal();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="map" class="w-3.5 h-3.5 text-blue-400"></i>
+                            <span>View Boring Map</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); triggerJSONUpload();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
+                            <span>Import Project</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); exportCSV();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>Export CSV</span>
+                        </button>
+                        <button onclick="closeToolsMenu(); toggleThemeFromTools();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400 hidden dark:block"></i>
+                            <i data-lucide="moon" class="w-3.5 h-3.5 text-slate-400 block dark:hidden"></i>
+                            <span class="dark:hidden">Dark Mode</span>
+                            <span class="hidden dark:inline">Light Mode</span>
+                        </button>
+                        <div class="border-t border-slate-200 dark:border-slate-800 my-1"></div>
+                        <button onclick="closeToolsMenu(); confirmResetAll();" class="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center space-x-2">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>Reset All Data</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- Persistent Non-Intrusive Save Reminder Banner -->
+    <div id="saveReminderBanner" class="hidden bg-amber-500 text-slate-950 px-4 py-3 text-sm font-extrabold shadow-md transition-all duration-300 flex items-center justify-between sticky top-[57px] z-30">
+        <div class="flex items-center space-x-2.5 mx-auto">
+            <i data-lucide="save" class="w-5 h-5 flex-shrink-0"></i>
+            <span>💾 Save Project after completing your boring log.</span>
+        </div>
+        <button onclick="dismissSaveReminder()" class="text-slate-950 hover:bg-amber-600 px-2.5 py-1 rounded text-sm font-extrabold">&times;</button>
     </div>
 
     <!-- Main Responsive Layout -->
@@ -121,8 +180,10 @@
                 </div>
 
                 <!-- Boring Switcher & Active Boring Header Bar -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 sm:p-4 space-y-4">
-                    <div class="flex flex-wrap items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2 gap-2">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 sm:p-4 space-y-4 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
+
+                    <div class="flex flex-wrap items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2 gap-2 pl-2">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="file-text" class="w-4 h-4 text-amber-500"></i>
                             <h2 class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-200">Active Boring & Termination</h2>
@@ -142,8 +203,7 @@
                         </div>
                     </div>
 
-                    <!-- Consolidated Meta Inputs -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pl-2">
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Boring ID</label>
                             <input type="text" id="boringId" onchange="updateActiveBoringHeader('id', this.value)" class="table-input font-bold text-amber-600 dark:text-amber-400" placeholder="e.g. B-01">
@@ -182,8 +242,8 @@
                         </div>
                     </div>
 
-                    <!-- GPS Location Box (Above Termination & Refusal Parameters) -->
-                    <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <!-- GPS Location Box -->
+                    <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 ml-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Boring GPS Coordinates</span>
                             <button onclick="getBoringGPS()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded transition flex items-center space-x-1 shadow">
@@ -191,7 +251,7 @@
                                 <span>Get GPS Location</span>
                             </button>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Latitude</label>
                                 <input type="text" id="gpsLat" readonly class="table-input bg-white dark:bg-slate-900 text-xs font-semibold" placeholder="Not set">
@@ -200,11 +260,15 @@
                                 <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Longitude</label>
                                 <input type="text" id="gpsLon" readonly class="table-input bg-white dark:bg-slate-900 text-xs font-semibold" placeholder="Not set">
                             </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Accuracy</label>
+                                <input type="text" id="gpsAccuracy" readonly class="table-input bg-white dark:bg-slate-900 text-xs font-semibold" placeholder="Not set">
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Single Consolidated Box: Total Depth & Termination / Refusal entries -->
-                    <div class="bg-amber-500/10 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-500/20 space-y-2">
+                    <!-- Termination & Refusal Parameters -->
+                    <div class="bg-amber-500/10 dark:bg-amber-500/5 p-3 rounded-xl border border-amber-500/20 space-y-2 ml-2">
                         <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Termination & Refusal Parameters</span>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div>
@@ -243,7 +307,7 @@
                     </div>
 
                     <!-- Dates & Interactive Drilling Methods Row -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 pl-2">
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Start Date</label>
                             <input type="date" id="startDate" onchange="updateActiveBoringHeader('startDate', this.value)" class="table-input font-medium text-xs">
@@ -292,7 +356,7 @@
                     </div>
 
                     <!-- Groundwater Observations -->
-                    <div class="pt-1">
+                    <div class="pt-1 pl-2">
                         <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Groundwater Observations</label>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div class="flex flex-col space-y-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -307,7 +371,8 @@
                                         <select id="gwTime1" onchange="onGWTypeChange(0, this.value)" class="table-select text-xs">
                                             <option value="N/A" selected>N/A</option>
                                             <option value="N/E">N/E</option>
-                                            <option value="ATD">ATD</option>
+                                            <option value="ATD">ATD (At Time of Drilling)</option>
+                                            <option value="AD">AD (After Drilling)</option>
                                             <option value="Next Day">Next Day</option>
                                             <option value="Cave In">Cave In</option>
                                             <option value="After Coring">After Coring</option>
@@ -333,7 +398,8 @@
                                         <select id="gwTime2" onchange="onGWTypeChange(1, this.value)" class="table-select text-xs">
                                             <option value="N/A" selected>N/A</option>
                                             <option value="N/E">N/E</option>
-                                            <option value="ATD">ATD</option>
+                                            <option value="ATD">ATD (At Time of Drilling)</option>
+                                            <option value="AD">AD (After Drilling)</option>
                                             <option value="Next Day">Next Day</option>
                                             <option value="Cave In">Cave In</option>
                                             <option value="After Coring">After Coring</option>
@@ -359,7 +425,8 @@
                                         <select id="gwTime3" onchange="onGWTypeChange(2, this.value)" class="table-select text-xs">
                                             <option value="N/A" selected>N/A</option>
                                             <option value="N/E">N/E</option>
-                                            <option value="ATD">ATD</option>
+                                            <option value="ATD">ATD (At Time of Drilling)</option>
+                                            <option value="AD">AD (After Drilling)</option>
                                             <option value="Next Day">Next Day</option>
                                             <option value="Cave In">Cave In</option>
                                             <option value="After Coring">After Coring</option>
@@ -378,15 +445,17 @@
                 </div>
 
                 <!-- Additional Boring Notes Field -->
-                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-2">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Additional Boring Notes</label>
-                    <textarea id="additionalBoringNotes" onchange="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-2 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 pl-2">Additional Boring Notes</label>
+                    <textarea id="additionalBoringNotes" onchange="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900 ml-2 max-w-[calc(100%-8px)]" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
                 </div>
 
                 <!-- Surface Conditions Section Header -->
-                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2">
-                    <div class="flex items-center space-x-2">
-                        <i data-lucide="disc" class="w-4 h-4 text-amber-500"></i>
+                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-400 dark:bg-slate-500"></div>
+                    <div class="flex items-center space-x-2 pl-2">
+                        <i data-lucide="disc" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
                         <span class="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Surface Conditions</span>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -418,9 +487,10 @@
                 </div>
 
                 <!-- Soil Sample Section Header -->
-                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2">
-                    <div class="flex items-center space-x-2">
-                        <i data-lucide="layers" class="w-4 h-4 text-amber-500"></i>
+                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-600"></div>
+                    <div class="flex items-center space-x-2 pl-2">
+                        <i data-lucide="layers" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
                         <span class="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Soil Sample Rows</span>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -458,9 +528,10 @@
                 </div>
 
                 <!-- Rock Coring Section Header -->
-                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 mt-6">
-                    <div class="flex items-center space-x-2">
-                        <i data-lucide="gem" class="w-4 h-4 text-amber-500"></i>
+                <div class="flex flex-wrap justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm gap-2 mt-6 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-500"></div>
+                    <div class="flex items-center space-x-2 pl-2">
+                        <i data-lucide="gem" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
                         <span class="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Rock Coring Table</span>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -474,14 +545,14 @@
                 <!-- Compact Rock Coring Table -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
-                        <table class="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[950px]">
+                        <table class="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[1250px]">
                             <thead class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 uppercase tracking-wider font-bold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
                                 <tr>
                                     <th class="py-3 px-3 min-w-[140px]">Top Depth (ft)</th>
                                     <th class="py-3 px-3 min-w-[110px]">Run Length (ft)</th>
                                     <th class="py-3 px-3 min-w-[110px]">Bottom Depth (ft)</th>
-                                    <th class="py-3 px-3 min-w-[100px]">Recovery (ft)</th>
-                                    <th class="py-3 px-3 min-w-[90px]">RQD (ft)</th>
+                                    <th class="py-3 px-3 min-w-[210px]">Recovery (Inches / Ft)</th>
+                                    <th class="py-3 px-3 min-w-[210px]">RQD (Inches / Ft)</th>
                                     <th class="py-3 px-3 min-w-[280px]">Rock Properties</th>
                                     <th class="py-3 px-3 min-w-[180px]">Remarks</th>
                                     <th class="py-3 px-3 text-center min-w-[60px]">Delete</th>
@@ -515,30 +586,212 @@
         </div>
     </main>
 
+    <!-- PWA Debug Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
+        Version: v1.6.9 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.9
+    </footer>
+
     <!-- Project Boring Profiles Modal -->
     <div id="projectBoringProfilesModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-7xl max-h-[92vh] flex flex-col overflow-hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-[95vw] max-h-[92vh] flex flex-col overflow-hidden">
             <div class="bg-slate-800 text-white px-5 py-3.5 flex justify-between items-center border-b border-slate-700">
                 <div class="flex items-center space-x-2">
                     <i data-lucide="folder-kanban" class="w-5 h-5 text-amber-400"></i>
                     <div>
                         <h3 class="font-bold text-sm">Project Boring Profiles</h3>
-                        <p class="text-[11px] text-slate-400">All Project Borings Overview</p>
+                        <p class="text-[11px] text-slate-400">Multi-Boring Profile Comparison</p>
                     </div>
                 </div>
                 <button onclick="closeProjectBoringProfilesModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition shadow">
                     Close Window
                 </button>
             </div>
-            <div class="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-950/40">
-                <div id="allBoringsGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Injected dynamically -->
+            
+            <div class="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-50 dark:bg-slate-950/40">
+                <div class="w-full lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col space-y-3 overflow-y-auto flex-shrink-0">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <span class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Select Borings</span>
+                        <div class="space-x-1">
+                            <button onclick="profilesSelectAll(true)" class="text-[10px] font-bold text-amber-600 hover:underline">All</button>
+                            <span class="text-slate-400">|</span>
+                            <button onclick="profilesSelectAll(false)" class="text-[10px] font-bold text-slate-500 hover:underline">None</button>
+                        </div>
+                    </div>
+                    <div id="profilesBoringCheckboxes" class="space-y-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="flex-1 p-4 overflow-x-auto overflow-y-auto flex items-start space-x-6 bg-slate-100 dark:bg-slate-950/60" id="profilesCanvasContainer">
+                    <!-- Rendered side-by-side profiles -->
                 </div>
             </div>
+
             <div class="bg-slate-100 dark:bg-slate-800 p-3 flex justify-end border-t border-slate-200 dark:border-slate-700">
                 <button onclick="closeProjectBoringProfilesModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition shadow">
                     Close Window
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Figures Modal -->
+    <div id="summaryFiguresModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-7xl max-h-[92vh] flex flex-col overflow-hidden">
+            <div class="bg-slate-800 text-white px-5 py-3.5 flex justify-between items-center border-b border-slate-700">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-400"></i>
+                    <div>
+                        <h3 class="font-bold text-sm">Project Summary Figures & QA/QC Statistics</h3>
+                        <p class="text-[11px] text-slate-400">Drilling Footages, Groundwater Statistics, USCS Classifications, & Rock Quality Histograms</p>
+                    </div>
+                </div>
+                <button onclick="closeSummaryFiguresModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition shadow">
+                    Close Window
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-slate-950/40 text-xs">
+                
+                <!-- TOP GRID: TABLES -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                            <span>Drilling Footage Summary</span>
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
+                                        <th class="py-2.5 px-3">Boring ID</th>
+                                        <th class="py-2.5 px-3 text-right">Depth to Rock (ft)</th>
+                                        <th class="py-2.5 px-3 text-right">Soil Footage (ft)</th>
+                                        <th class="py-2.5 px-3 text-right">Rock Footage (ft)</th>
+                                        <th class="py-2.5 px-3 text-right">Total Depth (ft)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryDrillingTbody" class="divide-y divide-slate-200 dark:divide-slate-800">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-sky-500 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
+                            <i data-lucide="droplet" class="w-4 h-4"></i>
+                            <span>Groundwater Statistics Summary</span>
+                        </h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Min Water Depth</span>
+                                <span id="gwStatMinDepth" class="font-extrabold text-sm text-sky-500">--</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Max Water Depth</span>
+                                <span id="gwStatMaxDepth" class="font-extrabold text-sm text-sky-500">--</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Borings w/ Water</span>
+                                <span id="gwStatWithWater" class="font-extrabold text-sm text-emerald-500">--</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Borings w/o Water</span>
+                                <span id="gwStatWithoutWater" class="font-extrabold text-sm text-slate-400">--</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Highest Water Elev</span>
+                                <span id="gwStatHighElev" class="font-extrabold text-sm text-sky-500">N/A</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Lowest Water Elev</span>
+                                <span id="gwStatLowElev" class="font-extrabold text-sm text-sky-500">N/A</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MIDDLE GRID: PIE CHARTS -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-indigo-400 border-b border-slate-100 dark:border-slate-800 pb-2 w-full text-left mb-3 flex items-center space-x-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                            <span>Soil Classification Footage Distribution (USCS)</span>
+                        </h4>
+                        <div class="w-full h-64 relative flex justify-center">
+                            <canvas id="uscsPieChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-amber-500 border-b border-slate-100 dark:border-slate-800 pb-2 w-full text-left mb-3 flex items-center space-x-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                            <span>Soil vs. Rock Drilled Footage</span>
+                        </h4>
+                        <div class="w-full h-64 relative flex justify-center">
+                            <canvas id="soilRockPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM GRID: PERCENTAGE HISTOGRAMS -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-emerald-500 border-b border-slate-100 dark:border-slate-800 pb-2 w-full text-left mb-3 flex items-center space-x-2">
+                            <i data-lucide="bar-chart" class="w-4 h-4"></i>
+                            <span>Rock Core Recovery Quality Distribution (%)</span>
+                        </h4>
+                        <div class="w-full h-64 relative flex justify-center">
+                            <canvas id="recoveryHistogram"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-blue-500 border-b border-slate-100 dark:border-slate-800 pb-2 w-full text-left mb-3 flex items-center space-x-2">
+                            <i data-lucide="bar-chart" class="w-4 h-4"></i>
+                            <span>Rock Core RQD Quality Distribution (%)</span>
+                        </h4>
+                        <div class="w-full h-64 relative flex justify-center">
+                            <canvas id="rqdHistogram"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="bg-slate-100 dark:bg-slate-800 p-3 flex justify-end border-t border-slate-200 dark:border-slate-700">
+                <button onclick="closeSummaryFiguresModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition shadow">
+                    Close Window
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Boring Map Modal -->
+    <div id="projectBoringMapModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-[95vw] max-h-[92vh] flex flex-col overflow-hidden">
+            <div class="bg-slate-800 text-white px-5 py-3.5 flex justify-between items-center border-b border-slate-700">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="map" class="w-5 h-5 text-blue-400"></i>
+                    <div>
+                        <h3 class="font-bold text-sm">Project Boring Map</h3>
+                        <p class="text-[11px] text-slate-400">Spatial QA/QC & Boring Locations</p>
+                    </div>
+                </div>
+                <button onclick="closeProjectBoringMapModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition shadow">
+                    Close Window
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-950/40 relative">
+                <div id="boringMapEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center space-y-3">
+                    <div class="bg-amber-500/10 text-amber-500 p-3 rounded-full">
+                        <i data-lucide="map-pin-off" class="w-8 h-8"></i>
+                    </div>
+                    <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No GPS coordinates available in this project.</p>
+                    <p class="text-xs text-slate-400 max-w-sm">Capture GPS coordinates on your borings to view them interactively on the map.</p>
+                </div>
+                <div id="boringMap" class="w-full h-[550px] rounded-xl border border-slate-300 dark:border-slate-700 shadow-inner z-10"></div>
             </div>
         </div>
     </div>
@@ -565,55 +818,67 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-slate-50 dark:bg-slate-950/40">
-                <!-- SOIL DESCRIPTION & FAST CHIPS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="shield" class="w-4 h-4"></i>
                         <span>Soil Description Chips</span>
                     </h4>
 
-                    <!-- USCS Classification Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">USCS Classification</span>
                         <div id="chipContainer_uscs" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Major Modifier Chips -->
+                    <div id="soilGradationSection" class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 hidden">
+                        <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Gradation (Coarse-Grained)</span>
+                        <div id="chipContainer_gradation" class="flex flex-wrap gap-1.5 pt-1"></div>
+                    </div>
+
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Major Modifier</span>
                         <div id="chipContainer_major" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Minor Modifier Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Minor Modifier</span>
                         <div id="chipContainer_minor" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Moisture Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Moisture</span>
                         <div id="chipContainer_moisture" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Origin Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Origin</span>
                         <div id="chipContainer_origin" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Density / Consistency Read-Only Display -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 max-w-xs">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Density / Consistency (Auto)</span>
                         <input type="text" id="soilModal_densityDisplay" readonly class="table-input font-bold bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 cursor-not-allowed mt-1">
                     </div>
 
-                    <!-- Shade & Ordered Color Workflow -->
                     <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">Shade & Colors (Ordered Selection)</label>
                         <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-2">
-                            <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Shade (Optional)</span>
-                            <div id="chipContainer_soilShade" class="flex flex-wrap gap-1.5 pt-1"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                                <div>
+                                    <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">
+                                        Shade (Optional)
+                                    </span>
+                                    <div id="chipContainer_soilShade" class="flex flex-wrap gap-1.5 pt-1"></div>
+                                </div>
+
+                                <div>
+                                    <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">
+                                        Mottling
+                                    </span>
+                                    <div id="chipContainer_mottling" class="flex flex-wrap gap-1.5 pt-1"></div>
+                                </div>
+
+                            </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
@@ -632,14 +897,11 @@
                             <!-- Rendered chips -->
                         </div>
                     </div>
+                    
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-slate-100 dark:bg-slate-800 p-3 flex justify-end border-t border-slate-200 dark:border-slate-700">
-                <button onclick="closeSoilPropsModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition shadow">
-                    Save & Done
-                </button>
-            </div>
         </div>
     </div>
 
@@ -665,45 +927,37 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-slate-50 dark:bg-slate-950/40" id="rockPropsModalBody">
-                
-                <!-- SECTION 1: ROCK DESCRIPTION & FAST CHIPS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="shield" class="w-4 h-4"></i>
                         <span>Rock Description Chips</span>
                     </h4>
 
-                    <!-- Rock Type Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Rock Type</span>
                         <div id="chipContainer_rockType" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Weathering Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Weathering</span>
                         <div id="chipContainer_weathering" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Grain Size Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Grain Size</span>
                         <div id="chipContainer_grainSize" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Grain Shape Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Grain Shape</span>
                         <div id="chipContainer_grainShape" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Strength Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Strength</span>
                         <div id="chipContainer_strength" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Rock Shade & Ordered Color Workflow -->
                     <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">Shade & Colors (Ordered Selection)</label>
                         <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-2">
@@ -729,69 +983,58 @@
                     </div>
                 </div>
 
-                <!-- SECTION 2: DISCONTINUITIES & GEOMECHANICS CHIPS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="git-commit" class="w-4 h-4"></i>
                         <span>Discontinuities & Geomechanics Chips</span>
                     </h4>
 
-                    <!-- Bedding / Foliation Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Bedding / Foliation</span>
                         <div id="chipContainer_bedding" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Type Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Type</span>
                         <div id="chipContainer_jointType" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Spacing Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Spacing</span>
                         <div id="chipContainer_jointSpacing" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Persistence Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Persistence</span>
                         <div id="chipContainer_jointPersistence" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Surface Roughness Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Surface Roughness</span>
                         <div id="chipContainer_jointRoughness" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Geometry Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Geometry</span>
                         <div id="chipContainer_jointGeometry" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Aperture Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Aperture</span>
                         <div id="chipContainer_jointAperture" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Joint Filling Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Joint Filling</span>
                         <div id="chipContainer_jointFilling" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
 
-                    <!-- Groundwater Condition Chips -->
                     <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span class="font-bold text-amber-600 dark:text-amber-400 uppercase text-[10px] tracking-wider">Groundwater Condition</span>
                         <div id="chipContainer_gwCondition" class="flex flex-wrap gap-1.5 pt-1"></div>
                     </div>
                 </div>
 
-                <!-- SECTION 3: NUMERIC ROCK DATA -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="hash" class="w-4 h-4"></i>
@@ -803,7 +1046,6 @@
                     </div>
                 </div>
 
-                <!-- SECTION 4: DESCRIPTORS -->
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-1.5">
                         <i data-lucide="check-square" class="w-4 h-4"></i>
@@ -830,6 +1072,174 @@
     </div>
 
     <script>
+        // --- Register Service Worker ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('ServiceWorker registration successful: ', reg.scope))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+
+        // --- IndexedDB Setup ---
+        const DB_NAME = 'StrataScribeDB';
+        const STORE_NAME = 'projectStore';
+        const DB_VERSION = 1;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.upgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+            });
+        }
+
+        async function saveToIndexedDB() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const payload = {
+                    projectMeta: projectMeta,
+                    borings: borings,
+                    activeBoringIndex: activeBoringIndex,
+                    timestamp: Date.now()
+                };
+                store.put(payload, 'currentProject');
+                return new Promise((resolve, reject) => {
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => reject(tx.error);
+                });
+            } catch (e) {
+                console.error("IndexedDB save error:", e);
+            }
+        }
+
+        async function loadFromIndexedDB() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get('currentProject');
+                return new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (e) {
+                console.error("IndexedDB load error:", e);
+                return null;
+            }
+        }
+
+        // --- Save Status State & Timer Management ---
+        let isSaved = true;
+        let lastSaveOrBackupTime = Date.now();
+        let unsavedSinceTime = null;
+        let isInitialized = false;
+        let backupInProgress = false; // Mutex lock to prevent multi-download bug
+
+        function markUnsaved() {
+            if (isSaved) {
+                isSaved = false;
+                unsavedSinceTime = Date.now();
+            }
+            updateSaveStatusUI();
+        }
+
+        function markSavedNow() {
+            isSaved = true;
+            unsavedSinceTime = null;
+            lastSaveOrBackupTime = Date.now();
+            updateSaveStatusUI();
+        }
+
+        function updateSaveStatusUI() {
+            const indicator = document.getElementById('saveStatusIndicator');
+            if (!indicator) return;
+            if (isSaved) {
+                indicator.className = "text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 flex items-center shadow";
+                indicator.innerHTML = "✅ Saved";
+            } else {
+                const diffMinutes = unsavedSinceTime ? Math.max(0, Math.floor((Date.now() - unsavedSinceTime) / 60000)) : 0;
+                indicator.className = "text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-800 text-amber-400 border border-slate-700 flex flex-col items-center leading-tight shadow";
+                indicator.innerHTML = `<span>● Unsaved</span><span class="text-[10px] font-medium text-amber-300/80">(${diffMinutes} min)</span>`;
+            }
+        }
+
+        setInterval(() => {
+            if (!isSaved) {
+                updateSaveStatusUI();
+                checkAutomaticBackup();
+            }
+        }, 60000);
+
+        function toggleToolsMenu() {
+            const menu = document.getElementById('toolsDropdownMenu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        function closeToolsMenu() {
+            const menu = document.getElementById('toolsDropdownMenu');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        window.addEventListener('click', (e) => {
+            const container = document.getElementById('toolsDropdownContainer');
+            if (container && !container.contains(e.target)) {
+                closeToolsMenu();
+            }
+        });
+
+        // --- Automatic Backup Logic (with Mutex & unsavedSinceTime eligibility) ---
+        function checkAutomaticBackup() {
+            if (!isSaved && unsavedSinceTime && !backupInProgress) {
+                const elapsed = Date.now() - unsavedSinceTime;
+                if (elapsed >= 15 * 60 * 1000) {
+                    backupInProgress = true;
+                    try {
+                        exportJSONBackupSilently();
+                    } finally {
+                        backupInProgress = false;
+                    }
+                }
+            }
+        }
+
+        function exportJSONBackupSilently() {
+            const payload = {
+                application: "StrataScribe",
+                version: "v1.6.9",
+                exportTimestamp: new Date().toISOString(),
+                projectMeta: projectMeta,
+                borings: borings
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", buildExportFilename("json"));
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+
+            // Save-state verification requirement
+            isSaved = true;
+            unsavedSinceTime = null;
+            lastSaveOrBackupTime = Date.now();
+            updateSaveStatusUI();
+            showToast("Automatic JSON backup exported successfully.");
+        }
+
+        function toggleThemeFromTools() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('geoTabletTheme_v1_6_9', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+
         // --- Reference Data & Dropdowns ---
         const wholeFootOptions = Array.from({length: 151}, (_, i) => i);
         const decimalOptions = ["0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"];
@@ -848,17 +1258,22 @@
         
         const blowOptions = [
             "",
-            ...Array.from({length: 61}, (_, i) => String(i)),
-            "50/0\"", "50/1\"", "50/2\"", "50/3\"", "50/4\"", "50/5\""
+            ...Array.from({length: 51}, (_, i) => String(i)),
+            '50/0"', '50/1"', '50/2"', '50/3"', '50/4"', '50/5"'
         ];
 
         const uscsList = ["CL", "CH", "CL-ML", "ML", "MH", "OL", "OH", "PT", "SW", "SP", "SM", "SC", "SW-SM", "SW-SC", "SP-SM", "SP-SC", "GW", "GP", "GM", "GC", "GW-GM", "GW-GC", "GP-GM", "GP-GC", "ROCK", "TOPSOIL", "ASPHALT", "FILL"];
         const coarseUSCS = ["GW","GW-GM","GW-GC","GP","GP-GM","GP-GC","GM","GC","SW","SW-SM","SW-SC","SP","SP-SM","SP-SC","SM","SC"];
+        const gradationList = ["", "FINE GRAINED", "MEDIUM GRAINED", "COARSE GRAINED", "FINE TO MEDIUM GRAINED", "MEDIUM TO COARSE GRAINED"];
 
-        const majorMods = ["", "WITH SAND", "SANDY", "WITH GRAVEL", "GRAVELLY", "SANDY WITH GRAVEL", "GRAVELLY WITH SAND", "WITH CLAY", "CLAYEY", "WITH SILT", "SILTY", "SILTY-CLAYEY"];
-        const minorMods = ["", "TRACE CLAY", "TRACE SILT", "TRACE SAND", "TRACE GRAVEL", "WITH COBBLES", "WITH ORGANICS"];
+        const majorMods = ["", "WITH SAND AND GRAVEL", "WITH SAND", "SANDY", "WITH GRAVEL", "GRAVELLY", "SANDY WITH GRAVEL", "GRAVELLY WITH SAND", "WITH CLAY", "CLAYEY", "WITH SILT", "SILTY", "SILTY-CLAYEY"];
+        const minorMods = ["", "TRACE SAND AND GRAVEL", "TRACE CLAY", "TRACE SILT", "TRACE SAND", "TRACE GRAVEL", "WITH COBBLES", "WITH ORGANICS"];
         
         const moistureList = ["DRY", "MOIST", "WET"];
+        const mottlingList = [
+            "",
+            "YES"
+        ];
 
         const shades = ["", "LIGHT", "DARK"];
         const colorPalette = ["", "BROWN", "RED BROWN", "TAN", "GRAY", "BLACK", "WHITE", "ORANGE", "YELLOW", "GREEN", "BLUE"];
@@ -867,35 +1282,8 @@
 
         const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
-        // Surface Condition Types
         const surfaceConditionTypes = [
-            "Asphalt",
-            "Concrete",
-            "Mineral Aggregate Base",
-            "Crushed Stone Base",
-            "Base Stone",
-            "Shot Rock",
-            "Gravel Surface",
-            "Chip Seal",
-            "Asphalt Millings",
-            "Topsoil",
-            "Mulch",
-            "Landscaping Rock",
-            "Riprap",
-            "Structural Fill",
-            "Existing Fill",
-            "Brick",
-            "Pavement",
-            "Sidewalk",
-            "Crushed Concrete",
-            "Flowable Fill",
-            "Peat",
-            "Organics",
-            "Debris",
-            "Cinders",
-            "Slag",
-            "Coal Ash",
-            "Other (Custom)"
+            "Asphalt", "Concrete", "Mineral Aggregate Base", "Crushed Stone Base", "Base Stone", "Shot Rock", "Gravel Surface", "Chip Seal", "Asphalt Millings", "Topsoil", "Mulch", "Landscaping Rock", "Riprap", "Structural Fill", "Existing Fill", "Brick", "Pavement", "Sidewalk", "Crushed Concrete", "Flowable Fill", "Peat", "Organics", "Debris", "Cinders", "Slag", "Coal Ash", "Other (Custom)"
         ];
 
         // --- Rock Reference Lists ---
@@ -932,53 +1320,29 @@
         }
 
         // --- Session State ---
-        let projectMeta = {
-            client: "",
-            name: "",
-            number: ""
-        };
-
+        let projectMeta = { client: "", name: "", number: "" };
         let activeBoringIndex = 0;
 
         let borings = [
             {
                 id: "B-01",
-                rig: "",
-                driller: "",
-                logger: "",
-                additionalNotes: "",
-                gpsLat: "",
-                gpsLon: "",
-                gpsAccuracy: "",
-                gpsElevation: "",
-                gpsTimestamp: "",
-                gpsSource: "",
-                totalDepth: "0.0",
-                offset: "0",
-                direction: "N/A",
-                startDate: "",
-                endDate: "",
+                rig: "", driller: "", logger: "", additionalNotes: "",
+                gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "",
+                totalDepth: "0.0", offset: "0", direction: "N/A",
+                startDate: "", endDate: "",
                 terminationReason: "Completed at Planned Depth",
-                refusalType: "None",
-                refusalDepth: "",
-                methods: [],
-                surfaceConditions: [],
+                refusalType: "None", refusalDepth: "",
+                methods: [], surfaceConditions: [],
                 gw: [
                     { depth: "", time: "N/A", customTime: "" },
                     { depth: "", time: "N/A", customTime: "" },
                     { depth: "", time: "N/A", customTime: "" }
                 ],
-                samples: [],
-                rockSamples: []
+                samples: [], rockSamples: []
             }
         ];
 
-        // Theme Toggle Handler
-        document.getElementById('themeToggleBtn').addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            localStorage.setItem('geoTabletTheme_v1_6_3', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-        });
-        if (localStorage.getItem('geoTabletTheme_v1_6_3') === 'dark') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('geoTabletTheme_v1_6_9') === 'dark') document.documentElement.classList.add('dark');
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -995,9 +1359,12 @@
         }
 
         function formatExportTime(d = new Date()) {
-            const hh = String(d.getHours()).padStart(2, '0');
-            const mm = String(d.getMinutes()).padStart(2, '0');
-            return `${hh}${mm}`;
+            let hours = d.getHours();
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return `${hours}${minutes}${ampm}`;
         }
 
         function sanitizeFilenamePart(str) {
@@ -1010,7 +1377,7 @@
             const ext = extension.startsWith('.') ? extension.substring(1) : extension;
             const projName = sanitizeFilenamePart(projectMeta.name) || "Project";
             const projNum = sanitizeFilenamePart(projectMeta.number) || "000";
-            return `StrataScribe.${projName}.${projNum}.${formatExportDate(now)}.${formatExportTime(now)}.${ext}`;
+            return `StrtScrb.${projName}.${formatExportDate(now)}.${formatExportTime(now)}.${projNum}.${ext}`;
         }
 
         function parseBoringId(idStr) {
@@ -1083,6 +1450,10 @@
             if (effectiveAttributes.origin && effectiveAttributes.origin !== '') parts.push(effectiveAttributes.origin.toUpperCase());
             
             let uscsPart = effectiveAttributes.uscs || "";
+            const isCoarse = coarseUSCS.includes(effectiveAttributes.uscs);
+            if (isCoarse && effectiveAttributes.gradation && effectiveAttributes.gradation !== '') {
+                uscsPart += `, ${effectiveAttributes.gradation}`;
+            }
             if (effectiveAttributes.major && effectiveAttributes.major !== '') uscsPart += ` ${effectiveAttributes.major}`;
             if (uscsPart.trim()) parts.push(uscsPart.trim().toUpperCase());
 
@@ -1127,17 +1498,12 @@
             return parts.length > 0 ? parts.join(', ') : "CLICK TO EDIT PROPERTIES...";
         }
 
-        function getGWTimeDisplay(gw) {
-            if (!gw) return "";
-            if (gw.time === 'Other') return gw.customTime ? gw.customTime.toUpperCase() : 'OTHER';
-            return gw.time ? gw.time.toUpperCase() : "N/A";
-        }
-
         function getGWProfileLabel(gw) {
             if (!gw || !gw.time) return "";
-
+            if (gw.time === 'Other') return gw.customTime ? gw.customTime.toUpperCase() : 'OTHER';
             const labels = {
                 "ATD": "GW: ATD",
+                "AD": "GW: AD",
                 "Next Day": "GW: ND",
                 "Cave In": "GW: CI",
                 "After Coring": "GW: AC",
@@ -1146,37 +1512,40 @@
                 "N/A": "GW: NA",
                 "Other": "GW: NOTE"
             };
-
             return labels[gw.time] || "GW";
         }
 
-        // --- GPS Location Retriever ---
         function getBoringGPS() {
             if (!navigator.geolocation) {
                 alert("Geolocation is not supported by your browser");
                 return;
             }
+            const cur = borings[activeBoringIndex];
+            cur.gpsLat = ""; cur.gpsLon = ""; cur.gpsAccuracy = "";
+            syncHeaderUI();
             showToast("Retrieving GPS location...");
+
             navigator.geolocation.getCurrentPosition((position) => {
                 const lat = position.coords.latitude.toFixed(6);
                 const lon = position.coords.longitude.toFixed(6);
-                const accuracy = position.coords.accuracy ? `${Math.round(position.coords.accuracy * 3.28084)} ft` : "";
+                const accuracy = position.coords.accuracy ? `±${Math.round(position.coords.accuracy * 3.28084)} ft` : "";
                 const elevation = position.coords.altitude !== null ? `${(position.coords.altitude * 3.28084).toFixed(1)} ft` : "";
                 const timestamp = new Date(position.timestamp || Date.now()).toISOString();
-                const source = "Device GPS";
 
-                const cur = borings[activeBoringIndex];
                 cur.gpsLat = lat;
                 cur.gpsLon = lon;
                 cur.gpsAccuracy = accuracy;
                 cur.gpsElevation = elevation;
                 cur.gpsTimestamp = timestamp;
-                cur.gpsSource = source;
+                cur.gpsSource = "Device GPS";
 
                 syncHeaderUI();
+                markUnsaved();
                 saveLocal();
                 showToast("GPS location acquired successfully.");
             }, (error) => {
+                cur.gpsLat = ""; cur.gpsLon = ""; cur.gpsAccuracy = "";
+                syncHeaderUI();
                 alert("Unable to retrieve your location: " + error.message);
             }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
         }
@@ -1219,6 +1588,7 @@
         function onManualTotalDepthChange(val) {
             borings[activeBoringIndex].totalDepth = val;
             recalculateTotalDepth();
+            markUnsaved();
             saveLocal();
         }
 
@@ -1229,9 +1599,7 @@
         function updateBoringSelector() {
             const sel = document.getElementById('boringSelector');
             if (!sel) return;
-
             const sortedIndices = borings.map((b, idx) => ({b, idx})).sort((x, y) => compareBoringIds(x.b.id, y.b.id));
-
             sel.innerHTML = sortedIndices.map(item => 
                 `<option value="${item.idx}" ${item.idx === activeBoringIndex ? 'selected' : ''}>${item.b.id || 'B-01'}</option>`
             ).join('');
@@ -1258,36 +1626,25 @@
                 driller: curBoring ? (curBoring.driller || "") : "",
                 logger: curBoring ? (curBoring.logger || "") : "",
                 additionalNotes: "",
-                gpsLat: "",
-                gpsLon: "",
-                gpsAccuracy: "",
-                gpsElevation: "",
-                gpsTimestamp: "",
-                gpsSource: "",
-                totalDepth: "0.0",
-                offset: "0",
-                direction: "N/A",
-                startDate: "",
-                endDate: "",
+                gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "",
+                totalDepth: "0.0", offset: "0", direction: "N/A",
+                startDate: "", endDate: "",
                 terminationReason: "Completed at Planned Depth",
-                refusalType: "None",
-                refusalDepth: "",
-                methods: [],
-                surfaceConditions: [],
+                refusalType: "None", refusalDepth: "",
+                methods: [], surfaceConditions: [],
                 gw: [
                     { depth: "", time: "N/A", customTime: "" },
                     { depth: "", time: "N/A", customTime: "" },
                     { depth: "", time: "N/A", customTime: "" }
                 ],
-                samples: [],
-                rockSamples: []
+                samples: [], rockSamples: []
             };
             borings.push(newBoring);
             activeBoringIndex = borings.length - 1;
             updateBoringSelector();
             syncHeaderUI();
             renderTables();
-            showToast(`Added Boring ${newBoringId}`);
+            markUnsaved();
         }
 
         function deleteCurrentBoring() {
@@ -1302,6 +1659,7 @@
                 updateBoringSelector();
                 syncHeaderUI();
                 renderTables();
+                markUnsaved();
                 showToast(`Deleted ${deletedId}`);
             }
         }
@@ -1310,18 +1668,18 @@
             if (confirm("Are you sure you want to delete all borings and project information?")) {
                 const promptVal = prompt("Are you sure you want to delete all borings and project information?\n\nType \"YES\" to confirm:");
                 if (promptVal && promptVal.trim() === "YES") {
-                    localStorage.removeItem('geoTabletLog_v1_6_3');
+                    localStorage.removeItem('geoTabletLog_v1_6_9');
                     projectMeta = { client: "", name: "", number: "" };
                     borings = [{
                         id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
                         gw: [{depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}, {depth:"", time:"N/A", customTime:""}],
-                        samples: [],
-                        rockSamples: []
+                        samples: [], rockSamples: []
                     }];
                     activeBoringIndex = 0;
                     updateBoringSelector();
                     syncHeaderUI();
                     renderTables();
+                    markUnsaved();
                     showToast("All project data has been reset.");
                 } else {
                     showToast("Reset canceled.");
@@ -1331,14 +1689,14 @@
 
         function updateProjectMeta(field, val) {
             projectMeta[field] = val;
+            markUnsaved();
             saveLocal();
         }
 
         function updateActiveBoringHeader(field, val) {
             borings[activeBoringIndex][field] = val;
-            if (field === 'id') {
-                updateBoringSelector();
-            }
+            if (field === 'id') updateBoringSelector();
+            markUnsaved();
             saveLocal();
         }
 
@@ -1351,6 +1709,7 @@
                 curMethods.push(val);
                 borings[activeBoringIndex].methods = curMethods;
                 renderDrillingBadges();
+                markUnsaved();
                 saveLocal();
             }
             picker.value = "";
@@ -1360,6 +1719,7 @@
             const curMethods = borings[activeBoringIndex].methods || [];
             borings[activeBoringIndex].methods = curMethods.filter(m => m !== methodName);
             renderDrillingBadges();
+            markUnsaved();
             saveLocal();
         }
 
@@ -1385,6 +1745,7 @@
             }
             borings[activeBoringIndex].gw[index][field] = val;
             updateLiveProfile();
+            markUnsaved();
             saveLocal();
         }
 
@@ -1408,6 +1769,7 @@
             document.getElementById('additionalBoringNotes').value = cur.additionalNotes || "";
             document.getElementById('gpsLat').value = cur.gpsLat || "";
             document.getElementById('gpsLon').value = cur.gpsLon || "";
+            document.getElementById('gpsAccuracy').value = cur.gpsAccuracy || "";
             document.getElementById('totalDepth').value = cur.totalDepth || "0.0";
             document.getElementById('boringOffset').value = cur.offset || "0";
             document.getElementById('boringDirection').value = cur.direction || "N/A";
@@ -1452,7 +1814,6 @@
             saveLocal();
         }
 
-        // --- Surface Conditions Table Logic ---
         function renderSurfaceConditionsTable() {
             const tbody = document.getElementById('surfaceConditionsTbody');
             if (!tbody) return;
@@ -1461,15 +1822,11 @@
             if (!activeBoring) return;
             if (!activeBoring.surfaceConditions) activeBoring.surfaceConditions = [];
 
-            const scList = activeBoring.surfaceConditions;
-
-            scList.forEach((sc, idx) => {
+            activeBoring.surfaceConditions.forEach((sc, idx) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/40 transition";
-
                 const isCustomType = !surfaceConditionTypes.includes(sc.type) && sc.type !== "";
                 const selectedTypeVal = isCustomType ? "Other (Custom)" : (sc.type || "");
-
                 const typeOptionsHtml = surfaceConditionTypes.map(t => `<option value="${t}" ${selectedTypeVal === t ? 'selected' : ''}>${t}</option>`).join('');
 
                 tr.innerHTML = `
@@ -1486,7 +1843,7 @@
                     <td class="py-2.5 px-3 text-center">
                         <div class="flex items-center justify-center space-x-1">
                             <button onclick="moveSurfaceCondition(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-30" title="Move Up"><i data-lucide="arrow-up" class="w-3.5 h-3.5"></i></button>
-                            <button onclick="moveSurfaceCondition(${idx}, 1)" ${idx === scList.length - 1 ? 'disabled' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-30" title="Move Down"><i data-lucide="arrow-down" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="moveSurfaceCondition(${idx}, 1)" ${idx === activeBoring.surfaceConditions.length - 1 ? 'disabled' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-30" title="Move Down"><i data-lucide="arrow-down" class="w-3.5 h-3.5"></i></button>
                         </div>
                     </td>
                     <td class="py-2.5 px-3 text-center">
@@ -1502,13 +1859,13 @@
             const activeBoring = borings[activeBoringIndex];
             if (!activeBoring.surfaceConditions) activeBoring.surfaceConditions = [];
             activeBoring.surfaceConditions.push({ thickness: "", type: "Asphalt", remarks: "" });
+            markUnsaved();
             renderTables();
-            showToast("Surface condition added.");
         }
 
         function updateSurfaceCondition(idx, field, val) {
-            const activeBoring = borings[activeBoringIndex];
-            activeBoring.surfaceConditions[idx][field] = val;
+            borings[activeBoringIndex].surfaceConditions[idx][field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -1522,6 +1879,7 @@
                 activeBoring.surfaceConditions[idx].type = val;
                 if (customInput) customInput.classList.add('hidden');
             }
+            markUnsaved();
             renderTables();
         }
 
@@ -1533,14 +1891,14 @@
             const temp = scList[idx];
             scList[idx] = scList[newIdx];
             scList[newIdx] = temp;
+            markUnsaved();
             renderTables();
         }
 
         function deleteSurfaceCondition(idx) {
-            const activeBoring = borings[activeBoringIndex];
-            activeBoring.surfaceConditions.splice(idx, 1);
+            borings[activeBoringIndex].surfaceConditions.splice(idx, 1);
+            markUnsaved();
             renderTables();
-            showToast("Surface condition deleted.");
         }
 
         function renderSoilTable() {
@@ -1558,22 +1916,18 @@
                 const autoDensity = computeConsistencyDensity(nVal, s.uscs);
 
                 const effectiveAttrs = { 
-                    origin: s.origin, 
-                    uscs: s.uscs, 
-                    major: s.major, 
-                    minor: s.minor, 
-                    moisture: s.moisture,
-                    shade: s.shade, 
-                    colors: s.colors, 
-                    density: autoDensity 
+                    origin: s.origin, uscs: s.uscs, gradation: s.gradation, major: s.major, minor: s.minor, moisture: s.moisture,
+                    shade: s.shade, colors: s.colors, mottling: s.mottling, density: autoDensity 
                 };
 
                 const wholeOpts = wholeFootOptions.map(w => `<option value="${w}" ${s.whole == w ? 'selected' : ''}>${w}'</option>`).join('');
                 const decOpts = decimalOptions.map(d => `<option value="${d}" ${s.dec == d ? 'selected' : ''}>${d}</option>`).join('');
                 const typeOpts = sampleTypes.map(t => `<option value="${t}" ${s.type === t ? 'selected' : ''}>${t}</option>`).join('');
-                const b1Opts = blowOptions.map(b => `<option value="${b}" ${s.b1 === b ? 'selected' : ''}>${b}</option>`).join('');
-                const b2Opts = blowOptions.map(b => `<option value="${b}" ${s.b2 === b ? 'selected' : ''}>${b}</option>`).join('');
-                const b3Opts = blowOptions.map(b => `<option value="${b}" ${s.b3 === b ? 'selected' : ''}>${b}</option>`).join('');
+                
+                // Fixed SPT Refusal Display Bug: Properly escape quotes in blow count values for HTML attributes
+                const b1Opts = blowOptions.map(b => `<option value="${b.replace(/"/g, '&quot;')}" ${s.b1 === b ? 'selected' : ''}>${b}</option>`).join('');
+                const b2Opts = blowOptions.map(b => `<option value="${b.replace(/"/g, '&quot;')}" ${s.b2 === b ? 'selected' : ''}>${b}</option>`).join('');
+                const b3Opts = blowOptions.map(b => `<option value="${b.replace(/"/g, '&quot;')}" ${s.b3 === b ? 'selected' : ''}>${b}</option>`).join('');
 
                 const soilSummary = buildSoilDescription(s, effectiveAttrs) || "Click to edit soil properties...";
 
@@ -1615,11 +1969,13 @@
             if (sampleLengthDefaults[val] !== undefined) {
                 sample.length = sampleLengthDefaults[val];
             }
+            markUnsaved();
             renderTables();
         }
 
         function updateSoilRow(idx, field, val) {
             borings[activeBoringIndex].samples[idx][field] = val;
+            markUnsaved();
             renderTables();
         }
 
@@ -1630,29 +1986,20 @@
             const defaultType = last ? last.type : "SS";
             
             curSamples.push({
-                whole: nextWhole, 
-                dec: "0.0", 
-                type: defaultType, 
-                length: sampleLengthDefaults[defaultType] || "18\"",
+                whole: nextWhole, dec: "0.0", type: defaultType, length: sampleLengthDefaults[defaultType] || "18\"",
                 b1: "", b2: "", b3: "", rec: "", 
-                uscs: last ? last.uscs : "", 
-                major: last ? last.major : "", 
-                minor: last ? last.minor : "", 
-                moisture: last ? last.moisture : "", 
-                shade: "", 
-                colors: last && last.colors ? [...last.colors] : [], 
-                origin: last ? last.origin : "", 
-                descriptors: last && last.descriptors ? [...last.descriptors] : [], 
-                remarks: ""
+                uscs: last ? last.uscs : "", gradation: last ? last.gradation : "", major: last ? last.major : "", minor: last ? last.minor : "", 
+                moisture: last ? last.moisture : "", shade: "", colors: last && last.colors ? [...last.colors] : [], 
+                origin: last ? last.origin : "", mottling: last ? last.mottling : "", descriptors: [], remarks: ""
             });
+            markUnsaved();
             renderTables();
-            showToast("Soil sample row added.");
         }
 
         function deleteSoilRow(idx) {
             borings[activeBoringIndex].samples.splice(idx, 1);
+            markUnsaved();
             renderTables();
-            showToast("Soil sample row deleted.");
         }
 
         // --- Soil Property Modal Logic ---
@@ -1661,7 +2008,6 @@
         function renderChipGroup(containerId, options, currentValue, callbackName) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            
             const normCurrent = (currentValue === undefined || currentValue === null) ? "" : String(currentValue).trim();
             const fullOptions = ["", ...options.filter(o => o !== "")];
 
@@ -1683,17 +2029,26 @@
             document.getElementById('soilModalSubtitle').textContent = `Boring ${borings[activeBoringIndex].id || ''} — Depth: ${(parseFloat(s.whole) + parseFloat(s.dec)).toFixed(1)} ft`;
 
             renderChipGroup('chipContainer_uscs', uscsList, s.uscs || '', 'selectSoilUscs');
+
+            const gradationSection = document.getElementById('soilGradationSection');
+            if (coarseUSCS.includes(s.uscs)) {
+                gradationSection.classList.remove('hidden');
+                renderChipGroup('chipContainer_gradation', gradationList, s.gradation || '', 'selectSoilGradation');
+            } else {
+                gradationSection.classList.add('hidden');
+            }
+
             renderChipGroup('chipContainer_major', majorMods, s.major || '', 'selectSoilMajor');
             renderChipGroup('chipContainer_minor', minorMods, s.minor || '', 'selectSoilMinor');
             renderChipGroup('chipContainer_moisture', moistureList, s.moisture || '', 'selectSoilMoisture');
             renderChipGroup('chipContainer_origin', origins, s.origin || '', 'selectSoilOrigin');
             renderChipGroup('chipContainer_soilShade', shades, s.shade || '', 'selectSoilShade');
+            renderChipGroup('chipContainer_mottling', mottlingList, s.mottling || '', 'selectSoilMottling');
             
             populateSoilModalColorPicker('soilColorPicker', colorPalette, '');
 
             const nVal = computeN(s.b2, s.b3);
-            const calculatedDensity = computeConsistencyDensity(nVal, s.uscs);
-            document.getElementById('soilModal_densityDisplay').value = calculatedDensity || "Auto-calculated from N-value & USCS";
+            document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
 
             renderSoilColorChips(s.colors || []);
 
@@ -1704,35 +2059,50 @@
         function clearSoilPreviousDescription() {
             if (currentModalSoilIndex === null) return;
             const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
-            s.uscs = "";
-            s.major = "";
-            s.minor = "";
-            s.moisture = "";
-            s.origin = "";
-            s.shade = "";
-            s.colors = [];
+            s.uscs = ""; s.gradation = ""; s.major = ""; s.minor = ""; s.moisture = ""; s.origin = ""; s.shade = ""; s.colors = []; s.mottling = "";
 
             renderChipGroup('chipContainer_uscs', uscsList, '', 'selectSoilUscs');
+            document.getElementById('soilGradationSection').classList.add('hidden');
             renderChipGroup('chipContainer_major', majorMods, '', 'selectSoilMajor');
             renderChipGroup('chipContainer_minor', minorMods, '', 'selectSoilMinor');
             renderChipGroup('chipContainer_moisture', moistureList, '', 'selectSoilMoisture');
             renderChipGroup('chipContainer_origin', origins, '', 'selectSoilOrigin');
             renderChipGroup('chipContainer_soilShade', shades, '', 'selectSoilShade');
+            renderChipGroup('chipContainer_mottling', mottlingList, '', 'selectSoilMottling');
             
             const nVal = computeN(s.b2, s.b3);
             document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
             renderSoilColorChips([]);
+            markUnsaved();
             renderTables();
-            showToast("Soil properties cleared.");
         }
 
         function selectSoilUscs(val) {
             if (currentModalSoilIndex === null) return;
-            borings[activeBoringIndex].samples[currentModalSoilIndex].uscs = val;
             const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
+            s.uscs = val;
+            if (!coarseUSCS.includes(val)) s.gradation = "";
+
+            const gradationSection = document.getElementById('soilGradationSection');
+            if (coarseUSCS.includes(val)) {
+                gradationSection.classList.remove('hidden');
+                renderChipGroup('chipContainer_gradation', gradationList, s.gradation || '', 'selectSoilGradation');
+            } else {
+                gradationSection.classList.add('hidden');
+            }
+
             const nVal = computeN(s.b2, s.b3);
             document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
             renderChipGroup('chipContainer_uscs', uscsList, val, 'selectSoilUscs');
+            markUnsaved();
+            renderTables();
+        }
+
+        function selectSoilGradation(val) {
+            if (currentModalSoilIndex === null) return;
+            borings[activeBoringIndex].samples[currentModalSoilIndex].gradation = val;
+            renderChipGroup('chipContainer_gradation', gradationList, val, 'selectSoilGradation');
+            markUnsaved();
             renderTables();
         }
 
@@ -1740,6 +2110,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].major = val;
             renderChipGroup('chipContainer_major', majorMods, val, 'selectSoilMajor');
+            markUnsaved();
             renderTables();
         }
 
@@ -1747,6 +2118,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].minor = val;
             renderChipGroup('chipContainer_minor', minorMods, val, 'selectSoilMinor');
+            markUnsaved();
             renderTables();
         }
 
@@ -1754,6 +2126,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].moisture = val;
             renderChipGroup('chipContainer_moisture', moistureList, val, 'selectSoilMoisture');
+            markUnsaved();
             renderTables();
         }
 
@@ -1761,6 +2134,7 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].origin = val;
             renderChipGroup('chipContainer_origin', origins, val, 'selectSoilOrigin');
+            markUnsaved();
             renderTables();
         }
 
@@ -1768,6 +2142,15 @@
             if (currentModalSoilIndex === null) return;
             borings[activeBoringIndex].samples[currentModalSoilIndex].shade = val;
             renderChipGroup('chipContainer_soilShade', shades, val, 'selectSoilShade');
+            markUnsaved();
+            renderTables();
+        }
+
+        function selectSoilMottling(val) {
+            if (currentModalSoilIndex === null) return;
+            borings[activeBoringIndex].samples[currentModalSoilIndex].mottling = val;
+            renderChipGroup('chipContainer_mottling', mottlingList, val, 'selectSoilMottling');
+            markUnsaved();
             renderTables();
         }
 
@@ -1786,8 +2169,13 @@
             if (!colorVal) return;
 
             let entry = colorVal;
+
             if (shadeVal && shadeVal !== '') {
                 entry = `${shadeVal} ${colorVal}`;
+            }
+
+            if (s.mottling === 'YES') {
+                entry += ' MOTTLING';
             }
 
             if (!s.colors) s.colors = [];
@@ -1796,8 +2184,8 @@
             s.shade = "";
             colorPicker.value = "";
             renderChipGroup('chipContainer_soilShade', shades, s.shade, 'selectSoilShade');
-
             renderSoilColorChips(s.colors);
+            markUnsaved();
             renderTables();
         }
 
@@ -1806,6 +2194,7 @@
             const s = borings[activeBoringIndex].samples[currentModalSoilIndex];
             s.colors.splice(colorIndex, 1);
             renderSoilColorChips(s.colors);
+            markUnsaved();
             renderTables();
         }
 
@@ -1827,6 +2216,102 @@
         function closeSoilPropsModal() {
             currentModalSoilIndex = null;
             document.getElementById('soilPropsModal').classList.add('hidden');
+        }
+
+        // --- Simplified One-Way Recovery / RQD Conversion Logic ---
+        const fractionValues = [
+            { label: "0/8", value: 0.0 },
+            { label: "1/8", value: 0.125 },
+            { label: "1/4", value: 0.25 },
+            { label: "3/8", value: 0.375 },
+            { label: "1/2", value: 0.5 },
+            { label: "5/8", value: 0.625 },
+            { label: "3/4", value: 0.75 },
+            { label: "7/8", value: 0.875 }
+        ];
+
+        const wholeInchOptionsRock = Array.from({length: 71}, (_, i) => i);
+
+        function computeFeetFromInchesAndFraction(wholeInches, fracLabel) {
+            const w = parseInt(wholeInches) || 0;
+            const fObj = fractionValues.find(item => item.label === fracLabel) || { value: 0.0 };
+            const totalInches = w + fObj.value;
+            const rawFeet = totalInches / 12.0;
+            const rounded = Math.round(rawFeet / 0.05) * 0.05;
+            return rounded.toFixed(2);
+        }
+
+        function formatInchesDisplayString(wholeInches, fracLabel) {
+            const w = parseInt(wholeInches) || 0;
+            const f = fracLabel || "0/8";
+            if (w === 0 && f === "0/8") return "0\"";
+            if (f === "0/8") return `${w}"`;
+            return `${w} ${f}"`;
+        }
+
+        // One-Way sync: Inches/Fraction -> Decimal Feet (Master controls)
+        function onRockInchOrFracChange(idx, fieldPrefix) {
+            const r = borings[activeBoringIndex].rockSamples[idx];
+            const wholeSel = document.getElementById(`rock_${fieldPrefix}_whole_${idx}`);
+            const fracSel = document.getElementById(`rock_${fieldPrefix}_frac_${idx}`);
+            const ftInput = document.getElementById(`rock_${fieldPrefix}_ft_${idx}`);
+
+            if (!wholeSel || !fracSel || !ftInput) return;
+
+            const newWhole = wholeSel.value;
+            const newFrac = fracSel.value;
+            const newFt = computeFeetFromInchesAndFraction(newWhole, newFrac);
+            ftInput.value = newFt;
+
+            if (fieldPrefix === 'rec') {
+                r.recWhole = newWhole;
+                r.recFrac = newFrac;
+                r.recovery = newFt;
+                const runLen = parseFloat(r.runLength) || 0;
+                if (parseFloat(newFt) > runLen) {
+                    alert("Warning: Recovery exceeds Run Length. Verify entry.");
+                }
+            } else if (fieldPrefix === 'rqd') {
+                r.rqdWhole = newWhole;
+                r.rqdFrac = newFrac;
+                const recoveryVal = parseFloat(r.recovery);
+                if (!isNaN(recoveryVal) && parseFloat(newFt) > recoveryVal) {
+                    alert("RQD cannot exceed Recovery.");
+                    r.rqd = "";
+                    ftInput.value = "";
+                    markUnsaved();
+                    renderTables();
+                    return;
+                }
+                r.rqd = newFt;
+            }
+            markUnsaved();
+            renderTables();
+        }
+
+        // Decimal input edit (does NOT touch whole/fraction dropdowns)
+        function onRockFtChange(idx, fieldPrefix, val) {
+            const r = borings[activeBoringIndex].rockSamples[idx];
+            const numVal = parseFloat(val);
+            if (isNaN(numVal)) return;
+
+            if (fieldPrefix === 'rec') {
+                const runLen = parseFloat(r.runLength) || 0;
+                if (numVal > runLen) alert("Warning: Recovery exceeds Run Length. Verify entry.");
+                r.recovery = numVal.toFixed(2);
+            } else if (fieldPrefix === 'rqd') {
+                const recoveryVal = parseFloat(r.recovery);
+                if (!isNaN(recoveryVal) && numVal > recoveryVal) {
+                    alert("RQD cannot exceed Recovery.");
+                    r.rqd = "";
+                    markUnsaved();
+                    renderTables();
+                    return;
+                }
+                r.rqd = numVal.toFixed(2);
+            }
+            markUnsaved();
+            renderTables();
         }
 
         // --- Rock Table & Property Panel Logic ---
@@ -1852,6 +2337,13 @@
 
                 const rockSummary = buildRockDescription(r);
 
+                // Use stored recWhole/recFrac and rqdWhole/rqdFrac directly
+                const recWholeOpts = wholeInchOptionsRock.map(w => `<option value="${w}" ${r.recWhole == w ? 'selected' : ''}>${w}&quot;</option>`).join('');
+                const recFracOpts = fractionValues.map(f => `<option value="${f.label}" ${r.recFrac === f.label ? 'selected' : ''}>${f.label}</option>`).join('');
+
+                const rqdWholeOpts = wholeInchOptionsRock.map(w => `<option value="${w}" ${r.rqdWhole == w ? 'selected' : ''}>${w}&quot;</option>`).join('');
+                const rqdFracOpts = fractionValues.map(f => `<option value="${f.label}" ${r.rqdFrac === f.label ? 'selected' : ''}>${f.label}</option>`).join('');
+
                 tr.innerHTML = `
                     <td class="py-2.5 px-3">
                         <div class="flex space-x-1">
@@ -1866,10 +2358,18 @@
                         ${bottomDepth}'
                     </td>
                     <td class="py-2.5 px-3">
-                        <input type="number" step="0.1" value="${r.recovery || ''}" onchange="updateRockRowWithRecoveryValidation(${idx}, 'recovery', this.value)" placeholder="ft" class="table-input text-center">
+                        <div class="flex space-x-1 items-center">
+                            <select id="rock_rec_whole_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rec')" class="table-select text-xs w-20 font-bold">${recWholeOpts}</select>
+                            <select id="rock_rec_frac_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rec')" class="table-select text-xs w-16 font-semibold">${recFracOpts}</select>
+                            <input type="number" step="0.05" id="rock_rec_ft_${idx}" value="${r.recovery || ''}" onchange="onRockFtChange(${idx}, 'rec', this.value)" placeholder="ft" class="table-input text-center text-xs font-bold w-16">
+                        </div>
                     </td>
                     <td class="py-2.5 px-3">
-                        <input type="number" step="0.1" value="${r.rqd || ''}" onchange="updateRockRowWithRqdValidation(${idx}, 'rqd', this.value)" placeholder="ft" class="table-input text-center">
+                        <div class="flex space-x-1 items-center">
+                            <select id="rock_rqd_whole_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rqd')" class="table-select text-xs w-20 font-bold">${rqdWholeOpts}</select>
+                            <select id="rock_rqd_frac_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rqd')" class="table-select text-xs w-16 font-semibold">${rqdFracOpts}</select>
+                            <input type="number" step="0.05" id="rock_rqd_ft_${idx}" value="${r.rqd || ''}" onchange="onRockFtChange(${idx}, 'rqd', this.value)" placeholder="ft" class="table-input text-center text-xs font-bold w-16">
+                        </div>
                     </td>
                     <td class="py-2.5 px-3">
                         <button onclick="openRockPropsModal(${idx})" class="w-full table-input text-left whitespace-normal break-words bg-amber-500/10 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30 hover:bg-amber-500/25 transition flex items-center justify-between px-3 py-2 min-h-[36px]">
@@ -1889,60 +2389,25 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        // Recovery vs Run Length validation
-        function updateRockRowWithRecoveryValidation(idx, field, val) {
-            const rockSample = borings[activeBoringIndex].rockSamples[idx];
-            const numVal = parseFloat(val);
-            const runLen = parseFloat(rockSample.runLength) || 0;
-
-            if (!isNaN(numVal) && numVal > runLen) {
-                alert("Warning: Recovery exceeds Run Length. Verify entry.");
-            }
-            rockSample[field] = val;
-            renderTables();
-        }
-
-        // RQD validation against Recovery
-        function updateRockRowWithRqdValidation(idx, field, val) {
-            const rockSample = borings[activeBoringIndex].rockSamples[idx];
-            const numVal = parseFloat(val);
-            const recoveryVal = parseFloat(rockSample.recovery);
-
-            if (!isNaN(numVal) && !isNaN(recoveryVal) && numVal > recoveryVal) {
-                alert("RQD cannot exceed Recovery.");
-                rockSample[field] = "";
-                renderTables();
-                return;
-            }
-            rockSample[field] = val;
-            renderTables();
-        }
-
         function updateRockTopDepth(idx, part, val) {
             const rockSample = borings[activeBoringIndex].rockSamples[idx];
             rockSample[part] = val;
-            const newTop = parseFloat(rockSample.whole) + parseFloat(rockSample.dec);
-            const refusalDep = parseFloat(borings[activeBoringIndex].refusalDepth);
-
-            if (!isNaN(refusalDep) && newTop < refusalDep) {
-                alert(`WARNING: Top depth (${newTop.toFixed(1)} ft) is shallower than the recorded Refusal Depth (${refusalDep.toFixed(1)} ft)!`);
-            }
+            markUnsaved();
             renderTables();
         }
 
         function updateRockRow(idx, field, val) {
             borings[activeBoringIndex].rockSamples[idx][field] = val;
+            markUnsaved();
             renderTables();
         }
 
         function addRockRow() {
             const activeBoring = borings[activeBoringIndex];
             const refusalDep = parseFloat(activeBoring.refusalDepth);
-
             if (!activeBoring.rockSamples) activeBoring.rockSamples = [];
             
             const isFirstRun = (activeBoring.rockSamples.length === 0);
-            
             let nextTop = !isNaN(refusalDep) ? refusalDep : 0.0;
             const last = !isFirstRun ? activeBoring.rockSamples[activeBoring.rockSamples.length - 1] : null;
 
@@ -1954,30 +2419,12 @@
             const decPart = (nextTop - wholePart).toFixed(1);
 
             let newRockRun = {
-                whole: wholePart, 
-                dec: decPart, 
-                runLength: "5.0", 
-                recovery: "", 
-                rqd: "",
-                rockType: "", 
-                shade: "", 
-                colors: [], 
-                weathering: "",
-                grainSize: "", 
-                grainShape: "", 
-                strength: "",
-                bedding: "", 
-                jointType: "", 
-                jointSpacing: "",
-                jointPersistence: "", 
-                jointRoughness: "", 
-                jointGeometry: "",
-                jointAperture: "", 
-                jointFilling: "", 
-                gwCondition: "",
-                natFractures: "0", 
-                descriptors: [], 
-                remarks: ""
+                whole: wholePart, dec: decPart, runLength: "5.0",
+                recWhole: 0, recFrac: "0/8", recovery: "",
+                rqdWhole: 0, rqdFrac: "0/8", rqd: "",
+                rockType: "", shade: "", colors: [], weathering: "", grainSize: "", grainShape: "", strength: "",
+                bedding: "", jointType: "", jointSpacing: "", jointPersistence: "", jointRoughness: "", jointGeometry: "",
+                jointAperture: "", jointFilling: "", gwCondition: "", natFractures: "0", descriptors: [], remarks: ""
             };
 
             if (!isFirstRun && last) {
@@ -2002,14 +2449,14 @@
             }
 
             activeBoring.rockSamples.push(newRockRun);
+            markUnsaved();
             renderTables();
-            showToast("Rock core run added.");
         }
 
         function deleteRockRow(idx) {
             borings[activeBoringIndex].rockSamples.splice(idx, 1);
+            markUnsaved();
             renderTables();
-            showToast("Rock core run deleted.");
         }
 
         function openRockPropsModal(idx) {
@@ -2049,24 +2496,7 @@
         function clearRockPreviousDescription() {
             if (currentModalRockIndex === null) return;
             const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
-            r.rockType = "";
-            r.weathering = "";
-            r.grainSize = "";
-            r.grainShape = "";
-            r.strength = "";
-            r.shade = "";
-            r.colors = [];
-            r.bedding = "";
-            r.jointType = "";
-            r.jointSpacing = "";
-            r.jointPersistence = "";
-            r.jointRoughness = "";
-            r.jointGeometry = "";
-            r.jointAperture = "";
-            r.jointFilling = "";
-            r.gwCondition = "";
-            r.descriptors = [];
-            r.natFractures = "0";
+            r.rockType = ""; r.weathering = ""; r.grainSize = ""; r.grainShape = ""; r.strength = ""; r.shade = ""; r.colors = []; r.bedding = ""; r.jointType = ""; r.jointSpacing = ""; r.jointPersistence = ""; r.jointRoughness = ""; r.jointGeometry = ""; r.jointAperture = ""; r.jointFilling = ""; r.gwCondition = ""; r.descriptors = []; r.natFractures = "0";
 
             renderChipGroup('chipContainer_rockType', rockTypes, '', 'selectRockType');
             renderChipGroup('chipContainer_weathering', rockWeathering, '', 'selectRockWeathering');
@@ -2087,105 +2517,105 @@
             document.getElementById('modal_natFractures').value = "0";
             renderRockColorChips([]);
             renderModalDescriptors([]);
+            markUnsaved();
             renderTables();
-            showToast("Rock properties cleared.");
         }
 
         function selectRockType(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].rockType = val;
             renderChipGroup('chipContainer_rockType', rockTypes, val, 'selectRockType');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockWeathering(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].weathering = val;
             renderChipGroup('chipContainer_weathering', rockWeathering, val, 'selectRockWeathering');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockGrainSize(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainSize = val;
             renderChipGroup('chipContainer_grainSize', rockGrainSize, val, 'selectRockGrainSize');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockGrainShape(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainShape = val;
             renderChipGroup('chipContainer_grainShape', rockGrainShape, val, 'selectRockGrainShape');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockStrength(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].strength = val;
             renderChipGroup('chipContainer_strength', rockStrength, val, 'selectRockStrength');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockShade(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].shade = val;
             renderChipGroup('chipContainer_rockShade', shades, val, 'selectRockShade');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockBedding(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].bedding = val;
             renderChipGroup('chipContainer_bedding', rockBedding, val, 'selectRockBedding');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockJointType(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointType = val;
             renderChipGroup('chipContainer_jointType', rockJointType, val, 'selectRockJointType');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockJointSpacing(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointSpacing = val;
             renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, val, 'selectRockJointSpacing');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockJointPersistence(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointPersistence = val;
             renderChipGroup('chipContainer_jointPersistence', rockJointPersistence, val, 'selectRockJointPersistence');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockJointRoughness(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointRoughness = val;
             renderChipGroup('chipContainer_jointRoughness', rockRoughness, val, 'selectRockJointRoughness');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockJointGeometry(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointGeometry = val;
             renderChipGroup('chipContainer_jointGeometry', rockGeometry, val, 'selectRockJointGeometry');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockJointAperture(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointAperture = val;
             renderChipGroup('chipContainer_jointAperture', rockAperture, val, 'selectRockJointAperture');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockJointFilling(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].jointFilling = val;
             renderChipGroup('chipContainer_jointFilling', rockFilling, val, 'selectRockJointFilling');
-            renderTables();
+            markUnsaved(); renderTables();
         }
         function selectRockGwCondition(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].gwCondition = val;
             renderChipGroup('chipContainer_gwCondition', rockGWCondition, val, 'selectRockGwCondition');
-            renderTables();
+            markUnsaved(); renderTables();
         }
 
         function updateModalField(field, val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex][field] = val;
-            renderTables();
+            markUnsaved(); renderTables();
         }
 
         function addRockColor() {
@@ -2197,9 +2627,7 @@
             if (!colorVal) return;
 
             let entry = colorVal;
-            if (shadeVal && shadeVal !== '') {
-                entry = `${shadeVal} ${colorVal}`;
-            }
+            if (shadeVal && shadeVal !== '') entry = `${shadeVal} ${colorVal}`;
 
             if (!r.colors) r.colors = [];
             r.colors.push(entry);
@@ -2207,9 +2635,8 @@
             r.shade = "";
             colorPicker.value = "";
             renderChipGroup('chipContainer_rockShade', shades, r.shade, 'selectRockShade');
-
             renderRockColorChips(r.colors);
-            renderTables();
+            markUnsaved(); renderTables();
         }
 
         function removeRockColor(colorIndex) {
@@ -2217,7 +2644,7 @@
             const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
             r.colors.splice(colorIndex, 1);
             renderRockColorChips(r.colors);
-            renderTables();
+            markUnsaved(); renderTables();
         }
 
         function renderRockColorChips(colorsList) {
@@ -2269,7 +2696,7 @@
             } else {
                 r.descriptors = r.descriptors.filter(item => item !== checkbox.value);
             }
-            renderTables();
+            markUnsaved(); renderTables();
         }
 
         function closeRockPropsModal() {
@@ -2277,10 +2704,9 @@
             document.getElementById('rockPropsModal').classList.add('hidden');
         }
 
-        // --- Geotechnical Symbology & Surface Conditions Symbology ---
+        // --- Geotechnical Symbology & Profile Rendering ---
         function getGeotechSymbology(code, type) {
             const s = (code || "").toUpperCase().trim();
-            
             if (s === 'ASPHALT' || s === 'PAVEMENT' || s === 'CHIP SEAL' || s === 'ASPHALT MILLINGS') return { fill: '#09090b', hatch: 'hatch-asphalt', textColor: '#fafafa' };
             if (s === 'CONCRETE' || s === 'SIDEWALK' || s === 'FLOWABLE FILL') return { fill: '#cbd5e1', hatch: 'hatch-concrete', textColor: '#0f172a' };
             if (['MINERAL AGGREGATE BASE', 'CRUSHED STONE BASE', 'BASE STONE', 'GRAVEL SURFACE', 'CRUSHED CONCRETE', 'CINDERS', 'SLAG', 'COAL ASH'].includes(s) || s.includes('BASE') || s.includes('AGGREGATE') || s.includes('GRAVEL')) return { fill: '#94a3b8', hatch: 'hatch-gravel', textColor: '#0f172a' };
@@ -2288,7 +2714,6 @@
             if (['TOPSOIL', 'MULCH', 'ORGANICS', 'PEAT'].includes(s) || s.includes('TOPSOIL') || s.includes('MULCH')) return { fill: '#b45309', hatch: 'hatch-topsoil', textColor: '#fffbeb' };
             if (s === 'RIPRAP') return { fill: '#475569', hatch: 'hatch-riprap', textColor: '#f8fafc' };
             if (['STRUCTURAL FILL', 'EXISTING FILL', 'FILL'].includes(s) || s.includes('FILL')) return { fill: '#64748b', hatch: 'hatch-fill', textColor: '#ffffff' };
-
             if (s === 'VOID' || s === 'CAVITY') return { fill: '#000000', hatch: 'hatch-void', textColor: '#ffffff' };
             if (type === 'ROCK' || s === 'ROCK' || ['LIMESTONE', 'DOLOMITE', 'SHALE', 'SANDSTONE', 'SILTSTONE', 'MUDSTONE', 'CHERT', 'MARL', 'SLATE', 'PHYLLITE', 'SCHIST', 'GNEISS', 'QUARTZITE', 'GRANITE', 'BASALT', 'RHYOLITE', 'CONGLOMERATE', 'BRECCIA', 'COAL'].some(r => s.includes(r))) {
                 return { fill: '#cbd5e1', hatch: 'hatch-rock', textColor: '#0f172a' };
@@ -2303,11 +2728,9 @@
             return { fill: '#d8b4fe', hatch: 'hatch-unknown', textColor: '#3b0764' };
         }
 
-        // --- Live Profile with Surface Conditions Starting at 0.0 ft & Correct Sample Depths ---
         function updateLiveProfile() {
             const curBoring = borings[activeBoringIndex];
             if (!curBoring) return;
-
             sortActiveBoringSamples();
 
             const surfaceConditions = curBoring.surfaceConditions || [];
@@ -2318,31 +2741,18 @@
             const layers = [];
             let currentSurfaceDepth = 0.0;
 
-            surfaceConditions.forEach((sc, idx) => {
+            surfaceConditions.forEach(sc => {
                 const thickInches = parseFloat(sc.thickness) || 0;
                 const thickFeet = thickInches / 12.0;
                 const layerTop = currentSurfaceDepth;
                 const layerBot = currentSurfaceDepth + thickFeet;
                 currentSurfaceDepth = layerBot;
-
                 const scType = sc.type || "Surface Condition";
-                layers.push({
-                    top: layerTop,
-                    bot: layerBot,
-                    uscs: scType.toUpperCase(),
-                    type: 'SURFACE',
-                    description: `${sc.thickness || 0}" ${scType}${sc.remarks ? ' (' + sc.remarks + ')' : ''}`
-                });
+                layers.push({ top: layerTop, bot: layerBot, uscs: scType.toUpperCase(), type: 'SURFACE', description: `${sc.thickness || 0}" ${scType}${sc.remarks ? ' (' + sc.remarks + ')' : ''}` });
             });
 
             soilSamples.forEach((current, i) => {
-                let layerTop;
-                if (i === 0) {
-                    layerTop = (surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0;
-                } else {
-                    layerTop = parseFloat(current.whole) + parseFloat(current.dec);
-                }
-
+                let layerTop = (i === 0) ? ((surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0) : (parseFloat(current.whole) + parseFloat(current.dec));
                 let layerBot;
                 if (i < soilSamples.length - 1) {
                     layerBot = parseFloat(soilSamples[i + 1].whole) + parseFloat(soilSamples[i + 1].dec);
@@ -2351,18 +2761,11 @@
                 } else {
                     layerBot = Math.max(totalDepth, layerTop + 3.0);
                 }
-
                 if (layerBot < layerTop) layerBot = layerTop;
 
                 const nVal = computeN(current.b2, current.b3);
                 const calcDensity = computeConsistencyDensity(nVal, current.uscs);
-                layers.push({ 
-                    top: layerTop, 
-                    bot: layerBot, 
-                    uscs: current.uscs ? current.uscs.toUpperCase() : 'UNCLASSIFIED', 
-                    type: 'SOIL', 
-                    description: buildSoilDescription(current, { ...current, density: calcDensity }) 
-                });
+                layers.push({ top: layerTop, bot: layerBot, uscs: current.uscs ? current.uscs.toUpperCase() : 'UNCLASSIFIED', type: 'SOIL', description: buildSoilDescription(current, { ...current, density: calcDensity }) });
             });
 
             rockSamples.forEach(r => {
@@ -2372,25 +2775,19 @@
                 layers.push({ top, bot, uscs: rockTypeStr, type: 'ROCK', rockType: rockTypeStr, description: buildRockDescription(r) });
             });
 
-            const sampleMarkers = soilSamples.map((s, i) => {
-                const sampleTop = parseFloat(s.whole) + parseFloat(s.dec);
-                const nVal = computeN(s.b2, s.b3);
-                return { top: sampleTop, nVal: nVal };
-            }).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
-
+            const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
             const gwMarkers = (curBoring.gw || []).map(gw => {
                 const depthVal = parseFloat(gw.depth);
                 if (isNaN(depthVal)) return null;
                 const label = getGWProfileLabel(gw);
-                if (!label || label === "N/A") return null;
-                return { top: depthVal, label: label };
+                return (!label || label === "N/A") ? null : { top: depthVal, label: label };
             }).filter(Boolean);
 
-            renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, totalDepth, curBoring);
+            renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, totalDepth);
             renderLiveProfileTable(layers);
         }
 
-        function renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, maxDepth, boring) {
+        function renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, maxDepth) {
             const container = document.getElementById('liveProfileSvgContainer');
             if (!container) return;
             const svgWidth = 350;
@@ -2415,8 +2812,7 @@
                     <pattern id="hatch-riprap" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M2,2 L8,2 L10,8 L4,10 Z" fill="none" stroke="#0f172a" stroke-width="1.8"/></pattern>
                     <pattern id="hatch-void" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#dc2626" stroke-width="2.0" /></pattern>
                     <pattern id="hatch-unknown" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="8" y2="0" stroke="#3b0764" stroke-width="1.8" /></pattern>
-                </defs>
-            `;
+                </defs>`;
 
             svg += `<text x="${svgWidth/2}" y="14" text-anchor="middle" font-weight="bold" font-size="12" fill="currentColor">Current Boring Profile</text>`;
             svg += `<line x1="${colX}" y1="${startY}" x2="${colX}" y2="${startY + (maxDepth * pxPerFoot)}" stroke="#64748b" stroke-width="2" />`;
@@ -2482,14 +2878,81 @@
             `).join('');
         }
 
-        // --- Project Boring Profiles Modal Logic ---
-        function openProjectBoringProfilesModal() {
-            const container = document.getElementById('allBoringsGridContainer');
-            if (!container) return;
+        // --- Multi-Boring Profiles Tool ---
+        let profileSelectedBoringIds = [];
 
+        function openProjectBoringProfilesModal() {
+            const modal = document.getElementById('projectBoringProfilesModal');
+            if (!modal) return;
             const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
-            
+            if (profileSelectedBoringIds.length === 0 && sortedBorings.length > 0) {
+                profileSelectedBoringIds = sortedBorings.map(b => b.id);
+            }
+            renderProfilesCheckboxes();
+            renderProfilesCanvas();
+            modal.classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function closeProjectBoringProfilesModal() {
+            document.getElementById('projectBoringProfilesModal').classList.add('hidden');
+        }
+
+        function profilesSelectAll(selectAll) {
+            const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
+            profileSelectedBoringIds = selectAll ? sortedBorings.map(b => b.id) : [];
+            renderProfilesCheckboxes();
+            renderProfilesCanvas();
+        }
+
+        function onProfileCheckboxChange(boringId, checked) {
+            if (checked) {
+                if (!profileSelectedBoringIds.includes(boringId)) profileSelectedBoringIds.push(boringId);
+            } else {
+                profileSelectedBoringIds = profileSelectedBoringIds.filter(id => id !== boringId);
+            }
+            renderProfilesCanvas();
+        }
+
+        function renderProfilesCheckboxes() {
+            const container = document.getElementById('profilesBoringCheckboxes');
+            if (!container) return;
+            const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
             container.innerHTML = sortedBorings.map(b => {
+                const isChecked = profileSelectedBoringIds.includes(b.id);
+                return `
+                    <label class="flex items-center space-x-2.5 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition">
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="onProfileCheckboxChange('${b.id}', this.checked)" class="w-4 h-4 accent-amber-500 rounded">
+                        <span class="font-bold text-xs text-slate-700 dark:text-slate-200">Boring ${b.id}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function renderProfilesCanvas() {
+            const container = document.getElementById('profilesCanvasContainer');
+            if (!container) return;
+            const selectedBorings = borings.filter(b => profileSelectedBoringIds.includes(b.id));
+
+            if (selectedBorings.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center w-full h-96 text-center space-y-2">
+                        <i data-lucide="layers" class="w-10 h-10 text-slate-400"></i>
+                        <p class="font-bold text-sm text-slate-600 dark:text-slate-400">No borings selected.</p>
+                        <p class="text-xs text-slate-400">Check one or more borings on the left panel to compare profiles side-by-side.</p>
+                    </div>
+                `;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+
+            let maxProjectDepth = 30;
+            selectedBorings.forEach(b => {
+                const d = parseFloat(b.totalDepth) || 30;
+                if (d > maxProjectDepth) maxProjectDepth = d;
+            });
+
+            container.innerHTML = selectedBorings.map(b => {
                 const surfaceConditions = b.surfaceConditions || [];
                 const soilSamples = b.samples || [];
                 const rockSamples = b.rockSamples || [];
@@ -2507,13 +2970,7 @@
                 });
 
                 soilSamples.forEach((current, i) => {
-                    let layerTop;
-                    if (i === 0) {
-                        layerTop = (surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0;
-                    } else {
-                        layerTop = parseFloat(current.whole) + parseFloat(current.dec);
-                    }
-
+                    let layerTop = (i === 0) ? ((surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0) : (parseFloat(current.whole) + parseFloat(current.dec));
                     let layerBot;
                     if (i < soilSamples.length - 1) {
                         layerBot = parseFloat(soilSamples[i + 1].whole) + parseFloat(soilSamples[i + 1].dec);
@@ -2523,7 +2980,6 @@
                         layerBot = Math.max(totalDepth, layerTop + 3.0);
                     }
                     if (layerBot < layerTop) layerBot = layerTop;
-
                     layers.push({ top: layerTop, bot: layerBot, uscs: current.uscs ? current.uscs.toUpperCase() : 'UNCLASSIFIED', type: 'SOIL' });
                 });
 
@@ -2534,221 +2990,316 @@
                     layers.push({ top, bot, uscs: rockTypeStr, type: 'ROCK', rockType: rockTypeStr });
                 });
 
-                const sampleMarkers = soilSamples.map(s => {
-                    const sampleTop = parseFloat(s.whole) + parseFloat(s.dec);
-                    const nVal = computeN(s.b2, s.b3);
-                    return { top: sampleTop, nVal: nVal };
-                }).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
-
+                const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
                 const gwMarkers = (b.gw || []).map(gw => {
                     const depthVal = parseFloat(gw.depth);
                     if (isNaN(depthVal)) return null;
                     const label = getGWProfileLabel(gw);
-                    if (!label || label === "N/A") return null;
-                    return { top: depthVal, label: label };
+                    return (!label || label === "N/A") ? null : { top: depthVal, label: label };
                 }).filter(Boolean);
 
-                const svgWidth = 280;
-                const pxPerFoot = Math.min(18, Math.max(10, 280 / (totalDepth || 30)));
-                const svgHeight = Math.max(250, (totalDepth * pxPerFoot) + 40);
-                const colX = 60, colWidth = 90, startY = 20;
+                const svgWidth = 320;
+                const pxPerFoot = Math.min(22, Math.max(12, 450 / (maxProjectDepth || 30)));
+                const svgHeight = Math.max(400, (maxProjectDepth * pxPerFoot) + 50);
+                const colX = 75, colWidth = 100, startY = 25;
 
-                let miniSvg = `<svg width="${svgWidth}" height="${svgHeight}" class="font-sans text-xs select-none mx-auto">`;
-                miniSvg += `<line x1="${colX}" y1="${startY}" x2="${colX}" y2="${startY + (totalDepth * pxPerFoot)}" stroke="#64748b" stroke-width="2" />`;
-                for (let d = 0; d <= totalDepth; d += 5) {
+                let svg = `<svg width="${svgWidth}" height="${svgHeight}" class="font-sans text-xs select-none">`;
+                svg += `<line x1="${colX}" y1="${startY}" x2="${colX}" y2="${startY + (maxProjectDepth * pxPerFoot)}" stroke="#64748b" stroke-width="2" />`;
+
+                for (let d = 0; d <= maxProjectDepth; d += 5) {
                     const y = startY + (d * pxPerFoot);
-                    miniSvg += `<line x1="${colX - 3}" y1="${y}" x2="${colX}" y2="${y}" stroke="#64748b" stroke-width="1.2" />`;
-                    miniSvg += `<text x="${colX - 6}" y="${y + 3}" text-anchor="end" font-weight="600" font-size="8" fill="#64748b">${d}'</text>`;
+                    svg += `<line x1="${colX - 4}" y1="${y}" x2="${colX}" y2="${y}" stroke="#64748b" stroke-width="1.5" />`;
+                    svg += `<text x="${colX - 8}" y="${y + 3}" text-anchor="end" font-weight="600" font-size="9" fill="#64748b">${d}'</text>`;
+                    svg += `<line x1="${colX}" y1="${y}" x2="${colX + colWidth}" y2="${y}" stroke="#cbd5e1" stroke-dasharray="3,3" opacity="0.5" />`;
                 }
+
                 layers.forEach(l => {
                     const layerTopY = startY + (l.top * pxPerFoot);
-                    const layerHeight = Math.max(14, (l.bot - l.top) * pxPerFoot);
+                    const layerHeight = Math.max(16, (l.bot - l.top) * pxPerFoot);
                     const sym = getGeotechSymbology(l.uscs || l.rockType, l.type);
-                    miniSvg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="${sym.fill}" stroke="#0f172a" stroke-width="1" />`;
+
+                    svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="${sym.fill}" stroke="#0f172a" stroke-width="1.2" />`;
+                    svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="url(#${sym.hatch})" opacity="0.85" stroke="#0f172a" stroke-width="1.2" />`;
+
                     const midY = layerTopY + (layerHeight / 2);
                     const displayText = l.uscs || l.rockType || "";
-                    if (layerHeight > 14 && displayText) {
-                        miniSvg += `<text x="${colX + colWidth/2}" y="${midY + 3}" text-anchor="middle" font-weight="800" font-size="9" fill="${sym.textColor}">${displayText}</text>`;
+                    if (layerHeight > 16 && displayText) {
+                        svg += `<text x="${colX + colWidth/2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${displayText}</text>`;
                     }
                 });
+
                 sampleMarkers.forEach(m => {
                     const markerY = startY + (m.top * pxPerFoot);
                     const nText = (m.nVal === "Refusal") ? "N=REF" : `N=${m.nVal}`;
-                    miniSvg += `<rect x="${colX + colWidth + 4}" y="${markerY - 6}" width="34" height="12" rx="2" fill="#1e293b" opacity="0.9" />`;
-                    miniSvg += `<text x="${colX + colWidth + 21}" y="${markerY + 2.5}" text-anchor="middle" font-weight="700" font-size="7.5" fill="#f8fafc">${nText}</text>`;
-                    miniSvg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 4}" y2="${markerY}" stroke="#64748b" stroke-width="1" />`;
+                    svg += `<rect x="${colX + colWidth + 6}" y="${markerY - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
+                    svg += `<text x="${colX + colWidth + 27}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${nText}</text>`;
+                    svg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 6}" y2="${markerY}" stroke="#64748b" stroke-width="1.2" />`;
                 });
+
                 gwMarkers.forEach(gw => {
                     const markerY = startY + (gw.top * pxPerFoot);
-                    const textWidth = Math.max(38, gw.label.length * 5.5 + 8);
-                    miniSvg += `<polygon points="${colX},${markerY} ${colX-4},${markerY-3} ${colX-4},${markerY+3}" fill="#0284c7" />`;
-                    miniSvg += `<rect x="${colX - textWidth - 6}" y="${markerY - 6}" width="${textWidth}" height="12" rx="2" fill="#0284c7" opacity="0.95" />`;
-                    miniSvg += `<text x="${colX - 6 - (textWidth/2)}" y="${markerY + 2.5}" text-anchor="middle" font-weight="700" font-size="7" fill="#f8fafc">${gw.label}</text>`;
-                    miniSvg += `<line x1="${colX - 4}" y1="${markerY}" x2="${colX}" y2="${markerY}" stroke="#0284c7" stroke-width="1.2" />`;
+                    const textWidth = Math.max(46, gw.label.length * 6.5 + 10);
+                    svg += `<polygon points="${colX},${markerY} ${colX-6},${markerY-4} ${colX-6},${markerY+4}" fill="#0284c7" />`;
+                    svg += `<rect x="${colX - textWidth - 8}" y="${markerY - 8}" width="${textWidth}" height="16" rx="3" fill="#0284c7" opacity="0.95" />`;
+                    svg += `<text x="${colX - 8 - (textWidth/2)}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="8.5" fill="#f8fafc">${gw.label}</text>`;
+                    svg += `<line x1="${colX - 6}" y1="${markerY}" x2="${colX}" y2="${markerY}" stroke="#0284c7" stroke-width="1.5" />`;
                 });
-                miniSvg += `</svg>`;
+
+                svg += `</svg>`;
 
                 return `
-                    <div class="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col space-y-3">
+                    <div class="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col space-y-3 flex-shrink-0">
                         <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
                             <div>
-                                <h4 class="font-extrabold text-amber-600 dark:text-amber-400 text-sm">Boring ${b.id || 'N/A'}</h4>
+                                <h4 class="font-extrabold text-amber-600 dark:text-amber-400 text-sm">Boring ${b.id}</h4>
                                 <p class="text-[11px] text-slate-400">Total Depth: ${b.totalDepth || '0.0'} ft | Rig: ${b.rig || 'N/A'}</p>
                             </div>
-                            <button onclick="switchBoringToAndCloseModal(${borings.indexOf(b)})" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] px-2.5 py-1 rounded transition shadow">
-                                Select Boring
-                            </button>
                         </div>
-                        <div class="overflow-y-auto max-h-[300px] flex justify-center bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                            ${miniSvg}
+                        <div class="overflow-y-auto flex justify-center bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                            ${svg}
                         </div>
                     </div>
                 `;
             }).join('');
-
-            document.getElementById('projectBoringProfilesModal').classList.remove('hidden');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        function closeProjectBoringProfilesModal() {
-            document.getElementById('projectBoringProfilesModal').classList.add('hidden');
+        // --- Summary Figures & Percentage Histograms ---
+        let uscsChartInstance = null;
+        let soilRockChartInstance = null;
+        let recoveryHistInstance = null;
+        let rqdHistInstance = null;
+
+        function openSummaryFiguresModal() {
+            const modal = document.getElementById('summaryFiguresModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            setTimeout(() => computeAndRenderSummaryFigures(), 100);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        function switchBoringToAndCloseModal(idx) {
-            switchBoring(idx);
-            closeProjectBoringProfilesModal();
+        function closeSummaryFiguresModal() {
+            document.getElementById('summaryFiguresModal').classList.add('hidden');
         }
 
-        // --- Save Local ---
-        function saveLocal() {
-            const dataToSave = { projectMeta, activeBoringIndex, borings };
-            localStorage.setItem('geoTabletLog_v1_6_3', JSON.stringify(dataToSave));
-        }
+        function computeAndRenderSummaryFigures() {
+            let drillingTableHtml = '';
+            let totalSoilFootageAll = 0;
+            let totalRockFootageAll = 0;
+            let totalDrilledFootageAll = 0;
 
-        // --- Export & Import Operations ---
-        function exportJSON() {
-            const now = new Date();
-            const filename = buildExportFilename('json');
-            const exportPayload = {
-                application: "Strata Scribe",
-                applicationVersion: "v1.6.3",
-                exportFilename: filename,
-                exportDateISO: now.toISOString(),
-                exportDateDisplay: formatExportDate(now),
-                exportTimeDisplay: formatExportTime(now),
-                projectMeta,
-                borings
-            };
+            const uscsFootageMap = {};
+            let recoveryPercentages = [];
+            let rqdPercentages = [];
 
-            const jsonStr = JSON.stringify(exportPayload, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            showToast("Project JSON exported successfully.");
-        }
+            let minWaterDepth = 9999;
+            let maxWaterDepth = -1;
+            let highestWaterElev = -999999;
+            let lowestWaterElev = 999999;
+            let boringsWithWaterCount = 0;
+            let boringsWithoutWaterCount = 0;
+            let hasWaterElevationData = false;
 
-        function exportCSV() {
-            const now = new Date();
-            const filename = buildExportFilename('csv');
+            borings.forEach(b => {
+                const totalDepth = parseFloat(b.totalDepth) || 0.0;
+                let depthToRock = "N/A";
+                let rockFootage = 0;
+                let soilFootage = 0;
 
-            let csv = "STRATA SCRIBE EXPORT\n\n";
-            csv += `Project Name,${projectMeta.name || ''}\n`;
-            csv += `Project Number,${projectMeta.number || ''}\n`;
-            csv += `Client,${projectMeta.client || ''}\n`;
-            csv += `Export Date,${formatExportDate(now)}\n`;
-            csv += `Export Time,${formatExportTime(now)}\n`;
-            csv += `Application Version,v1.6.3\n\n`;
+                if (b.rockSamples && b.rockSamples.length > 0) {
+                    const sortedRock = [...b.rockSamples].sort((r1, r2) => (parseFloat(r1.whole) + parseFloat(r1.dec)) - (parseFloat(r2.whole) + parseFloat(r2.dec)));
+                    const firstRock = sortedRock[0];
+                    const depthToRockVal = parseFloat(firstRock.whole) + parseFloat(firstRock.dec);
+                    depthToRock = depthToRockVal.toFixed(1) + "'";
 
-            csv += "Boring ID,Drill Rig,Driller,Field Logger,Additional Boring Notes,Latitude,Longitude,Accuracy,Elevation,Timestamp,GPS Source,Total Depth (ft),Offset (ft),Direction,Termination Reason,Refusal Type,Refusal Depth (ft),Start Date,End Date,Drilling Methods,GW Obs 1,GW Obs 2,GW Obs 3,Record Type,Top Depth (ft),Sample Type / Rock Type,LENGTH (IN),Run Length (ft),Bottom Depth (ft),Blow 1,Blow 2,Blow 3,N-Value,Recovery (in/ft),RQD (ft),USCS,Major Mod,Minor Mod,Moisture,Density/Consistency,Shade,Color(s),Weathering,Grain Size,Grain Shape,Strength,Bedding/Foliation,Joint Type,Joint Spacing,Joint Persistence,Joint Roughness,Joint Geometry,Joint Aperture,Joint Filling,Groundwater Condition,Natural Fractures/ft,Descriptors,Origin,Auto Description,Remarks\n";
-
-            const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
-
-            sortedBorings.forEach(b => {
-                const gw1 = b.gw && b.gw[0] ? `${b.gw[0].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[0])})` : "";
-                const gw2 = b.gw && b.gw[1] ? `${b.gw[1].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[1])})` : "";
-                const gw3 = b.gw && b.gw[2] ? `${b.gw[2].depth || 'N/A'} ft (${getGWTimeDisplay(b.gw[2])})` : "";
-                const methodStr = (b.methods || []).join('; ');
-                const addNotesEscaped = (b.additionalNotes || '').replace(/"/g, '""');
-
-                let currentSurfaceDepth = 0.0;
-                if (b.surfaceConditions) {
-                    b.surfaceConditions.forEach(sc => {
-                        const thickInches = parseFloat(sc.thickness) || 0;
-                        const thickFeet = thickInches / 12.0;
-                        const topDepth = currentSurfaceDepth;
-                        const botDepth = currentSurfaceDepth + thickFeet;
-                        currentSurfaceDepth = botDepth;
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SURFACE",${topDepth.toFixed(2)},"${sc.type || ''}",${sc.thickness || ''},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"${sc.remarks || ''}"\n`;
+                    b.rockSamples.forEach(r => {
+                        const runLen = parseFloat(r.runLength) || 0;
+                        rockFootage += runLen;
+                        const recVal = parseFloat(r.recovery);
+                        if (!isNaN(recVal) && runLen > 0) {
+                            recoveryPercentages.push(Math.min(100, Math.max(0, (recVal / runLen) * 100)));
+                        }
+                        const rqdVal = parseFloat(r.rqd);
+                        if (!isNaN(rqdVal) && runLen > 0) {
+                            rqdPercentages.push(Math.min(100, Math.max(0, (rqdVal / runLen) * 100)));
+                        }
                     });
+                    soilFootage = depthToRockVal;
+                } else {
+                    soilFootage = totalDepth;
+                    rockFootage = 0;
                 }
 
-                if (b.samples) {
-                    const sortedSamples = [...b.samples].sort((x, y) => (parseFloat(x.whole) + parseFloat(x.dec)) - (parseFloat(y.whole) + parseFloat(y.dec)));
+                totalSoilFootageAll += soilFootage;
+                totalRockFootageAll += rockFootage;
+                totalDrilledFootageAll += totalDepth;
 
-                    sortedSamples.forEach(s => {
-                        const depth = `${s.whole}.${s.dec.replace('0.', '')}`;
-                        const nVal = computeN(s.b2, s.b3);
-                        const autoDensity = computeConsistencyDensity(nVal, s.uscs);
+                drillingTableHtml += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td class="py-2.5 px-3 font-bold text-amber-600 dark:text-amber-400">${b.id || 'N/A'}</td>
+                        <td class="py-2.5 px-3 text-right">${depthToRock}</td>
+                        <td class="py-2.5 px-3 text-right">${soilFootage.toFixed(1)}'</td>
+                        <td class="py-2.5 px-3 text-right">${rockFootage.toFixed(1)}'</td>
+                        <td class="py-2.5 px-3 text-right font-extrabold">${totalDepth.toFixed(1)}'</td>
+                    </tr>
+                `;
 
-                        const effectiveAttrs = { 
-                            origin: s.origin, 
-                            uscs: s.uscs, 
-                            major: s.major, 
-                            minor: s.minor, 
-                            moisture: s.moisture,
-                            shade: s.shade, 
-                            colors: s.colors, 
-                            density: autoDensity 
-                        };
-
-                        const desc = buildSoilDescription(s, effectiveAttrs);
-                        const colorsJoined = formatColorsString(effectiveAttrs.colors);
-                        const descriptorsJoined = (s.descriptors || []).join('; ');
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","SOIL",${depth},"${s.type}","${s.length || ''}","",,"${s.b1}","${s.b2}","${s.b3}","${nVal}",${s.rec},,"${effectiveAttrs.uscs || ''}","${effectiveAttrs.major || ''}","${effectiveAttrs.minor || ''}","${effectiveAttrs.moisture ? effectiveAttrs.moisture.toUpperCase() : ''}","${effectiveAttrs.density || ''}","${effectiveAttrs.shade || ''}","${colorsJoined}",,,,,,,,,,,,,,,,"${descriptorsJoined}","${effectiveAttrs.origin || ''}","${desc}","${s.remarks || ''}"\n`;
+                const samples = b.samples || [];
+                if (samples.length > 0) {
+                    const footagePerSample = soilFootage / samples.length;
+                    samples.forEach(s => {
+                        const uscsCode = (s.uscs || 'UNCLASSIFIED').toUpperCase().trim();
+                        uscsFootageMap[uscsCode] = (uscsFootageMap[uscsCode] || 0) + footagePerSample;
                     });
+                } else if (soilFootage > 0) {
+                    uscsFootageMap['UNCLASSIFIED'] = (uscsFootageMap['UNCLASSIFIED'] || 0) + soilFootage;
                 }
 
-                if (b.rockSamples) {
-                    const sortedRock = [...b.rockSamples].sort((x, y) => (parseFloat(x.whole) + parseFloat(x.dec)) - (parseFloat(y.whole) + parseFloat(y.dec)));
-
-                    sortedRock.forEach(r => {
-                        const topDepth = parseFloat(r.whole) + parseFloat(r.dec);
-                        const bottomDepth = (topDepth + (parseFloat(r.runLength) || 0)).toFixed(1);
-                        const colorsJoined = formatColorsString(r.colors);
-                        const descriptorsJoined = (r.descriptors || []).map(d => d.toUpperCase()).join('; ');
-                        const rockTypeCaps = r.rockType ? r.rockType.toUpperCase() : '';
-                        const weatheringCaps = r.weathering ? r.weathering.toUpperCase() : '';
-                        const grainSizeCaps = r.grainSize ? r.grainSize.toUpperCase() : '';
-                        const grainShapeCaps = r.grainShape ? r.grainShape.toUpperCase() : '';
-                        const strengthCaps = r.strength ? r.strength.toUpperCase() : '';
-                        const beddingCaps = r.bedding ? r.bedding.toUpperCase() : '';
-                        const jointTypeCaps = r.jointType ? r.jointType.toUpperCase() : '';
-                        const jointSpacingCaps = r.jointSpacing ? r.jointSpacing.toUpperCase() : '';
-                        const jointPersistenceCaps = r.jointPersistence ? r.jointPersistence.toUpperCase() : '';
-                        const jointRoughnessCaps = r.jointRoughness ? r.jointRoughness.toUpperCase() : '';
-                        const jointGeometryCaps = r.jointGeometry ? r.jointGeometry.toUpperCase() : '';
-                        const jointApertureCaps = r.jointAperture ? r.jointAperture.toUpperCase() : '';
-                        const jointFillingCaps = r.jointFilling ? r.jointFilling.toUpperCase() : '';
-                        const gwCondCaps = r.gwCondition ? r.gwCondition.toUpperCase() : '';
-                        const rockDesc = buildRockDescription(r);
-
-                        csv += `"${b.id || ''}","${b.rig || ''}","${b.driller || ''}","${b.logger || ''}","${addNotesEscaped}","${b.gpsLat || ''}","${b.gpsLon || ''}","${b.gpsAccuracy || ''}","${b.gpsElevation || ''}","${b.gpsTimestamp || ''}","${b.gpsSource || ''}",${b.totalDepth || ''},"${b.offset || '0'}","${b.direction || 'N/A'}","${b.terminationReason || ''}","${b.refusalType || ''}","${b.refusalDepth || ''}","${b.startDate || ''}","${b.endDate || ''}","${methodStr}","${gw1}","${gw2}","${gw3}","ROCK",${topDepth},"${rockTypeCaps}","",${r.runLength},${bottomDepth},,,,,,,,,,${r.recovery || ''},${r.rqd || ''},,,,,,"${r.shade || ''}","${colorsJoined}","${weatheringCaps}","${grainSizeCaps}","${grainShapeCaps}","${strengthCaps}","${beddingCaps}","${jointTypeCaps}","${jointSpacingCaps}","${jointPersistenceCaps}","${jointRoughnessCaps}","${jointGeometryCaps}","${jointApertureCaps}","${jointFillingCaps}","${gwCondCaps}",${r.natFractures || ''},"${descriptorsJoined}",,"${rockDesc}","${r.remarks || ''}"\n`;
+                let hasWaterInBoring = false;
+                const groundElev = parseFloat(b.gpsElevation) || null;
+                if (b.gw && b.gw.length > 0) {
+                    b.gw.forEach(gw => {
+                        const d = parseFloat(gw.depth);
+                        if (!isNaN(d) && gw.time && gw.time !== 'N/A' && gw.time !== 'N/E') {
+                            hasWaterInBoring = true;
+                            if (d < minWaterDepth) minWaterDepth = d;
+                            if (d > maxWaterDepth) maxWaterDepth = d;
+                            if (groundElev !== null && !isNaN(groundElev)) {
+                                const waterElev = groundElev - d;
+                                hasWaterElevationData = true;
+                                if (waterElev > highestWaterElev) highestWaterElev = waterElev;
+                                if (waterElev < lowestWaterElev) lowestWaterElev = waterElev;
+                            }
+                        }
                     });
+                }
+                if (hasWaterInBoring) boringsWithWaterCount++;
+                else boringsWithoutWaterCount++;
+            });
+
+            document.getElementById('summaryDrillingTbody').innerHTML = drillingTableHtml + `
+                <tr class="bg-slate-100 dark:bg-slate-800 font-extrabold">
+                    <td class="py-2.5 px-3">TOTAL / PROJECT</td>
+                    <td class="py-2.5 px-3 text-right">--</td>
+                    <td class="py-2.5 px-3 text-right">${totalSoilFootageAll.toFixed(1)}'</td>
+                    <td class="py-2.5 px-3 text-right">${totalRockFootageAll.toFixed(1)}'</td>
+                    <td class="py-2.5 px-3 text-right text-amber-600 dark:text-amber-400">${totalDrilledFootageAll.toFixed(1)}'</td>
+                </tr>
+            `;
+
+            document.getElementById('gwStatMinDepth').textContent = (minWaterDepth !== 9999) ? `${minWaterDepth.toFixed(1)} ft` : "N/E";
+            document.getElementById('gwStatMaxDepth').textContent = (maxWaterDepth !== -1) ? `${maxWaterDepth.toFixed(1)} ft` : "N/E";
+            document.getElementById('gwStatWithWater').textContent = boringsWithWaterCount;
+            document.getElementById('gwStatWithoutWater').textContent = boringsWithoutWaterCount;
+            document.getElementById('gwStatHighElev').textContent = hasWaterElevationData ? `${highestWaterElev.toFixed(1)} ft` : "N/A";
+            document.getElementById('gwStatLowElev').textContent = hasWaterElevationData ? `${lowestWaterElev.toFixed(1)} ft` : "N/A";
+
+            renderUSCSPieChart(uscsFootageMap);
+            renderSoilRockPieChart(totalSoilFootageAll, totalRockFootageAll);
+            renderPercentageHistogram('recoveryHistogram', recoveryPercentages, 'Recovery Quality (%)', '#10b981');
+            renderPercentageHistogram('rqdHistogram', rqdPercentages, 'RQD Quality (%)', '#3b82f6');
+        }
+
+        function renderUSCSPieChart(uscsMap) {
+            const ctx = document.getElementById('uscsPieChart').getContext('2d');
+            if (uscsChartInstance) uscsChartInstance.destroy();
+            const labels = Object.keys(uscsMap);
+            const data = Object.values(uscsMap);
+            if (labels.length === 0) { labels.push('No Soil Data'); data.push(1); }
+
+            uscsChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#64748b', '#14b8a6', '#f97316', '#6366f1'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+            });
+        }
+
+        function renderSoilRockPieChart(soilFt, rockFt) {
+            const ctx = document.getElementById('soilRockPieChart').getContext('2d');
+            if (soilRockChartInstance) soilRockChartInstance.destroy();
+            soilRockChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Soil Drilling', 'Rock Coring'],
+                    datasets: [{ data: [soilFt, rockFt], backgroundColor: ['#f59e0b', '#475569'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+            });
+        }
+
+        function renderPercentageHistogram(canvasId, pctValues, labelName, barColor) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (canvasId === 'recoveryHistogram' && recoveryHistInstance) recoveryHistInstance.destroy();
+            if (canvasId === 'rqdHistogram' && rqdHistInstance) rqdHistInstance.destroy();
+
+            const bins = { '0-25%': 0, '25-50%': 0, '50-75%': 0, '75-90%': 0, '90-100%': 0 };
+
+            pctValues.forEach(val => {
+                if (val <= 25) bins['0-25%']++;
+                else if (val <= 50) bins['25-50%']++;
+                else if (val <= 75) bins['50-75%']++;
+                else if (val <= 90) bins['75-90%']++;
+                else bins['90-100%']++;
+            });
+
+            const chartObj = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(bins),
+                    datasets: [{ label: labelName, data: Object.values(bins), backgroundColor: barColor, borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
                 }
             });
 
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            showToast("CSV exported successfully.");
+            if (canvasId === 'recoveryHistogram') recoveryHistInstance = chartObj;
+            if (canvasId === 'rqdHistogram') rqdHistInstance = chartObj;
+        }
+
+        // --- Local Storage & Project Data Management ---
+        async function saveLocal() {
+            await saveToIndexedDB();
+        }
+
+        async function loadLocal() {
+            const saved = await loadFromIndexedDB();
+            if (!saved) return false;
+            try {
+                if (saved.projectMeta) projectMeta = saved.projectMeta;
+                if (saved.borings && saved.borings.length > 0) borings = saved.borings;
+                if (saved.activeBoringIndex !== undefined) activeBoringIndex = saved.activeBoringIndex;
+                return true;
+            } catch (e) {
+                console.error("Failed to load IndexedDB session", e);
+                return false;
+            }
+        }
+
+        function exportJSON() {
+            const payload = {
+                application: "StrataScribe",
+                version: "v1.6.9",
+                exportTimestamp: new Date().toISOString(),
+                projectMeta: projectMeta,
+                borings: borings
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", buildExportFilename("json"));
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+
+            markSavedNow();
+            showToast("Project saved (JSON backup exported).");
         }
 
         function triggerJSONUpload() {
@@ -2758,127 +3309,126 @@
         function importJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = function(e) {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (!importedData.borings || !Array.isArray(importedData.borings)) {
-                        throw new Error("Invalid JSON structure.");
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.borings && Array.isArray(parsed.borings)) {
+                        borings = parsed.borings;
+                        if (parsed.projectMeta) projectMeta = parsed.projectMeta;
+                        activeBoringIndex = 0;
+                        updateBoringSelector();
+                        syncHeaderUI();
+                        renderTables();
+                        markSavedNow();
+                        saveLocal();
+                        showToast("Project successfully imported!");
+                    } else {
+                        alert("Invalid project JSON structure.");
                     }
-                    projectMeta = importedData.projectMeta || { client: "", name: "", number: "" };
-                    
-                    borings = importedData.borings.map(b => {
-                        if (!b.driller) b.driller = "";
-                        if (!b.additionalNotes) b.additionalNotes = "";
-                        if (!b.surfaceConditions) b.surfaceConditions = [];
-                        if (!b.gpsLat) b.gpsLat = "";
-                        if (!b.gpsLon) b.gpsLon = "";
-                        if (!b.gpsAccuracy) b.gpsAccuracy = "";
-                        if (!b.gpsElevation) b.gpsElevation = "";
-                        if (!b.gpsTimestamp) b.gpsTimestamp = "";
-                        if (!b.gpsSource) b.gpsSource = "";
-                        if (b.samples) {
-                            b.samples = b.samples.map(s => {
-                                if (s.uscs === "NONE") s.uscs = "";
-                                if (s.major === "NONE") s.major = "";
-                                if (s.minor === "NONE") s.minor = "";
-                                if (s.origin === "NONE") s.origin = "";
-                                if (s.shade === "NONE") s.shade = "";
-                                if (!s.colors && s.color) s.colors = [s.color];
-                                if (!s.colors) s.colors = [];
-                                if (!s.descriptors) s.descriptors = [];
-                                if (!s.moisture) s.moisture = "";
-                                if (s.length === 'N') s.length = "18\"";
-                                if (s.length && !s.length.includes('"') && s.length !== 'N/A') s.length += '"';
-                                return s;
-                            });
-                        }
-                        if (b.rockSamples) {
-                            b.rockSamples = b.rockSamples.map(r => {
-                                if (r.rockType === "NONE") r.rockType = "";
-                                if (r.shade === "NONE") r.shade = "";
-                                if (!r.colors && r.color) r.colors = [r.color];
-                                if (!r.colors) r.colors = [];
-                                if (!r.descriptors && r.addDesc) r.descriptors = r.addDesc;
-                                if (!r.descriptors) r.descriptors = [];
-                                return r;
-                            });
-                        }
-                        return b;
-                    });
-
-                    activeBoringIndex = 0;
-                    updateBoringSelector();
-                    syncHeaderUI();
-                    renderTables();
-                    saveLocal();
-                    showToast("Project successfully loaded from JSON.");
                 } catch (err) {
-                    console.error(err);
-                    showToast("Error importing JSON file.");
+                    alert("Failed to parse JSON file: " + err.message);
                 }
+                event.target.value = "";
             };
             reader.readAsText(file);
-            event.target.value = '';
         }
 
-        window.onload = () => {
-            const saved = localStorage.getItem('geoTabletLog_v1_6_3') || localStorage.getItem('geoTabletLog_v1_6_2') || localStorage.getItem('geoTabletLog_v1_6_1') || localStorage.getItem('geoTabletLog_v1_6') || localStorage.getItem('geoTabletLog_v1_5');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.projectMeta) projectMeta = parsed.projectMeta;
-                    if (parsed.borings && parsed.borings.length > 0) {
-                        borings = parsed.borings.map(b => {
-                            if (!b.driller) b.driller = "";
-                            if (!b.additionalNotes) b.additionalNotes = "";
-                            if (!b.surfaceConditions) b.surfaceConditions = [];
-                            if (!b.gpsLat) b.gpsLat = "";
-                            if (!b.gpsLon) b.gpsLon = "";
-                            if (!b.gpsAccuracy) b.gpsAccuracy = "";
-                            if (!b.gpsElevation) b.gpsElevation = "";
-                            if (!b.gpsTimestamp) b.gpsTimestamp = "";
-                            if (!b.gpsSource) b.gpsSource = "";
-                            if (b.samples) {
-                                b.samples = b.samples.map(s => {
-                                    if (s.uscs === "NONE") s.uscs = "";
-                                    if (s.major === "NONE") s.major = "";
-                                    if (s.minor === "NONE") s.minor = "";
-                                    if (s.origin === "NONE") s.origin = "";
-                                    if (s.shade === "NONE") s.shade = "";
-                                    if (!s.colors && s.color) s.colors = [s.color];
-                                    if (!s.colors) s.colors = [];
-                                    if (!s.descriptors) s.descriptors = [];
-                                    if (!s.moisture) s.moisture = "";
-                                    return s;
-                                });
-                            }
-                            if (b.rockSamples) {
-                                b.rockSamples = b.rockSamples.map(r => {
-                                    if (r.rockType === "NONE") r.rockType = "";
-                                    if (r.shade === "NONE") r.shade = "";
-                                    if (!r.colors && r.color) r.colors = [r.color];
-                                    if (!r.colors) r.colors = [];
-                                    if (!r.descriptors && r.addDesc) r.descriptors = r.addDesc;
-                                    if (!r.descriptors) r.descriptors = [];
-                                    return r;
-                                });
-                            }
-                            return b;
-                        });
-                    }
-                    if (typeof parsed.activeBoringIndex === 'number' && parsed.activeBoringIndex < borings.length) {
-                        activeBoringIndex = parsed.activeBoringIndex;
-                    }
-                } catch(e) {
-                    console.warn("Could not load saved session.", e);
-                }
-            }
+        function exportCSV() {
+            let csvRows = [];
+            csvRows.push(["StrataScribe v1.6.9 Structured Project CSV Export"]);
+            csvRows.push([`Client: "${projectMeta.client || ''}"`, `Project Name: "${projectMeta.name || ''}"`, `Project Number: "${projectMeta.number || ''}"`]);
+            csvRows.push([]);
+
+            borings.forEach((b) => {
+                csvRows.push([`=== BORING: ${b.id || 'N/A'} ===`]);
+                csvRows.push([`Rig: "${b.rig || ''}"`, `Driller: "${b.driller || ''}"`, `Field Logger: "${b.logger || ''}"`, `Total Depth: "${b.totalDepth || ''}"`, `Offset: "${b.offset || ''}"`, `Direction: "${b.direction || ''}"`, `Termination Reason: "${b.terminationReason || ''}"`, `Refusal Type: "${b.refusalType || ''}"`, `Refusal Depth: "${b.refusalDepth || ''}"`]);
+                csvRows.push([`GPS Lat: "${b.gpsLat || ''}"`, `GPS Lon: "${b.gpsLon || ''}"`, `GPS Accuracy: "${b.gpsAccuracy || ''}"`]);
+                csvRows.push([]);
+
+                csvRows.push(["-- SURFACE CONDITIONS --"]);
+                csvRows.push(["Thickness (in)", "Type", "Remarks"]);
+                (b.surfaceConditions || []).forEach(sc => {
+                    csvRows.push([sc.thickness || "", `"${sc.type || ''}"`, `"${sc.remarks || ''}"`]);
+                });
+                csvRows.push([]);
+
+                csvRows.push(["-- SOIL SAMPLES (Structured) --"]);
+                csvRows.push([
+                    "Depth (ft)", "Sample Type", "Length (in)", "Blow 1", "Blow 2", "Blow 3", "N-Value", "Recovery (in)",
+                    "USCS", "Gradation", "Major Modifier", "Minor Modifier", "Moisture", "Density / Consistency", "Origin", "Shade", "Colors", "Mottling",
+                    "Auto Description", "Remarks"
+                ]);
+                (b.samples || []).forEach(s => {
+                    const topDepth = (parseFloat(s.whole) + parseFloat(s.dec)).toFixed(1);
+                    const nVal = computeN(s.b2, s.b3);
+                    const calcDensity = computeConsistencyDensity(nVal, s.uscs);
+                    const autoDesc = buildSoilDescription(s, { ...s, density: calcDensity });
+                    csvRows.push([
+                        topDepth, s.type || "", s.length || "", s.b1 || "", s.b2 || "", s.b3 || "", nVal, s.rec || "",
+                        `"${s.uscs || ''}"`, `"${s.gradation || ''}"`, `"${s.major || ''}"`, `"${s.minor || ''}"`, `"${s.moisture || ''}"`, `"${calcDensity || ''}"`, `"${s.origin || ''}"`, `"${s.shade || ''}"`, `"${formatColorsString(s.colors)}"`, `"${s.mottling || ''}"`,
+                        `"${autoDesc}"`, `"${s.remarks || ''}"`
+                    ]);
+                });
+                csvRows.push([]);
+
+                csvRows.push(["-- ROCK CORE RUNS (Structured) --"]);
+                csvRows.push([
+                    "Top Depth (ft)", "Run Length (ft)", "Bottom Depth (ft)",
+                    "Rock Type", "Weathering", "Grain Size", "Grain Shape", "Strength",
+                    "Bedding / Foliation", "Joint Type", "Joint Spacing", "Joint Persistence",
+                    "Joint Surface Roughness", "Joint Geometry", "Joint Aperture", "Joint Filling",
+                    "Groundwater Condition", "Natural Fractures / ft", "Descriptors",
+                    "Recovery (ft)", "Recovery (in)", "RQD (ft)", "RQD (in)",
+                    "Auto Description", "Remarks"
+                ]);
+                (b.rockSamples || []).forEach(r => {
+                    const topDepth = (parseFloat(r.whole) + parseFloat(r.dec)).toFixed(1);
+                    const runLen = parseFloat(r.runLength) || 0;
+                    const botDepth = (parseFloat(topDepth) + runLen).toFixed(1);
+                    const autoDesc = buildRockDescription(r);
+                    const descList = r.descriptors ? r.descriptors.join(', ') : "";
+                    const recInchesStr = formatInchesDisplayString(r.recWhole, r.recFrac);
+                    const rqdInchesStr = formatInchesDisplayString(r.rqdWhole, r.rqdFrac);
+                    csvRows.push([
+                        topDepth, r.runLength || "", botDepth,
+                        `"${r.rockType || ''}"`, `"${r.weathering || ''}"`, `"${r.grainSize || ''}"`, `"${r.grainShape || ''}"`, `"${r.strength || ''}"`,
+                        `"${r.bedding || ''}"`, `"${r.jointType || ''}"`, `"${r.jointSpacing || ''}"`, `"${r.jointPersistence || ''}"`,
+                        `"${r.jointRoughness || ''}"`, `"${r.jointGeometry || ''}"`, `"${r.jointAperture || ''}"`, `"${r.jointFilling || ''}"`,
+                        `"${r.gwCondition || ''}"`, r.natFractures || "0", `"${descList}"`,
+                        r.recovery || "", `"${recInchesStr}"`, r.rqd || "", `"${rqdInchesStr}"`,
+                        `"${autoDesc}"`, `"${r.remarks || ''}"`
+                    ]);
+                });
+                csvRows.push([]); csvRows.push([]);
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", encodedUri);
+            dlAnchor.setAttribute("download", buildExportFilename("csv"));
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast("Structured CSV export generated successfully.");
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadLocal();
             updateBoringSelector();
             syncHeaderUI();
             renderTables();
-        };
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            isInitialized = true;
+        });
+
+        window.addEventListener('beforeunload', (e) => {
+            if (!isSaved) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        });
     </script>
 </body>
 </html>
