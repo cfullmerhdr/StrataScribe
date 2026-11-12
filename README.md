@@ -1,4 +1,4 @@
-# Strata Scribe
+# StrataScribe
 
 A Progressive Web App (PWA) for geotechnical field logging of borings, soil samples, rock cores, groundwater observations, GPS locations, and drilling activities.
 
