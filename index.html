@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strata Scribe v1.6.10 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>StrataScribe v1.6.10 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -166,15 +166,15 @@
                     <div class="flex flex-1 flex-wrap items-center gap-2.5 w-full max-w-5xl">
                         <div class="flex items-center space-x-2 flex-1 min-w-[140px] sm:min-w-[180px]">
                             <label class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase whitespace-nowrap">Client:</label>
-                            <input type="text" id="projectClient" onchange="updateProjectMeta('client', this.value)" class="table-input bg-slate-900 border-slate-700 text-white w-full" placeholder="e.g. TDOT">
+                            <input type="text" id="projectClient" oninput="updateProjectMeta('client', this.value)" class="table-input bg-slate-900 border-slate-700 text-white w-full" placeholder="e.g. TDOT">
                         </div>
                         <div class="flex items-center space-x-2 flex-1 min-w-[160px] sm:min-w-[200px]">
                             <label class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase whitespace-nowrap">Name:</label>
-                            <input type="text" id="projectName" onchange="updateProjectMeta('name', this.value)" class="table-input bg-slate-900 border-slate-700 text-white w-full" placeholder="e.g. SR-32 Bridge">
+                            <input type="text" id="projectName" oninput="updateProjectMeta('name', this.value)" class="table-input bg-slate-900 border-slate-700 text-white w-full" placeholder="e.g. SR-32 Bridge">
                         </div>
                         <div class="flex items-center space-x-2 flex-1 min-w-[130px] sm:min-w-[170px]">
                             <label class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase whitespace-nowrap">No:</label>
-                            <input type="text" id="projectNumber" onchange="updateProjectMeta('number', this.value)" class="table-input bg-slate-900 border-slate-700 text-white w-full" placeholder="e.g. 3215648">
+                            <input type="text" id="projectNumber" oninput="updateProjectMeta('number', this.value)" class="table-input bg-slate-900 border-slate-700 text-white w-full" placeholder="e.g. 3215648">
                         </div>
                     </div>
                 </div>
@@ -206,19 +206,19 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pl-2">
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Boring ID</label>
-                            <input type="text" id="boringId" onchange="updateActiveBoringHeader('id', this.value)" class="table-input font-bold text-amber-600 dark:text-amber-400" placeholder="e.g. B-01">
+                            <input type="text" id="boringId" oninput="updateActiveBoringHeader('id', this.value)" class="table-input font-bold text-amber-600 dark:text-amber-400" placeholder="e.g. B-01">
                         </div>
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Drill Rig</label>
-                            <input type="text" id="drillRig" onchange="updateActiveBoringHeader('rig', this.value)" class="table-input" placeholder="e.g. CME-55">
+                            <input type="text" id="drillRig" oninput="updateActiveBoringHeader('rig', this.value)" class="table-input" placeholder="e.g. CME-55">
                         </div>
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Driller</label>
-                            <input type="text" id="drillerName" onchange="updateActiveBoringHeader('driller', this.value)" class="table-input" placeholder="e.g. John">
+                            <input type="text" id="drillerName" oninput="updateActiveBoringHeader('driller', this.value)" class="table-input" placeholder="e.g. John">
                         </div>
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Field Logger</label>
-                            <input type="text" id="loggerName" onchange="updateActiveBoringHeader('logger', this.value)" class="table-input" placeholder="">
+                            <input type="text" id="loggerName" oninput="updateActiveBoringHeader('logger', this.value)" class="table-input" placeholder="">
                         </div>
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Offset (ft)</label>
@@ -273,7 +273,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div>
                                 <label class="block text-[10px] sm:text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Total Depth (ft)</label>
-                                <input type="number" step="0.1" id="totalDepth" onchange="onManualTotalDepthChange(this.value)" class="table-input font-extrabold text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900 border-amber-400" value="0.0">
+                                <input type="number" step="0.1" id="totalDepth" oninput="onManualTotalDepthChange(this.value)" class="table-input font-extrabold text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900 border-amber-400" value="0.0">
                             </div>
                             <div>
                                 <label class="block text-[10px] sm:text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Termination Reason</label>
@@ -301,7 +301,7 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] sm:text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Refusal Depth (ft)</label>
-                                <input type="number" step="0.1" id="refusalDepth" onchange="updateActiveBoringHeader('refusalDepth', this.value)" class="table-input font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 border-rose-300" placeholder="e.g. 15.0">
+                                <input type="number" step="0.1" id="refusalDepth" oninput="updateActiveBoringHeader('refusalDepth', this.value)" class="table-input font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 border-rose-300" placeholder="e.g. 15.0">
                             </div>
                         </div>
                     </div>
@@ -364,7 +364,7 @@
                                     <span class="text-xs font-bold text-slate-400 w-4">#1</span>
                                     <div class="w-28 flex-shrink-0">
                                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Depth (ft)</label>
-                                        <input type="number" step="0.1" id="gwDepth1" onchange="updateActiveBoringGW(0, 'depth', this.value)" placeholder="Depth (ft)" class="table-input">
+                                        <input type="number" step="0.1" id="gwDepth1" oninput="updateActiveBoringGW(0, 'depth', this.value)" placeholder="Depth (ft)" class="table-input">
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Observation Type</label>
@@ -383,7 +383,7 @@
                                 </div>
                                 <div id="gwCustomWrap1" class="hidden">
                                     <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Description / Notes</label>
-                                    <input type="text" id="gwCustom1" onchange="updateActiveBoringGW(0, 'customTime', this.value)" placeholder="Specify condition..." class="table-input text-xs w-full">
+                                    <input type="text" id="gwCustom1" oninput="updateActiveBoringGW(0, 'customTime', this.value)" placeholder="Specify condition..." class="table-input text-xs w-full">
                                 </div>
                             </div>
                             <div class="flex flex-col space-y-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -391,7 +391,7 @@
                                     <span class="text-xs font-bold text-slate-400 w-4">#2</span>
                                     <div class="w-28 flex-shrink-0">
                                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Depth (ft)</label>
-                                        <input type="number" step="0.1" id="gwDepth2" onchange="updateActiveBoringGW(1, 'depth', this.value)" placeholder="Depth (ft)" class="table-input">
+                                        <input type="number" step="0.1" id="gwDepth2" oninput="updateActiveBoringGW(1, 'depth', this.value)" placeholder="Depth (ft)" class="table-input">
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Observation Type</label>
@@ -410,7 +410,7 @@
                                 </div>
                                 <div id="gwCustomWrap2" class="hidden">
                                     <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Description / Notes</label>
-                                    <input type="text" id="gwCustom2" onchange="updateActiveBoringGW(1, 'customTime', this.value)" placeholder="Specify condition..." class="table-input text-xs w-full">
+                                    <input type="text" id="gwCustom2" oninput="updateActiveBoringGW(1, 'customTime', this.value)" placeholder="Specify condition..." class="table-input text-xs w-full">
                                 </div>
                             </div>
                             <div class="flex flex-col space-y-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -418,7 +418,7 @@
                                     <span class="text-xs font-bold text-slate-400 w-4">#3</span>
                                     <div class="w-28 flex-shrink-0">
                                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Depth (ft)</label>
-                                        <input type="number" step="0.1" id="gwDepth3" onchange="updateActiveBoringGW(2, 'depth', this.value)" placeholder="Depth (ft)" class="table-input">
+                                        <input type="number" step="0.1" id="gwDepth3" oninput="updateActiveBoringGW(2, 'depth', this.value)" placeholder="Depth (ft)" class="table-input">
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Observation Type</label>
@@ -437,7 +437,7 @@
                                 </div>
                                 <div id="gwCustomWrap3" class="hidden">
                                     <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Description / Notes</label>
-                                    <input type="text" id="gwCustom3" onchange="updateActiveBoringGW(2, 'customTime', this.value)" placeholder="Specify condition..." class="table-input text-xs w-full">
+                                    <input type="text" id="gwCustom3" oninput="updateActiveBoringGW(2, 'customTime', this.value)" placeholder="Specify condition..." class="table-input text-xs w-full">
                                 </div>
                             </div>
                         </div>
@@ -448,7 +448,7 @@
                 <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-2 relative overflow-hidden">
                     <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 pl-2">Additional Boring Notes</label>
-                    <textarea id="additionalBoringNotes" onchange="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900 ml-2 max-w-[calc(100%-8px)]" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
+                    <textarea id="additionalBoringNotes" oninput="updateActiveBoringHeader('additionalNotes', this.value)" rows="3" class="table-input w-full bg-white dark:bg-slate-900 ml-2 max-w-[calc(100%-8px)]" placeholder="General observations, drilling issues, utilities encountered, site conditions, communication notes, unusual circumstances, etc."></textarea>
                 </div>
 
                 <!-- Surface Conditions Section Header -->
@@ -1042,7 +1042,7 @@
                     </h4>
                     <div class="max-w-xs">
                         <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Natural Fractures / Foot</label>
-                        <input type="number" id="modal_natFractures" onchange="updateModalField('natFractures', this.value)" class="table-input font-bold" placeholder="e.g. 0">
+                        <input type="number" id="modal_natFractures" oninput="updateModalField('natFractures', this.value)" class="table-input font-bold" placeholder="e.g. 0">
                     </div>
                 </div>
 
@@ -1081,10 +1081,11 @@
             });
         }
 
-        // --- IndexedDB Setup ---
+        // --- Dual Storage: localStorage (Synchronous Instant Backup) + IndexedDB ---
         const DB_NAME = 'StrataScribeDB';
         const STORE_NAME = 'projectStore';
         const DB_VERSION = 1;
+        const LOCAL_STORAGE_KEY = 'strata_scribe_autosave_v1_6_10';
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -1098,6 +1099,20 @@
                     }
                 };
             });
+        }
+
+        function saveLocalSync() {
+            try {
+                const payload = {
+                    projectMeta: projectMeta,
+                    borings: borings,
+                    activeBoringIndex: activeBoringIndex,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
+            } catch (e) {
+                console.error("localStorage save error:", e);
+            }
         }
 
         async function saveToIndexedDB() {
@@ -1121,6 +1136,11 @@
             }
         }
 
+        async function saveLocal() {
+            saveLocalSync(); // Instant synchronous backup on every keystroke/change
+            await saveToIndexedDB(); // Asynchronous primary storage
+        }
+
         async function loadFromIndexedDB() {
             try {
                 const db = await openDB();
@@ -1135,6 +1155,38 @@
                 console.error("IndexedDB load error:", e);
                 return null;
             }
+        }
+
+        async function loadLocal() {
+            // 1. Try instant synchronous localStorage first
+            try {
+                const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (localData) {
+                    const parsed = JSON.parse(localData);
+                    if (parsed && parsed.borings) {
+                        projectMeta = parsed.projectMeta || projectMeta;
+                        borings = parsed.borings || borings;
+                        activeBoringIndex = parsed.activeBoringIndex || 0;
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.error("localStorage load error:", e);
+            }
+
+            // 2. Fallback to IndexedDB
+            try {
+                const saved = await loadFromIndexedDB();
+                if (saved && saved.borings) {
+                    projectMeta = saved.projectMeta || projectMeta;
+                    borings = saved.borings || borings;
+                    activeBoringIndex = saved.activeBoringIndex || 0;
+                    return true;
+                }
+            } catch (e) {
+                console.error("IndexedDB load error:", e);
+            }
+            return false;
         }
 
         // --- Save Status State & Timer Management ---
@@ -1669,6 +1721,7 @@
                 const promptVal = prompt("Are you sure you want to delete all borings and project information?\n\nType \"YES\" to confirm:");
                 if (promptVal && promptVal.trim() === "YES") {
                     localStorage.removeItem('geoTabletLog_v1_6_9');
+                    localStorage.removeItem(LOCAL_STORAGE_KEY);
                     projectMeta = { client: "", name: "", number: "" };
                     borings = [{
                         id: "B-01", rig: "", driller: "", logger: "", additionalNotes: "", gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "", terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: "", methods: [], surfaceConditions: [],
@@ -1831,14 +1884,14 @@
 
                 tr.innerHTML = `
                     <td class="py-2.5 px-3">
-                        <input type="number" step="0.5" value="${sc.thickness || ''}" onchange="updateSurfaceCondition(${idx}, 'thickness', this.value)" placeholder="inches" class="table-input font-bold text-amber-600 text-center">
+                        <input type="number" step="0.5" value="${sc.thickness || ''}" oninput="updateSurfaceCondition(${idx}, 'thickness', this.value)" placeholder="inches" class="table-input font-bold text-amber-600 text-center">
                     </td>
                     <td class="py-2.5 px-3 space-y-1">
                         <select onchange="onSurfaceConditionTypeChange(${idx}, this.value)" class="table-select font-bold">${typeOptionsHtml}</select>
-                        <input type="text" id="customTypeInput_${idx}" value="${isCustomType ? sc.type : ''}" onchange="updateSurfaceCondition(${idx}, 'type', this.value)" placeholder="Specify custom type..." class="table-input text-xs ${isCustomType ? '' : 'hidden'} mt-1">
+                        <input type="text" id="customTypeInput_${idx}" value="${isCustomType ? sc.type : ''}" oninput="updateSurfaceCondition(${idx}, 'type', this.value)" placeholder="Specify custom type..." class="table-input text-xs ${isCustomType ? '' : 'hidden'} mt-1">
                     </td>
                     <td class="py-2.5 px-3">
-                        <input type="text" value="${sc.remarks || ''}" onchange="updateSurfaceCondition(${idx}, 'remarks', this.value)" placeholder="Remarks..." class="table-input">
+                        <input type="text" value="${sc.remarks || ''}" oninput="updateSurfaceCondition(${idx}, 'remarks', this.value)" placeholder="Remarks..." class="table-input">
                     </td>
                     <td class="py-2.5 px-3 text-center">
                         <div class="flex items-center justify-center space-x-1">
@@ -1866,7 +1919,7 @@
         function updateSurfaceCondition(idx, field, val) {
             borings[activeBoringIndex].surfaceConditions[idx][field] = val;
             markUnsaved();
-            renderTables();
+            saveLocal();
         }
 
         function onSurfaceConditionTypeChange(idx, val) {
@@ -1924,7 +1977,6 @@
                 const decOpts = decimalOptions.map(d => `<option value="${d}" ${s.dec == d ? 'selected' : ''}>${d}</option>`).join('');
                 const typeOpts = sampleTypes.map(t => `<option value="${t}" ${s.type === t ? 'selected' : ''}>${t}</option>`).join('');
                 
-                // Fixed SPT Refusal Display Bug: Properly escape quotes in blow count values for HTML attributes
                 const b1Opts = blowOptions.map(b => `<option value="${b.replace(/"/g, '&quot;')}" ${s.b1 === b ? 'selected' : ''}>${b}</option>`).join('');
                 const b2Opts = blowOptions.map(b => `<option value="${b.replace(/"/g, '&quot;')}" ${s.b2 === b ? 'selected' : ''}>${b}</option>`).join('');
                 const b3Opts = blowOptions.map(b => `<option value="${b.replace(/"/g, '&quot;')}" ${s.b3 === b ? 'selected' : ''}>${b}</option>`).join('');
@@ -1942,20 +1994,20 @@
                         <select onchange="onSampleTypeChange(${idx}, this.value)" class="table-select font-bold">${typeOpts}</select>
                     </td>
                     <td class="py-2.5 px-3">
-                        <input type="text" value="${s.length || '18\"'}" onchange="updateSoilRow(${idx}, 'length', this.value)" class="table-input font-semibold text-amber-600 dark:text-amber-400 text-center" placeholder="e.g. 18&quot;">
+                        <input type="text" value="${s.length || '18\"'}" oninput="updateSoilRow(${idx}, 'length', this.value)" class="table-input font-semibold text-amber-600 dark:text-amber-400 text-center" placeholder="e.g. 18&quot;">
                     </td>
                     <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b1', this.value)" class="table-select">${b1Opts}</select></td>
                     <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b2', this.value)" class="table-select">${b2Opts}</select></td>
                     <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b3', this.value)" class="table-select">${b3Opts}</select></td>
                     <td class="py-2.5 px-3 text-center font-extrabold text-amber-600 dark:text-amber-400 text-sm">${nVal}</td>
-                    <td class="py-2.5 px-3"><input type="number" value="${s.rec || ''}" onchange="updateSoilRow(${idx}, 'rec', this.value)" placeholder="in" class="table-input text-center"></td>
+                    <td class="py-2.5 px-3"><input type="number" value="${s.rec || ''}" oninput="updateSoilRow(${idx}, 'rec', this.value)" placeholder="in" class="table-input text-center"></td>
                     <td class="py-2.5 px-3">
                         <button onclick="openSoilPropsModal(${idx})" class="w-full table-input text-left whitespace-normal break-words bg-amber-500/10 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30 hover:bg-amber-500/25 transition flex items-center justify-between px-3 py-2 min-h-[36px]">
                             <span class="flex-1 pr-2">${soilSummary}</span>
                             <i data-lucide="edit-3" class="w-3.5 h-3.5 flex-shrink-0"></i>
                         </button>
                     </td>
-                    <td class="py-2.5 px-3"><input type="text" value="${s.remarks || ''}" onchange="updateSoilRow(${idx}, 'remarks', this.value)" placeholder="Remarks..." class="table-input"></td>
+                    <td class="py-2.5 px-3"><input type="text" value="${s.remarks || ''}" oninput="updateSoilRow(${idx}, 'remarks', this.value)" placeholder="Remarks..." class="table-input"></td>
                     <td class="py-2.5 px-3 text-center"><button onclick="deleteSoilRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
                 `;
                 tbody.appendChild(tr);
@@ -1976,7 +2028,7 @@
         function updateSoilRow(idx, field, val) {
             borings[activeBoringIndex].samples[idx][field] = val;
             markUnsaved();
-            renderTables();
+            saveLocal();
         }
 
         function addSoilRow() {
@@ -2249,7 +2301,6 @@
             return `${w} ${f}"`;
         }
 
-        // One-Way sync: Inches/Fraction -> Decimal Feet (Master controls)
         function onRockInchOrFracChange(idx, fieldPrefix) {
             const r = borings[activeBoringIndex].rockSamples[idx];
             const wholeSel = document.getElementById(`rock_${fieldPrefix}_whole_${idx}`);
@@ -2289,7 +2340,6 @@
             renderTables();
         }
 
-        // Decimal input edit (does NOT touch whole/fraction dropdowns)
         function onRockFtChange(idx, fieldPrefix, val) {
             const r = borings[activeBoringIndex].rockSamples[idx];
             const numVal = parseFloat(val);
@@ -2337,7 +2387,6 @@
 
                 const rockSummary = buildRockDescription(r);
 
-                // Use stored recWhole/recFrac and rqdWhole/rqdFrac directly
                 const recWholeOpts = wholeInchOptionsRock.map(w => `<option value="${w}" ${r.recWhole == w ? 'selected' : ''}>${w}&quot;</option>`).join('');
                 const recFracOpts = fractionValues.map(f => `<option value="${f.label}" ${r.recFrac === f.label ? 'selected' : ''}>${f.label}</option>`).join('');
 
@@ -2352,7 +2401,7 @@
                         </div>
                     </td>
                     <td class="py-2.5 px-3">
-                        <input type="number" step="0.1" value="${r.runLength || '5.0'}" onchange="updateRockRow(${idx}, 'runLength', this.value)" class="table-input font-bold text-amber-600 text-center">
+                        <input type="number" step="0.1" value="${r.runLength || '5.0'}" oninput="updateRockRow(${idx}, 'runLength', this.value)" class="table-input font-bold text-amber-600 text-center">
                     </td>
                     <td class="py-2.5 px-3 text-center font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded">
                         ${bottomDepth}'
@@ -2361,14 +2410,14 @@
                         <div class="flex space-x-1 items-center">
                             <select id="rock_rec_whole_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rec')" class="table-select text-xs w-20 font-bold">${recWholeOpts}</select>
                             <select id="rock_rec_frac_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rec')" class="table-select text-xs w-16 font-semibold">${recFracOpts}</select>
-                            <input type="number" step="0.05" id="rock_rec_ft_${idx}" value="${r.recovery || ''}" onchange="onRockFtChange(${idx}, 'rec', this.value)" placeholder="ft" class="table-input text-center text-xs font-bold w-16">
+                            <input type="number" step="0.05" id="rock_rec_ft_${idx}" value="${r.recovery || ''}" oninput="onRockFtChange(${idx}, 'rec', this.value)" placeholder="ft" class="table-input text-center text-xs font-bold w-16">
                         </div>
                     </td>
                     <td class="py-2.5 px-3">
                         <div class="flex space-x-1 items-center">
                             <select id="rock_rqd_whole_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rqd')" class="table-select text-xs w-20 font-bold">${rqdWholeOpts}</select>
                             <select id="rock_rqd_frac_${idx}" onchange="onRockInchOrFracChange(${idx}, 'rqd')" class="table-select text-xs w-16 font-semibold">${rqdFracOpts}</select>
-                            <input type="number" step="0.05" id="rock_rqd_ft_${idx}" value="${r.rqd || ''}" onchange="onRockFtChange(${idx}, 'rqd', this.value)" placeholder="ft" class="table-input text-center text-xs font-bold w-16">
+                            <input type="number" step="0.05" id="rock_rqd_ft_${idx}" value="${r.rqd || ''}" oninput="onRockFtChange(${idx}, 'rqd', this.value)" placeholder="ft" class="table-input text-center text-xs font-bold w-16">
                         </div>
                     </td>
                     <td class="py-2.5 px-3">
@@ -2378,7 +2427,7 @@
                         </button>
                     </td>
                     <td class="py-2.5 px-3">
-                        <input type="text" value="${r.remarks || ''}" onchange="updateRockRow(${idx}, 'remarks', this.value)" class="table-input" placeholder="Remarks...">
+                        <input type="text" value="${r.remarks || ''}" oninput="updateRockRow(${idx}, 'remarks', this.value)" class="table-input" placeholder="Remarks...">
                     </td>
                     <td class="py-2.5 px-3 text-center">
                         <button onclick="deleteRockRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -3263,25 +3312,7 @@
             if (canvasId === 'rqdHistogram') rqdHistInstance = chartObj;
         }
 
-        // --- Local Storage & Project Data Management ---
-        async function saveLocal() {
-            await saveToIndexedDB();
-        }
-
-        async function loadLocal() {
-            const saved = await loadFromIndexedDB();
-            if (!saved) return false;
-            try {
-                if (saved.projectMeta) projectMeta = saved.projectMeta;
-                if (saved.borings && saved.borings.length > 0) borings = saved.borings;
-                if (saved.activeBoringIndex !== undefined) activeBoringIndex = saved.activeBoringIndex;
-                return true;
-            } catch (e) {
-                console.error("Failed to load IndexedDB session", e);
-                return false;
-            }
-        }
-
+        // --- Export & File Management ---
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
@@ -3414,6 +3445,7 @@
             showToast("Structured CSV export generated successfully.");
         }
 
+        // --- Lifecycle & Init ---
         window.addEventListener('DOMContentLoaded', async () => {
             await loadLocal();
             updateBoringSelector();
@@ -3423,7 +3455,17 @@
             isInitialized = true;
         });
 
+        // Mobile lifecycle event listeners to guarantee data is saved when closing/switching apps
+        window.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveLocalSync();
+            }
+        });
+        window.addEventListener('pagehide', () => {
+            saveLocalSync();
+        });
         window.addEventListener('beforeunload', (e) => {
+            saveLocalSync();
             if (!isSaved) {
                 e.preventDefault();
                 e.returnValue = "";
