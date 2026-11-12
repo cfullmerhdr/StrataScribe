@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StrataScribe v1.6.12 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>StrataScribe v1.6.13 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -99,7 +99,7 @@
                 >
 
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.12</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.13</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -615,7 +615,7 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
-        Version: v1.6.12 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.12
+        Version: v1.6.13 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.13
     </footer>
 
     <!-- Project Boring Profiles Modal -->
@@ -1297,7 +1297,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.12",
+                version: "v1.6.13",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -3625,7 +3625,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.12",
+                version: "v1.6.13",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -3678,7 +3678,7 @@
 
         function exportCSV() {
             let csvRows = [];
-            csvRows.push(["StrataScribe v1.6.12 Structured Project CSV Export"]);
+            csvRows.push(["StrataScribe v1.6.13 Structured Project CSV Export"]);
             csvRows.push([`Client: "${projectMeta.client || ''}"`, `Project Name: "${projectMeta.name || ''}"`, `Project Number: "${projectMeta.number || ''}"`]);
             csvRows.push([]);
 
