@@ -387,11 +387,12 @@
             return isNaN(num) ? null : num;
         }
 
-        function computeN(b2Val, b3Val) {
-            if (!b2Val && !b3Val) return "";
+        function computeN(b2Val, b3Val, b1Val = "") {
+            const v1 = parseBlow(b1Val);
             const v2 = parseBlow(b2Val);
             const v3 = parseBlow(b3Val);
-            if (v2 === 'REF' || v3 === 'REF') return "Refusal";
+            if (v1 === 'REF' || v2 === 'REF' || v3 === 'REF') return "Refusal";
+            if (!b2Val && !b3Val) return "";
             if (v2 !== null && v3 !== null) return v2 + v3;
             if (v2 !== null) return v2;
             if (v3 !== null) return v3;
@@ -424,6 +425,20 @@
             return colorsArray.map(c => c.toUpperCase()).join(" TO ");
         }
 
+        function normalizeMultiRockValues(val) {
+            if (Array.isArray(val)) {
+                return val.map(v => String(v).trim()).filter(v => v !== "");
+            }
+            if (typeof val === 'string' && val.trim() !== '') {
+                return val.split(',').map(v => v.trim()).filter(v => v !== "");
+            }
+            return [];
+        }
+
+        function formatMultiRockField(val) {
+            return normalizeMultiRockValues(val).map(v => v.toUpperCase()).join(', ');
+        }
+
         function buildSoilDescription(sample, effectiveAttributes) {
             const parts = [];
             if (effectiveAttributes.origin && effectiveAttributes.origin !== '') parts.push(effectiveAttributes.origin.toUpperCase());
@@ -438,7 +453,7 @@
 
             if (effectiveAttributes.minor && effectiveAttributes.minor !== '') parts.push(effectiveAttributes.minor.toUpperCase());
             
-            const nVal = computeN(sample.b2, sample.b3);
+            const nVal = computeN(sample.b2, sample.b3, sample.b1);
             const density = computeConsistencyDensity(nVal, effectiveAttributes.uscs);
             if (density) parts.push(density.toUpperCase());
 
@@ -457,11 +472,21 @@
             const colorStr = formatColorsString(r.colors);
             if (colorStr) parts.push(colorStr);
 
-            if (r.weathering && r.weathering !== '') parts.push(r.weathering.toUpperCase());
-            if (r.grainSize && r.grainSize !== '') parts.push(r.grainSize.toUpperCase());
-            if (r.grainShape && r.grainShape !== '') parts.push(r.grainShape.toUpperCase());
-            if (r.strength && r.strength !== '') parts.push(r.strength.toUpperCase());
-            if (r.bedding && r.bedding !== '') parts.push(r.bedding.toUpperCase());
+            const weatheringStr = formatMultiRockField(r.weathering);
+            if (weatheringStr) parts.push(weatheringStr);
+
+            const grainSizeStr = formatMultiRockField(r.grainSize);
+            if (grainSizeStr) parts.push(grainSizeStr);
+
+            const grainShapeStr = formatMultiRockField(r.grainShape);
+            if (grainShapeStr) parts.push(grainShapeStr);
+
+            const strengthStr = formatMultiRockField(r.strength);
+            if (strengthStr) parts.push(strengthStr);
+
+            const beddingStr = formatMultiRockField(r.bedding);
+            if (beddingStr) parts.push(beddingStr);
+
             if (r.jointType && r.jointType !== '') parts.push(r.jointType.toUpperCase());
             if (r.jointSpacing && r.jointSpacing !== '') parts.push(`${r.jointSpacing.toUpperCase()} SPACED`);
             if (r.jointPersistence && r.jointPersistence !== '') parts.push(`PERSISTENCE ${r.jointPersistence.toUpperCase()}`);
@@ -929,7 +954,7 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/40 transition";
 
-                const nVal = computeN(s.b2, s.b3);
+                const nVal = computeN(s.b2, s.b3, s.b1);
                 const autoDensity = computeConsistencyDensity(nVal, s.uscs);
 
                 const effectiveAttrs = { 
@@ -1041,6 +1066,23 @@
             }).join('');
         }
 
+        function renderMultiChipGroup(containerId, options, currentValues, callbackName) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const selectedArr = normalizeMultiRockValues(currentValues);
+            const fullOptions = ["", ...options.filter(o => o !== "")];
+
+            container.innerHTML = fullOptions.map(opt => {
+                const displayLabel = (opt === "") ? "-- Blank --" : opt;
+                const isSelected = (opt === "") ? (selectedArr.length === 0) : selectedArr.includes(opt);
+                const activeClass = isSelected 
+                    ? "bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-sm" 
+                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 font-medium";
+                const escapedOpt = opt.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                return `<button type="button" onclick="${callbackName}('${escapedOpt}')" class="px-2.5 py-1.5 rounded-lg border text-xs transition ${activeClass}">${displayLabel}</button>`;
+            }).join('');
+        }
+
         function openSoilPropsModal(idx) {
             currentModalSoilIndex = idx;
             const s = borings[activeBoringIndex].samples[idx];
@@ -1066,7 +1108,7 @@
             
             populateSoilModalColorPicker('soilColorPicker', colorPalette, '');
 
-            const nVal = computeN(s.b2, s.b3);
+            const nVal = computeN(s.b2, s.b3, s.b1);
             document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
 
             renderSoilColorChips(s.colors || []);
@@ -1089,7 +1131,7 @@
             renderChipGroup('chipContainer_soilShade', shades, '', 'selectSoilShade');
             renderChipGroup('chipContainer_mottling', mottlingList, '', 'selectSoilMottling');
             
-            const nVal = computeN(s.b2, s.b3);
+            const nVal = computeN(s.b2, s.b3, s.b1);
             document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
             renderSoilColorChips([]);
             markUnsaved();
@@ -1110,7 +1152,7 @@
                 gradationSection.classList.add('hidden');
             }
 
-            const nVal = computeN(s.b2, s.b3);
+            const nVal = computeN(s.b2, s.b3, s.b1);
             document.getElementById('soilModal_densityDisplay').value = computeConsistencyDensity(nVal, s.uscs) || "Auto-calculated from N-value & USCS";
             renderChipGroup('chipContainer_uscs', uscsList, val, 'selectSoilUscs');
             markUnsaved();
@@ -1201,8 +1243,10 @@
             s.colors.push(entry);
 
             s.shade = "";
+            s.mottling = "";
             colorPicker.value = "";
             renderChipGroup('chipContainer_soilShade', shades, s.shade, 'selectSoilShade');
+            renderChipGroup('chipContainer_mottling', mottlingList, s.mottling, 'selectSoilMottling');
             renderSoilColorChips(s.colors);
             markUnsaved();
             renderTables();
@@ -1438,8 +1482,8 @@
                 whole: wholePart, dec: decPart, runLength: "5.0",
                 recWhole: 0, recFrac: "0/8", recovery: "",
                 rqdWhole: 0, rqdFrac: "0/8", rqd: "",
-                rockType: "", shade: "", colors: [], weathering: "", grainSize: "", grainShape: "", strength: "",
-                bedding: "", jointType: "", jointSpacing: "", jointPersistence: "", jointRoughness: "", jointGeometry: "",
+                rockType: "", shade: "", colors: [], weathering: [], grainSize: [], grainShape: [], strength: [],
+                bedding: [], jointType: "", jointSpacing: "", jointPersistence: "", jointRoughness: "", jointGeometry: "",
                 jointAperture: "", jointFilling: "", gwCondition: "", natFractures: "0", descriptors: [], remarks: ""
             };
 
@@ -1447,11 +1491,11 @@
                 newRockRun.rockType = last.rockType || "";
                 newRockRun.shade = last.shade || "";
                 newRockRun.colors = last.colors ? [...last.colors] : [];
-                newRockRun.weathering = last.weathering || "";
-                newRockRun.grainSize = last.grainSize || "";
-                newRockRun.grainShape = last.grainShape || "";
-                newRockRun.strength = last.strength || "";
-                newRockRun.bedding = last.bedding || "";
+                newRockRun.weathering = normalizeMultiRockValues(last.weathering);
+                newRockRun.grainSize = normalizeMultiRockValues(last.grainSize);
+                newRockRun.grainShape = normalizeMultiRockValues(last.grainShape);
+                newRockRun.strength = normalizeMultiRockValues(last.strength);
+                newRockRun.bedding = normalizeMultiRockValues(last.bedding);
                 newRockRun.jointType = last.jointType || "";
                 newRockRun.jointSpacing = last.jointSpacing || "";
                 newRockRun.jointPersistence = last.jointPersistence || "";
@@ -1479,18 +1523,24 @@
             currentModalRockIndex = idx;
             const r = borings[activeBoringIndex].rockSamples[idx];
 
+            r.weathering = normalizeMultiRockValues(r.weathering);
+            r.grainSize = normalizeMultiRockValues(r.grainSize);
+            r.grainShape = normalizeMultiRockValues(r.grainShape);
+            r.strength = normalizeMultiRockValues(r.strength);
+            r.bedding = normalizeMultiRockValues(r.bedding);
+
             document.getElementById('rockModalSubtitle').textContent = `Boring ${borings[activeBoringIndex].id || ''} — Run Top Depth: ${(parseFloat(r.whole) + parseFloat(r.dec)).toFixed(1)} ft`;
 
             renderChipGroup('chipContainer_rockType', rockTypes, r.rockType || '', 'selectRockType');
-            renderChipGroup('chipContainer_weathering', rockWeathering, r.weathering || '', 'selectRockWeathering');
-            renderChipGroup('chipContainer_grainSize', rockGrainSize, r.grainSize || '', 'selectRockGrainSize');
-            renderChipGroup('chipContainer_grainShape', rockGrainShape, r.grainShape || '', 'selectRockGrainShape');
-            renderChipGroup('chipContainer_strength', rockStrength, r.strength || '', 'selectRockStrength');
+            renderMultiChipGroup('chipContainer_weathering', rockWeathering, r.weathering, 'selectRockWeathering');
+            renderMultiChipGroup('chipContainer_grainSize', rockGrainSize, r.grainSize, 'selectRockGrainSize');
+            renderMultiChipGroup('chipContainer_grainShape', rockGrainShape, r.grainShape, 'selectRockGrainShape');
+            renderMultiChipGroup('chipContainer_strength', rockStrength, r.strength, 'selectRockStrength');
             
             renderChipGroup('chipContainer_rockShade', shades, r.shade || '', 'selectRockShade');
             populateSoilModalColorPicker('rockColorPicker', colorPalette, '');
 
-            renderChipGroup('chipContainer_bedding', rockBedding, r.bedding || '', 'selectRockBedding');
+            renderMultiChipGroup('chipContainer_bedding', rockBedding, r.bedding, 'selectRockBedding');
             renderChipGroup('chipContainer_jointType', rockJointType, r.jointType || '', 'selectRockJointType');
             renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, r.jointSpacing || '', 'selectRockJointSpacing');
             renderChipGroup('chipContainer_jointPersistence', rockJointPersistence, r.jointPersistence || '', 'selectRockJointPersistence');
@@ -1512,15 +1562,15 @@
         function clearRockPreviousDescription() {
             if (currentModalRockIndex === null) return;
             const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
-            r.rockType = ""; r.weathering = ""; r.grainSize = ""; r.grainShape = ""; r.strength = ""; r.shade = ""; r.colors = []; r.bedding = ""; r.jointType = ""; r.jointSpacing = ""; r.jointPersistence = ""; r.jointRoughness = ""; r.jointGeometry = ""; r.jointAperture = ""; r.jointFilling = ""; r.gwCondition = ""; r.descriptors = []; r.natFractures = "0";
+            r.rockType = ""; r.weathering = []; r.grainSize = []; r.grainShape = []; r.strength = []; r.shade = ""; r.colors = []; r.bedding = []; r.jointType = ""; r.jointSpacing = ""; r.jointPersistence = ""; r.jointRoughness = ""; r.jointGeometry = ""; r.jointAperture = ""; r.jointFilling = ""; r.gwCondition = ""; r.descriptors = []; r.natFractures = "0";
 
             renderChipGroup('chipContainer_rockType', rockTypes, '', 'selectRockType');
-            renderChipGroup('chipContainer_weathering', rockWeathering, '', 'selectRockWeathering');
-            renderChipGroup('chipContainer_grainSize', rockGrainSize, '', 'selectRockGrainSize');
-            renderChipGroup('chipContainer_grainShape', rockGrainShape, '', 'selectRockGrainShape');
-            renderChipGroup('chipContainer_strength', rockStrength, '', 'selectRockStrength');
+            renderMultiChipGroup('chipContainer_weathering', rockWeathering, [], 'selectRockWeathering');
+            renderMultiChipGroup('chipContainer_grainSize', rockGrainSize, [], 'selectRockGrainSize');
+            renderMultiChipGroup('chipContainer_grainShape', rockGrainShape, [], 'selectRockGrainShape');
+            renderMultiChipGroup('chipContainer_strength', rockStrength, [], 'selectRockStrength');
             renderChipGroup('chipContainer_rockShade', shades, '', 'selectRockShade');
-            renderChipGroup('chipContainer_bedding', rockBedding, '', 'selectRockBedding');
+            renderMultiChipGroup('chipContainer_bedding', rockBedding, [], 'selectRockBedding');
             renderChipGroup('chipContainer_jointType', rockJointType, '', 'selectRockJointType');
             renderChipGroup('chipContainer_jointSpacing', rockJointSpacing, '', 'selectRockJointSpacing');
             renderChipGroup('chipContainer_jointPersistence', rockJointPersistence, '', 'selectRockJointPersistence');
@@ -1537,6 +1587,23 @@
             renderTables();
         }
 
+        function toggleRockMultiProperty(field, val) {
+            if (currentModalRockIndex === null) return;
+            const r = borings[activeBoringIndex].rockSamples[currentModalRockIndex];
+            let arr = normalizeMultiRockValues(r[field]);
+            if (val === "") {
+                arr = [];
+            } else {
+                if (arr.includes(val)) {
+                    arr = arr.filter(item => item !== val);
+                } else {
+                    arr.push(val);
+                }
+            }
+            r[field] = arr;
+            return arr;
+        }
+
         function selectRockType(val) {
             if (currentModalRockIndex === null) return;
             borings[activeBoringIndex].rockSamples[currentModalRockIndex].rockType = val;
@@ -1545,26 +1612,26 @@
         }
         function selectRockWeathering(val) {
             if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].weathering = val;
-            renderChipGroup('chipContainer_weathering', rockWeathering, val, 'selectRockWeathering');
+            const updated = toggleRockMultiProperty('weathering', val);
+            renderMultiChipGroup('chipContainer_weathering', rockWeathering, updated, 'selectRockWeathering');
             markUnsaved(); renderTables();
         }
         function selectRockGrainSize(val) {
             if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainSize = val;
-            renderChipGroup('chipContainer_grainSize', rockGrainSize, val, 'selectRockGrainSize');
+            const updated = toggleRockMultiProperty('grainSize', val);
+            renderMultiChipGroup('chipContainer_grainSize', rockGrainSize, updated, 'selectRockGrainSize');
             markUnsaved(); renderTables();
         }
         function selectRockGrainShape(val) {
             if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].grainShape = val;
-            renderChipGroup('chipContainer_grainShape', rockGrainShape, val, 'selectRockGrainShape');
+            const updated = toggleRockMultiProperty('grainShape', val);
+            renderMultiChipGroup('chipContainer_grainShape', rockGrainShape, updated, 'selectRockGrainShape');
             markUnsaved(); renderTables();
         }
         function selectRockStrength(val) {
             if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].strength = val;
-            renderChipGroup('chipContainer_strength', rockStrength, val, 'selectRockStrength');
+            const updated = toggleRockMultiProperty('strength', val);
+            renderMultiChipGroup('chipContainer_strength', rockStrength, updated, 'selectRockStrength');
             markUnsaved(); renderTables();
         }
         function selectRockShade(val) {
@@ -1575,8 +1642,8 @@
         }
         function selectRockBedding(val) {
             if (currentModalRockIndex === null) return;
-            borings[activeBoringIndex].rockSamples[currentModalRockIndex].bedding = val;
-            renderChipGroup('chipContainer_bedding', rockBedding, val, 'selectRockBedding');
+            const updated = toggleRockMultiProperty('bedding', val);
+            renderMultiChipGroup('chipContainer_bedding', rockBedding, updated, 'selectRockBedding');
             markUnsaved(); renderTables();
         }
         function selectRockJointType(val) {
@@ -2016,7 +2083,7 @@
                 }
                 if (layerBot < layerTop) layerBot = layerTop;
 
-                const nVal = computeN(current.b2, current.b3);
+                const nVal = computeN(current.b2, current.b3, current.b1);
                 const calcDensity = computeConsistencyDensity(nVal, current.uscs);
                 layers.push({ top: layerTop, bot: layerBot, uscs: current.uscs ? current.uscs.toUpperCase() : 'UNCLASSIFIED', type: 'SOIL', description: buildSoilDescription(current, { ...current, density: calcDensity }) });
             });
@@ -2028,7 +2095,7 @@
                 layers.push({ top, bot, uscs: rockTypeStr, type: 'ROCK', rockType: rockTypeStr, description: buildRockDescription(r) });
             });
 
-            const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
+            const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3, s.b1) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
             const gwMarkers = (curBoring.gw || []).map(gw => {
                 const depthVal = parseFloat(gw.depth);
                 if (isNaN(depthVal)) return null;
@@ -2243,7 +2310,7 @@
                     layers.push({ top, bot, uscs: rockTypeStr, type: 'ROCK', rockType: rockTypeStr });
                 });
 
-                const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
+                const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3, s.b1) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
                 const gwMarkers = (b.gw || []).map(gw => {
                     const depthVal = parseFloat(gw.depth);
                     if (isNaN(depthVal)) return null;
@@ -2539,6 +2606,34 @@
             showToast("Project saved (JSON backup exported).");
         }
 
+        async function shareProjectJSON() {
+            const payload = {
+                application: "StrataScribe",
+                version: "v1.6.13",
+                exportTimestamp: new Date().toISOString(),
+                projectMeta: projectMeta,
+                borings: borings
+            };
+            const filename = buildExportFilename("json");
+            const jsonText = JSON.stringify(payload, null, 2);
+            const file = new File([jsonText], filename, { type: 'application/json' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: filename
+                    });
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return;
+                }
+            }
+
+            exportJSON();
+            showToast("Native file sharing is not supported on this device/browser. Downloaded JSON instead.");
+        }
+
         function triggerJSONUpload() {
             document.getElementById('jsonFileInput').click();
         }
@@ -2598,7 +2693,7 @@
                 ]);
                 (b.samples || []).forEach(s => {
                     const topDepth = (parseFloat(s.whole) + parseFloat(s.dec)).toFixed(1);
-                    const nVal = computeN(s.b2, s.b3);
+                    const nVal = computeN(s.b2, s.b3, s.b1);
                     const calcDensity = computeConsistencyDensity(nVal, s.uscs);
                     const autoDesc = buildSoilDescription(s, { ...s, density: calcDensity });
                     csvRows.push([
@@ -2627,10 +2722,15 @@
                     const descList = r.descriptors ? r.descriptors.join(', ') : "";
                     const recInchesStr = formatInchesDisplayString(r.recWhole, r.recFrac);
                     const rqdInchesStr = formatInchesDisplayString(r.rqdWhole, r.rqdFrac);
+                    const weatheringCsv = formatMultiRockField(r.weathering);
+                    const grainSizeCsv = formatMultiRockField(r.grainSize);
+                    const grainShapeCsv = formatMultiRockField(r.grainShape);
+                    const strengthCsv = formatMultiRockField(r.strength);
+                    const beddingCsv = formatMultiRockField(r.bedding);
                     csvRows.push([
                         topDepth, r.runLength || "", botDepth,
-                        `"${r.rockType || ''}"`, `"${r.weathering || ''}"`, `"${r.grainSize || ''}"`, `"${r.grainShape || ''}"`, `"${r.strength || ''}"`,
-                        `"${r.bedding || ''}"`, `"${r.jointType || ''}"`, `"${r.jointSpacing || ''}"`, `"${r.jointPersistence || ''}"`,
+                        `"${r.rockType || ''}"`, `"${weatheringCsv}"`, `"${grainSizeCsv}"`, `"${grainShapeCsv}"`, `"${strengthCsv}"`,
+                        `"${beddingCsv}"`, `"${r.jointType || ''}"`, `"${r.jointSpacing || ''}"`, `"${r.jointPersistence || ''}"`,
                         `"${r.jointRoughness || ''}"`, `"${r.jointGeometry || ''}"`, `"${r.jointAperture || ''}"`, `"${r.jointFilling || ''}"`,
                         `"${r.gwCondition || ''}"`, r.natFractures || "0", `"${descList}"`,
                         r.recovery || "", `"${recInchesStr}"`, r.rqd || "", `"${rqdInchesStr}"`,
