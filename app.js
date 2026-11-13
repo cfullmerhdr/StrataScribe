@@ -2618,18 +2618,19 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.17",
+                version: "v1.6.16",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
             };
-            const filename = buildExportFilename("json");
+            // Use .txt extension and text/plain MIME type so Android's share sheet always accepts it
+            const filename = buildExportFilename("txt");
             const jsonText = JSON.stringify(payload, null, 2);
             
             // 1. Try native mobile share sheet if supported
             if (navigator.share && navigator.canShare) {
                 try {
-                    const file = new File([jsonText], filename.replace('.json', '.txt'), { type: 'text/plain' });
+                    const file = new File([jsonText], filename, { type: 'text/plain' });
                     if (navigator.canShare({ files: [file] })) {
                         await navigator.share({
                             files: [file],
