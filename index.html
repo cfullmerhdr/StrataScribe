@@ -111,10 +111,7 @@
                     <i data-lucide="save" class="w-4 h-4"></i>
                     <span>Save Project</span>
                 </button>
-                <button onclick="shareProjectJSON()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm px-3.5 sm:px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow-lg border border-emerald-500" title="Share Project">
-                    <i data-lucide="share" class="w-4 h-4"></i>
-                    <span>Share</span>
-                </button>
+                
                 <div id="saveStatusIndicator" class="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 flex items-center shadow">✅ Saved</div>
 
                 <!-- Tools Dropdown Menu -->
@@ -125,6 +122,10 @@
                         <i data-lucide="chevron-down" class="w-3 h-3 ml-0.5 text-slate-400"></i>
                     </button>
                     <div id="toolsDropdownMenu" class="hidden absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 py-1.5">
+                        <button onclick="closeToolsMenu(); shareProjectJSON();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                            <i data-lucide="share-2" class="w-3.5 h-3.5 text-sky-400"></i>
+                            <span>Share Project</span>
+                        </button>
                         <button onclick="closeToolsMenu(); openProjectBoringProfilesModal();" class="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
                             <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-amber-500"></i>
                             <span>Profiles</span>

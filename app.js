@@ -989,7 +989,16 @@
                     <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b2', this.value)" class="table-select">${b2Opts}</select></td>
                     <td class="py-2.5 px-3"><select onchange="updateSoilRow(${idx}, 'b3', this.value)" class="table-select">${b3Opts}</select></td>
                     <td class="py-2.5 px-3 text-center font-extrabold text-amber-600 dark:text-amber-400 text-sm">${nVal}</td>
-                    <td class="py-2.5 px-3"><input type="number" value="${s.rec || ''}" oninput="updateSoilRow(${idx}, 'rec', this.value)" placeholder="in" class="table-input text-center"></td>
+                    <td class="py-2.5 px-3">
+                        <select
+                            onchange="updateSoilRow(${idx}, 'rec', this.value)"
+                            class="table-select text-center">
+                            <option value=""></option>
+                            ${Array.from({ length: 41 }, (_, i) =>
+                                `<option value="${i}" ${s.rec == i ? 'selected' : ''}>${i}"</option>`
+                            ).join('')}
+                        </select>
+                    </td>
                     <td class="py-2.5 px-3">
                         <button onclick="openSoilPropsModal(${idx})" class="w-full table-input text-left whitespace-normal break-words bg-amber-500/10 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30 hover:bg-amber-500/25 transition flex items-center justify-between px-3 py-2 min-h-[36px]">
                             <span class="flex-1 pr-2">${soilSummary}</span>
@@ -2609,29 +2618,35 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.13",
+                version: "v1.6.16",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
             };
             const filename = buildExportFilename("json");
             const jsonText = JSON.stringify(payload, null, 2);
-            const file = new File([jsonText], filename, { type: 'application/json' });
-
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            
+            // 1. Try native mobile share sheet if supported
+            if (navigator.share && navigator.canShare) {
                 try {
-                    await navigator.share({
-                        files: [file],
-                        title: filename
-                    });
-                    return;
+                    const file = new File([jsonText], filename, { type: 'application/json' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'StrataScribe Project',
+                            text: `Project Backup: ${projectMeta.name || 'Unnamed'}`
+                        });
+                        showToast("Project shared successfully.");
+                        return;
+                    }
                 } catch (err) {
-                    if (err && err.name === 'AbortError') return;
+                    if (err && err.name === 'AbortError') return; // User cancelled share sheet
+                    console.warn("Native share failed, falling back to download:", err);
                 }
             }
 
+            // 2. Fallback to standard download if native share isn't available
             exportJSON();
-            showToast("Native file sharing is not supported on this device/browser. Downloaded JSON instead.");
         }
 
         function triggerJSONUpload() {
