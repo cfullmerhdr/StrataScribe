@@ -2618,7 +2618,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.16",
+                version: "v1.6.17",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
