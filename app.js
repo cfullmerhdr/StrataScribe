@@ -2629,7 +2629,7 @@
             // 1. Try native mobile share sheet if supported
             if (navigator.share && navigator.canShare) {
                 try {
-                    const file = new File([jsonText], filename, { type: 'application/json' });
+                    const file = new File([jsonText], filename.replace('.json', '.txt'), { type: 'text/plain' });
                     if (navigator.canShare({ files: [file] })) {
                         await navigator.share({
                             files: [file],
