@@ -197,11 +197,11 @@
                 projectMeta: projectMeta,
                 borings: borings
             };
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const dlAnchor = document.createElement('a');
             dlAnchor.href = url;
-            dlAnchor.download = buildExportFilename("json");
+            dlAnchor.download = buildExportFilename("txt");
             document.body.appendChild(dlAnchor);
             dlAnchor.click();
             dlAnchor.remove();
@@ -211,7 +211,7 @@
             unsavedSinceTime = null;
             lastSaveOrBackupTime = Date.now();
             updateSaveStatusUI();
-            showToast("Automatic JSON backup exported successfully.");
+            showToast("Automatic backup exported successfully.");
         }
 
         function toggleThemeFromTools() {
@@ -2601,18 +2601,18 @@
                 projectMeta: projectMeta,
                 borings: borings
             };
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const dlAnchor = document.createElement('a');
             dlAnchor.href = url;
-            dlAnchor.download = buildExportFilename("json");
+            dlAnchor.download = buildExportFilename("txt");
             document.body.appendChild(dlAnchor);
             dlAnchor.click();
             dlAnchor.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
 
             markSavedNow();
-            showToast("Project saved (JSON backup exported).");
+            showToast("Project saved (backup exported as .txt).");
         }
 
         async function shareProjectJSON() {
