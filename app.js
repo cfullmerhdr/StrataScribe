@@ -192,7 +192,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.21",
+                version: "v1.6.13",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2596,7 +2596,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.21",
+                version: "v1.6.13",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2618,7 +2618,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.21",
+                version: "v1.6.16",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2684,208 +2684,77 @@
 
         function exportCSV() {
             let csvRows = [];
-        
-            // 1. Project Information Header
-            csvRows.push(["# PROJECT INFORMATION"]);
-            csvRows.push(["Client", "Project Name", "Project Number", "Export Timestamp"]);
-            csvRows.push([
-                `"${projectMeta.client || ''}"`,
-                `"${projectMeta.name || ''}"`,
-                `"${projectMeta.number || ''}"`,
-                `"${new Date().toISOString()}"`
-            ]);
+            csvRows.push(["StrataScribe v1.6.13 Structured Project CSV Export"]);
+            csvRows.push([`Client: "${projectMeta.client || ''}"`, `Project Name: "${projectMeta.name || ''}"`, `Project Number: "${projectMeta.number || ''}"`]);
             csvRows.push([]);
-        
-            // Sort borings consistently
-            const sortedBorings = [...borings].sort((a, b) => compareBoringIds(a.id, b.id));
-        
-            // 2. Borings Summary Table
-            csvRows.push(["# BORINGS SUMMARY"]);
-            csvRows.push([
-                "Boring ID", "Total Depth (ft)", "Rig", "Driller", "Field Logger",
-                "Offset (ft)", "Direction", "Start Date", "End Date",
-                "Termination Reason", "Refusal Type", "Refusal Depth (ft)",
-                "GPS Lat", "GPS Lon", "GPS Accuracy", "GPS Elevation"
-            ]);
-            sortedBorings.forEach(b => {
-                csvRows.push([
-                    `"${b.id || ''}"`,
-                    b.totalDepth || '',
-                    `"${b.rig || ''}"`,
-                    `"${b.driller || ''}"`,
-                    `"${b.logger || ''}"`,
-                    b.offset || '',
-                    `"${b.direction || 'N/A'}"`,
-                    `"${b.startDate || ''}"`,
-                    `"${b.endDate || ''}"`,
-                    `"${b.terminationReason || ''}"`,
-                    `"${b.refusalType || ''}"`,
-                    b.refusalDepth || '',
-                    b.gpsLat || '',
-                    b.gpsLon || '',
-                    `"${b.gpsAccuracy || ''}"`,
-                    `"${b.gpsElevation || ''}"`
-                ]);
-            });
-            csvRows.push([]);
-        
-            // 3. Surface Conditions Table
-            csvRows.push(["# SURFACE CONDITIONS"]);
-            csvRows.push(["Boring ID", "Thickness (in)", "Surface Type", "Remarks"]);
-            sortedBorings.forEach(b => {
+
+            borings.forEach((b) => {
+                csvRows.push([`=== BORING: ${b.id || 'N/A'} ===`]);
+                csvRows.push([`Rig: "${b.rig || ''}"`, `Driller: "${b.driller || ''}"`, `Field Logger: "${b.logger || ''}"`, `Total Depth: "${b.totalDepth || ''}"`, `Offset: "${b.offset || ''}"`, `Direction: "${b.direction || ''}"`, `Termination Reason: "${b.terminationReason || ''}"`, `Refusal Type: "${b.refusalType || ''}"`, `Refusal Depth: "${b.refusalDepth || ''}"`]);
+                csvRows.push([`GPS Lat: "${b.gpsLat || ''}"`, `GPS Lon: "${b.gpsLon || ''}"`, `GPS Accuracy: "${b.gpsAccuracy || ''}"`]);
+                csvRows.push([]);
+
+                csvRows.push(["-- SURFACE CONDITIONS --"]);
+                csvRows.push(["Thickness (in)", "Type", "Remarks"]);
                 (b.surfaceConditions || []).forEach(sc => {
-                    csvRows.push([
-                        `"${b.id || ''}"`,
-                        sc.thickness || '',
-                        `"${sc.type || ''}"`,
-                        `"${sc.remarks || ''}"`
-                    ]);
+                    csvRows.push([sc.thickness || "", `"${sc.type || ''}"`, `"${sc.remarks || ''}"`]);
                 });
-            });
-            csvRows.push([]);
-        
-            // 4. Soil Samples Table (Sorted by Boring ID then Depth)
-            csvRows.push(["# SOIL SAMPLES"]);
-            csvRows.push([
-                "Boring ID", "Depth (ft)", "Sample Type", "Length (in)",
-                "Blow 1", "Blow 2", "Blow 3", "N-Value", "Recovery (in)",
-                "USCS", "Gradation", "Major Modifier", "Minor Modifier",
-                "Moisture", "Density / Consistency", "Origin", "Shade", "Colors", "Mottling",
-                "Auto Description", "Remarks"
-            ]);
-            
-            let allSoilSamples = [];
-            sortedBorings.forEach(b => {
-                const sortedSamples = [...(b.samples || [])].sort((s1, s2) => 
-                    (parseFloat(s1.whole) + parseFloat(s1.dec)) - (parseFloat(s2.whole) + parseFloat(s2.dec))
-                );
-                sortedSamples.forEach(s => {
-                    const topDepth = parseFloat(s.whole) + parseFloat(s.dec);
+                csvRows.push([]);
+
+                csvRows.push(["-- SOIL SAMPLES (Structured) --"]);
+                csvRows.push([
+                    "Depth (ft)", "Sample Type", "Length (in)", "Blow 1", "Blow 2", "Blow 3", "N-Value", "Recovery (in)",
+                    "USCS", "Gradation", "Major Modifier", "Minor Modifier", "Moisture", "Density / Consistency", "Origin", "Shade", "Colors", "Mottling",
+                    "Auto Description", "Remarks"
+                ]);
+                (b.samples || []).forEach(s => {
+                    const topDepth = (parseFloat(s.whole) + parseFloat(s.dec)).toFixed(1);
                     const nVal = computeN(s.b2, s.b3, s.b1);
                     const calcDensity = computeConsistencyDensity(nVal, s.uscs);
                     const autoDesc = buildSoilDescription(s, { ...s, density: calcDensity });
-                    allSoilSamples.push({
-                        boringId: b.id || '',
-                        depth: topDepth.toFixed(1),
-                        sample: s,
-                        nVal: nVal,
-                        calcDensity: calcDensity,
-                        autoDesc: autoDesc
-                    });
+                    csvRows.push([
+                        topDepth, s.type || "", s.length || "", s.b1 || "", s.b2 || "", s.b3 || "", nVal, s.rec || "",
+                        `"${s.uscs || ''}"`, `"${s.gradation || ''}"`, `"${s.major || ''}"`, `"${s.minor || ''}"`, `"${s.moisture || ''}"`, `"${calcDensity || ''}"`, `"${s.origin || ''}"`, `"${s.shade || ''}"`, `"${formatColorsString(s.colors)}"`, `"${s.mottling || ''}"`,
+                        `"${autoDesc}"`, `"${s.remarks || ''}"`
+                    ]);
                 });
-            });
-        
-            allSoilSamples.forEach(item => {
-                const s = item.sample;
+                csvRows.push([]);
+
+                csvRows.push(["-- ROCK CORE RUNS (Structured) --"]);
                 csvRows.push([
-                    `"${item.boringId}"`,
-                    item.depth,
-                    s.type || "",
-                    s.length || "",
-                    s.b1 || "",
-                    s.b2 || "",
-                    s.b3 || "",
-                    item.nVal,
-                    s.rec || "",
-                    `"${s.uscs || ''}"`,
-                    `"${s.gradation || ''}"`,
-                    `"${s.major || ''}"`,
-                    `"${s.minor || ''}"`,
-                    `"${s.moisture || ''}"`,
-                    `"${item.calcDensity || ''}"`,
-                    `"${s.origin || ''}"`,
-                    `"${s.shade || ''}"`,
-                    `"${formatColorsString(s.colors)}"`,
-                    `"${s.mottling || ''}"`,
-                    `"${item.autoDesc}"`,
-                    `"${s.remarks || ''}"`
+                    "Top Depth (ft)", "Run Length (ft)", "Bottom Depth (ft)",
+                    "Rock Type", "Weathering", "Grain Size", "Grain Shape", "Strength",
+                    "Bedding / Foliation", "Joint Type", "Joint Spacing", "Joint Persistence",
+                    "Joint Surface Roughness", "Joint Geometry", "Joint Aperture", "Joint Filling",
+                    "Groundwater Condition", "Natural Fractures / ft", "Descriptors",
+                    "Recovery (ft)", "Recovery (in)", "RQD (ft)", "RQD (in)",
+                    "Auto Description", "Remarks"
                 ]);
-            });
-            csvRows.push([]);
-        
-            // 5. Rock Core Runs Table (Sorted by Boring ID then Top Depth)
-            csvRows.push(["# ROCK CORE RUNS"]);
-            csvRows.push([
-                "Boring ID", "Top Depth (ft)", "Run Length (ft)", "Bottom Depth (ft)",
-                "Rock Type", "Weathering", "Grain Size", "Grain Shape", "Strength",
-                "Bedding / Foliation", "Joint Type", "Joint Spacing", "Joint Persistence",
-                "Joint Surface Roughness", "Joint Geometry", "Joint Aperture", "Joint Filling",
-                "Groundwater Condition", "Natural Fractures / ft", "Descriptors",
-                "Recovery (ft)", "Recovery (in)", "RQD (ft)", "RQD (in)",
-                "Auto Description", "Remarks"
-            ]);
-        
-            let allRockSamples = [];
-            sortedBorings.forEach(b => {
-                const sortedRock = [...(b.rockSamples || [])].sort((r1, r2) =>
-                    (parseFloat(r1.whole) + parseFloat(r1.dec)) - (parseFloat(r2.whole) + parseFloat(r2.dec))
-                );
-                sortedRock.forEach(r => {
-                    const topDepth = parseFloat(r.whole) + parseFloat(r.dec);
+                (b.rockSamples || []).forEach(r => {
+                    const topDepth = (parseFloat(r.whole) + parseFloat(r.dec)).toFixed(1);
                     const runLen = parseFloat(r.runLength) || 0;
-                    const botDepth = (topDepth + runLen).toFixed(1);
+                    const botDepth = (parseFloat(topDepth) + runLen).toFixed(1);
                     const autoDesc = buildRockDescription(r);
                     const descList = r.descriptors ? r.descriptors.join(', ') : "";
                     const recInchesStr = formatInchesDisplayString(r.recWhole, r.recFrac);
                     const rqdInchesStr = formatInchesDisplayString(r.rqdWhole, r.rqdFrac);
-                    
-                    allRockSamples.push({
-                        boringId: b.id || '',
-                        topDepth: topDepth.toFixed(1),
-                        runLen: r.runLength || "",
-                        botDepth: botDepth,
-                        rock: r,
-                        autoDesc: autoDesc,
-                        descList: descList,
-                        recInchesStr: recInchesStr,
-                        rqdInchesStr: rqdInchesStr
-                    });
+                    const weatheringCsv = formatMultiRockField(r.weathering);
+                    const grainSizeCsv = formatMultiRockField(r.grainSize);
+                    const grainShapeCsv = formatMultiRockField(r.grainShape);
+                    const strengthCsv = formatMultiRockField(r.strength);
+                    const beddingCsv = formatMultiRockField(r.bedding);
+                    csvRows.push([
+                        topDepth, r.runLength || "", botDepth,
+                        `"${r.rockType || ''}"`, `"${weatheringCsv}"`, `"${grainSizeCsv}"`, `"${grainShapeCsv}"`, `"${strengthCsv}"`,
+                        `"${beddingCsv}"`, `"${r.jointType || ''}"`, `"${r.jointSpacing || ''}"`, `"${r.jointPersistence || ''}"`,
+                        `"${r.jointRoughness || ''}"`, `"${r.jointGeometry || ''}"`, `"${r.jointAperture || ''}"`, `"${r.jointFilling || ''}"`,
+                        `"${r.gwCondition || ''}"`, r.natFractures || "0", `"${descList}"`,
+                        r.recovery || "", `"${recInchesStr}"`, r.rqd || "", `"${rqdInchesStr}"`,
+                        `"${autoDesc}"`, `"${r.remarks || ''}"`
+                    ]);
                 });
+                csvRows.push([]); csvRows.push([]);
             });
-        
-            allRockSamples.forEach(item => {
-                const r = item.rock;
-                csvRows.push([
-                    `"${item.boringId}"`,
-                    item.topDepth,
-                    item.runLen,
-                    item.botDepth,
-                    `"${r.rockType || ''}"`,
-                    `"${formatMultiRockField(r.weathering)}"`,
-                    `"${formatMultiRockField(r.grainSize)}"`,
-                    `"${formatMultiRockField(r.grainShape)}"`,
-                    `"${formatMultiRockField(r.strength)}"`,
-                    `"${formatMultiRockField(r.bedding)}"`,
-                    `"${r.jointType || ''}"`,
-                    `"${r.jointSpacing || ''}"`,
-                    `"${r.jointPersistence || ''}"`,
-                    `"${r.jointRoughness || ''}"`,
-                    `"${r.jointGeometry || ''}"`,
-                    `"${r.jointAperture || ''}"`,
-                    `"${r.jointFilling || ''}"`,
-                    `"${r.gwCondition || ''}"`,
-                    r.natFractures || "0",
-                    `"${item.descList}"`,
-                    r.recovery || "",
-                    `"${item.recInchesStr}"`,
-                    r.rqd || "",
-                    `"${item.rqdInchesStr}"`,
-                    `"${item.autoDesc}"`,
-                    `"${r.remarks || ''}"`
-                ]);
-            });
-        
-            // Generate CSV Download
-            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
-            const encodedUri = encodeURI(csvContent);
-            const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", encodedUri);
-            dlAnchor.setAttribute("download", buildExportFilename("csv"));
-            document.body.appendChild(dlAnchor);
-            dlAnchor.click();
-            dlAnchor.remove();
-            showToast("Normalized dataframe-ready CSV export generated successfully.");
-        }
 
             const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
             const encodedUri = encodeURI(csvContent);
