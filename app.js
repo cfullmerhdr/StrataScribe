@@ -2682,89 +2682,182 @@
             reader.readAsText(file);
         }
 
-        function exportCSV() {
-            let csvRows = [];
-            csvRows.push(["StrataScribe v1.6.13 Structured Project CSV Export"]);
-            csvRows.push([`Client: "${projectMeta.client || ''}"`, `Project Name: "${projectMeta.name || ''}"`, `Project Number: "${projectMeta.number || ''}"`]);
-            csvRows.push([]);
+        function exportExcel() {
+            if (typeof XLSX === 'undefined') {
+                showToast("Excel export is unavailable. Check your internet connection and reload the app.");
+                return;
+            }
 
-            borings.forEach((b) => {
-                csvRows.push([`=== BORING: ${b.id || 'N/A'} ===`]);
-                csvRows.push([`Rig: "${b.rig || ''}"`, `Driller: "${b.driller || ''}"`, `Field Logger: "${b.logger || ''}"`, `Total Depth: "${b.totalDepth || ''}"`, `Offset: "${b.offset || ''}"`, `Direction: "${b.direction || ''}"`, `Termination Reason: "${b.terminationReason || ''}"`, `Refusal Type: "${b.refusalType || ''}"`, `Refusal Depth: "${b.refusalDepth || ''}"`]);
-                csvRows.push([`GPS Lat: "${b.gpsLat || ''}"`, `GPS Lon: "${b.gpsLon || ''}"`, `GPS Accuracy: "${b.gpsAccuracy || ''}"`]);
-                csvRows.push([]);
+            const toExcelNumber = (value) => {
+                if (value === "" || value === null || value === undefined) return "";
+                if (typeof value === "number") return Number.isFinite(value) ? value : "";
+                if (typeof value === "string" && value.trim() === "") return "";
+                const number = Number(value);
+                return Number.isFinite(number) ? number : value;
+            };
+            const getDepthFt = (whole, decimal) => {
+                const wholeFeet = toExcelNumber(whole);
+                const decimalFeet = toExcelNumber(decimal);
+                if (!Number.isFinite(wholeFeet) || !Number.isFinite(decimalFeet)) return "";
+                return Number((wholeFeet + decimalFeet).toFixed(1));
+            };
 
-                csvRows.push(["-- SURFACE CONDITIONS --"]);
-                csvRows.push(["Thickness (in)", "Type", "Remarks"]);
-                (b.surfaceConditions || []).forEach(sc => {
-                    csvRows.push([sc.thickness || "", `"${sc.type || ''}"`, `"${sc.remarks || ''}"`]);
+            const projectRows = [{
+                ProjectNumber: projectMeta.number || "",
+                ProjectName: projectMeta.name || "",
+                Client: projectMeta.client || "",
+                ExportDate: new Date().toISOString().slice(0, 10),
+                StrataScribeVersion: "v1.6.21"
+            }];
+            const boringRows = borings.map(b => ({
+                BoringID: b.id || "",
+                Rig: b.rig || "",
+                Driller: b.driller || "",
+                FieldLogger: b.logger || "",
+                TotalDepth: toExcelNumber(b.totalDepth),
+                Offset: toExcelNumber(b.offset),
+                Direction: b.direction || "",
+                TerminationReason: b.terminationReason || "",
+                RefusalType: b.refusalType || "",
+                RefusalDepth: toExcelNumber(b.refusalDepth),
+                Latitude: toExcelNumber(b.gpsLat),
+                Longitude: toExcelNumber(b.gpsLon),
+                GPSAccuracy: toExcelNumber(b.gpsAccuracy),
+                StartDate: b.startDate || "",
+                EndDate: b.endDate || "",
+                AdditionalNotes: b.additionalNotes || ""
+            }));
+
+            const surfaceConditionRows = [];
+            const soilSampleRows = [];
+            const rockRunRows = [];
+            borings.forEach(b => {
+                (b.surfaceConditions || []).forEach((sc, index) => {
+                    surfaceConditionRows.push({
+                        BoringID: b.id || "",
+                        Order: index + 1,
+                        ThicknessIn: toExcelNumber(sc.thickness),
+                        Type: sc.type || "",
+                        Remarks: sc.remarks || ""
+                    });
                 });
-                csvRows.push([]);
-
-                csvRows.push(["-- SOIL SAMPLES (Structured) --"]);
-                csvRows.push([
-                    "Depth (ft)", "Sample Type", "Length (in)", "Blow 1", "Blow 2", "Blow 3", "N-Value", "Recovery (in)",
-                    "USCS", "Gradation", "Major Modifier", "Minor Modifier", "Moisture", "Density / Consistency", "Origin", "Shade", "Colors", "Mottling",
-                    "Auto Description", "Remarks"
-                ]);
                 (b.samples || []).forEach(s => {
-                    const topDepth = (parseFloat(s.whole) + parseFloat(s.dec)).toFixed(1);
-                    const nVal = computeN(s.b2, s.b3, s.b1);
-                    const calcDensity = computeConsistencyDensity(nVal, s.uscs);
-                    const autoDesc = buildSoilDescription(s, { ...s, density: calcDensity });
-                    csvRows.push([
-                        topDepth, s.type || "", s.length || "", s.b1 || "", s.b2 || "", s.b3 || "", nVal, s.rec || "",
-                        `"${s.uscs || ''}"`, `"${s.gradation || ''}"`, `"${s.major || ''}"`, `"${s.minor || ''}"`, `"${s.moisture || ''}"`, `"${calcDensity || ''}"`, `"${s.origin || ''}"`, `"${s.shade || ''}"`, `"${formatColorsString(s.colors)}"`, `"${s.mottling || ''}"`,
-                        `"${autoDesc}"`, `"${s.remarks || ''}"`
-                    ]);
+                    const nValue = computeN(s.b2, s.b3, s.b1);
+                    const densityConsistency = computeConsistencyDensity(nValue, s.uscs);
+                    soilSampleRows.push({
+                        BoringID: b.id || "",
+                        DepthFt: getDepthFt(s.whole, s.dec),
+                        SampleType: s.type || "",
+                        SampleLengthIn: s.length || "",
+                        Blow1: toExcelNumber(s.b1),
+                        Blow2: toExcelNumber(s.b2),
+                        Blow3: toExcelNumber(s.b3),
+                        NValue: nValue,
+                        RecoveryIn: toExcelNumber(s.rec),
+                        USCS: s.uscs || "",
+                        Gradation: s.gradation || "",
+                        MajorModifier: s.major || "",
+                        MinorModifier: s.minor || "",
+                        Moisture: s.moisture || "",
+                        DensityConsistency: densityConsistency,
+                        Origin: s.origin || "",
+                        Shade: s.shade || "",
+                        Colors: formatColorsString(s.colors),
+                        Mottling: s.mottling || "",
+                        AutoDescription: buildSoilDescription(s, { ...s, density: densityConsistency }),
+                        Remarks: s.remarks || ""
+                    });
                 });
-                csvRows.push([]);
-
-                csvRows.push(["-- ROCK CORE RUNS (Structured) --"]);
-                csvRows.push([
-                    "Top Depth (ft)", "Run Length (ft)", "Bottom Depth (ft)",
-                    "Rock Type", "Weathering", "Grain Size", "Grain Shape", "Strength",
-                    "Bedding / Foliation", "Joint Type", "Joint Spacing", "Joint Persistence",
-                    "Joint Surface Roughness", "Joint Geometry", "Joint Aperture", "Joint Filling",
-                    "Groundwater Condition", "Natural Fractures / ft", "Descriptors",
-                    "Recovery (ft)", "Recovery (in)", "RQD (ft)", "RQD (in)",
-                    "Auto Description", "Remarks"
-                ]);
                 (b.rockSamples || []).forEach(r => {
-                    const topDepth = (parseFloat(r.whole) + parseFloat(r.dec)).toFixed(1);
-                    const runLen = parseFloat(r.runLength) || 0;
-                    const botDepth = (parseFloat(topDepth) + runLen).toFixed(1);
-                    const autoDesc = buildRockDescription(r);
-                    const descList = r.descriptors ? r.descriptors.join(', ') : "";
-                    const recInchesStr = formatInchesDisplayString(r.recWhole, r.recFrac);
-                    const rqdInchesStr = formatInchesDisplayString(r.rqdWhole, r.rqdFrac);
-                    const weatheringCsv = formatMultiRockField(r.weathering);
-                    const grainSizeCsv = formatMultiRockField(r.grainSize);
-                    const grainShapeCsv = formatMultiRockField(r.grainShape);
-                    const strengthCsv = formatMultiRockField(r.strength);
-                    const beddingCsv = formatMultiRockField(r.bedding);
-                    csvRows.push([
-                        topDepth, r.runLength || "", botDepth,
-                        `"${r.rockType || ''}"`, `"${weatheringCsv}"`, `"${grainSizeCsv}"`, `"${grainShapeCsv}"`, `"${strengthCsv}"`,
-                        `"${beddingCsv}"`, `"${r.jointType || ''}"`, `"${r.jointSpacing || ''}"`, `"${r.jointPersistence || ''}"`,
-                        `"${r.jointRoughness || ''}"`, `"${r.jointGeometry || ''}"`, `"${r.jointAperture || ''}"`, `"${r.jointFilling || ''}"`,
-                        `"${r.gwCondition || ''}"`, r.natFractures || "0", `"${descList}"`,
-                        r.recovery || "", `"${recInchesStr}"`, r.rqd || "", `"${rqdInchesStr}"`,
-                        `"${autoDesc}"`, `"${r.remarks || ''}"`
-                    ]);
+                    const topDepthFt = getDepthFt(r.whole, r.dec);
+                    const runLengthFt = toExcelNumber(r.runLength);
+                    const bottomDepthFt = Number.isFinite(topDepthFt) && Number.isFinite(runLengthFt)
+                        ? Number((topDepthFt + runLengthFt).toFixed(1))
+                        : "";
+                    rockRunRows.push({
+                        BoringID: b.id || "",
+                        TopDepthFt: topDepthFt,
+                        BottomDepthFt: bottomDepthFt,
+                        RunLengthFt: runLengthFt,
+                        RockType: r.rockType || "",
+                        Weathering: formatMultiRockField(r.weathering),
+                        GrainSize: formatMultiRockField(r.grainSize),
+                        GrainShape: formatMultiRockField(r.grainShape),
+                        Strength: formatMultiRockField(r.strength),
+                        Bedding: formatMultiRockField(r.bedding),
+                        JointType: r.jointType || "",
+                        JointSpacing: r.jointSpacing || "",
+                        JointPersistence: r.jointPersistence || "",
+                        JointRoughness: r.jointRoughness || "",
+                        JointGeometry: r.jointGeometry || "",
+                        JointAperture: r.jointAperture || "",
+                        JointFilling: r.jointFilling || "",
+                        GroundwaterCondition: r.gwCondition || "",
+                        NaturalFracturesPerFt: toExcelNumber(r.natFractures),
+                        Descriptors: r.descriptors ? r.descriptors.join(", ") : "",
+                        RecoveryFt: toExcelNumber(r.recovery),
+                        RecoveryIn: formatInchesDisplayString(r.recWhole, r.recFrac),
+                        RQDFt: toExcelNumber(r.rqd),
+                        RQDIn: formatInchesDisplayString(r.rqdWhole, r.rqdFrac),
+                        AutoDescription: buildRockDescription(r),
+                        Remarks: r.remarks || ""
+                    });
                 });
-                csvRows.push([]); csvRows.push([]);
             });
 
-            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
-            const encodedUri = encodeURI(csvContent);
-            const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", encodedUri);
-            dlAnchor.setAttribute("download", buildExportFilename("csv"));
-            document.body.appendChild(dlAnchor);
-            dlAnchor.click();
-            dlAnchor.remove();
-            showToast("Structured CSV export generated successfully.");
+            const byBoringAndDepth = (depthKey) => (a, b) => {
+                const boringOrder = compareBoringIds(a.BoringID, b.BoringID);
+                if (boringOrder !== 0) return boringOrder;
+                const aDepth = typeof a[depthKey] === "number" ? a[depthKey] : Number.POSITIVE_INFINITY;
+                const bDepth = typeof b[depthKey] === "number" ? b[depthKey] : Number.POSITIVE_INFINITY;
+                return aDepth - bDepth;
+            };
+            soilSampleRows.sort(byBoringAndDepth("DepthFt"));
+            rockRunRows.sort(byBoringAndDepth("TopDepthFt"));
+
+            const sheets = [
+                {
+                    name: "Project",
+                    headers: ["ProjectNumber", "ProjectName", "Client", "ExportDate", "StrataScribeVersion"],
+                    rows: projectRows
+                },
+                {
+                    name: "Borings",
+                    headers: ["BoringID", "Rig", "Driller", "FieldLogger", "TotalDepth", "Offset", "Direction", "TerminationReason", "RefusalType", "RefusalDepth", "Latitude", "Longitude", "GPSAccuracy", "StartDate", "EndDate", "AdditionalNotes"],
+                    rows: boringRows
+                },
+                {
+                    name: "SurfaceConditions",
+                    headers: ["BoringID", "Order", "ThicknessIn", "Type", "Remarks"],
+                    rows: surfaceConditionRows
+                },
+                {
+                    name: "SoilSamples",
+                    headers: ["BoringID", "DepthFt", "SampleType", "SampleLengthIn", "Blow1", "Blow2", "Blow3", "NValue", "RecoveryIn", "USCS", "Gradation", "MajorModifier", "MinorModifier", "Moisture", "DensityConsistency", "Origin", "Shade", "Colors", "Mottling", "AutoDescription", "Remarks"],
+                    rows: soilSampleRows
+                },
+                {
+                    name: "RockRuns",
+                    headers: ["BoringID", "TopDepthFt", "BottomDepthFt", "RunLengthFt", "RockType", "Weathering", "GrainSize", "GrainShape", "Strength", "Bedding", "JointType", "JointSpacing", "JointPersistence", "JointRoughness", "JointGeometry", "JointAperture", "JointFilling", "GroundwaterCondition", "NaturalFracturesPerFt", "Descriptors", "RecoveryFt", "RecoveryIn", "RQDFt", "RQDIn", "AutoDescription", "Remarks"],
+                    rows: rockRunRows
+                }
+            ];
+            const wb = XLSX.utils.book_new();
+            sheets.forEach(({ name, headers, rows }) => {
+                const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+                if (rows.length === 0) XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: "A1" });
+                worksheet['!cols'] = headers.map(header => {
+                    const maxLength = rows.reduce((max, row) => {
+                        const value = row[header];
+                        return Math.max(max, value === null || value === undefined ? 0 : String(value).length);
+                    }, header.length);
+                    return { wch: Math.min(Math.max(maxLength + 2, 10), 40) };
+                });
+                XLSX.utils.book_append_sheet(wb, worksheet, name);
+            });
+
+            XLSX.writeFile(wb, buildExportFilename("xlsx"));
+            showToast("Excel workbook exported successfully.");
         }
 
         // --- Lifecycle & Init ---
