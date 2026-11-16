@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>StrataScribe v1.6.29 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+=======
+    <title>StrataScribe v1.6.30 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+>>>>>>> 0c85c11 (Improve summary figures and sample filtering)
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -101,7 +105,11 @@
                 >
 
                 <div>
+<<<<<<< HEAD
                     <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.29</span></h1>
+=======
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.30</span></h1>
+>>>>>>> 0c85c11 (Improve summary figures and sample filtering)
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -409,7 +417,7 @@
                                             <option value="Next Day">Next Day</option>
                                             <option value="Cave In">Cave In</option>
                                             <option value="After Coring">After Coring</option>
-                                            <option value="After Mud Rotary">After Mud Rotary</option>
+                                            <option value="After Rotary Wash">After Rotary Wash</option>
                                             <option value="Other">Other...</option>
                                         </select>
                                     </div>
@@ -436,7 +444,7 @@
                                             <option value="Next Day">Next Day</option>
                                             <option value="Cave In">Cave In</option>
                                             <option value="After Coring">After Coring</option>
-                                            <option value="After Mud Rotary">After Mud Rotary</option>
+                                            <option value="After Rotary Wash">After Rotary Wash</option>
                                             <option value="Other">Other...</option>
                                         </select>
                                     </div>
@@ -463,7 +471,7 @@
                                             <option value="Next Day">Next Day</option>
                                             <option value="Cave In">Cave In</option>
                                             <option value="After Coring">After Coring</option>
-                                            <option value="After Mud Rotary">After Mud Rotary</option>
+                                            <option value="After Rotary Wash">After Rotary Wash</option>
                                             <option value="Other">Other...</option>
                                         </select>
                                     </div>
@@ -621,7 +629,11 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
+<<<<<<< HEAD
         Version: v1.6.29 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.29
+=======
+        Version: v1.6.30 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.30
+>>>>>>> 0c85c11 (Improve summary figures and sample filtering)
     </footer>
 
     <!-- Soil and Rock Remarks Editor -->
@@ -710,90 +722,34 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-slate-950/40 text-xs">
-                
-                <!-- TOP GRID: TABLES -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
-                        <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
-                            <i data-lucide="activity" class="w-4 h-4"></i>
-                            <span>Drilling Footage Summary</span>
-                        </h4>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
-                                        <th class="py-2.5 px-3">Boring ID</th>
-                                        <th class="py-2.5 px-3 text-right">Depth to Rock (ft)</th>
-                                        <th class="py-2.5 px-3 text-right">Soil Footage (ft)</th>
-                                        <th class="py-2.5 px-3 text-right">Rock Footage (ft)</th>
-                                        <th class="py-2.5 px-3 text-right">Total Depth (ft)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="summaryDrillingTbody" class="divide-y divide-slate-200 dark:divide-slate-800">
-                                    <!-- Dynamic rows -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
 
-                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
-                        <h4 class="font-bold text-xs uppercase tracking-wider text-sky-500 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
-                            <i data-lucide="droplet" class="w-4 h-4"></i>
-                            <span>Groundwater Statistics Summary</span>
-                        </h4>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Min Water Depth</span>
-                                <span id="gwStatMinDepth" class="font-extrabold text-sm text-sky-500">--</span>
-                            </div>
-                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Max Water Depth</span>
-                                <span id="gwStatMaxDepth" class="font-extrabold text-sm text-sky-500">--</span>
-                            </div>
-                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Borings w/ Water</span>
-                                <span id="gwStatWithWater" class="font-extrabold text-sm text-emerald-500">--</span>
-                            </div>
-                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Borings w/o Water</span>
-                                <span id="gwStatWithoutWater" class="font-extrabold text-sm text-slate-400">--</span>
-                            </div>
-                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Highest Water Elev</span>
-                                <span id="gwStatHighElev" class="font-extrabold text-sm text-sky-500">N/A</span>
-                            </div>
-                            <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Lowest Water Elev</span>
-                                <span id="gwStatLowElev" class="font-extrabold text-sm text-sky-500">N/A</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MIDDLE GRID: PIE CHARTS -->
+                <!-- PROJECT FIGURES -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
                         <h4 class="font-bold text-xs uppercase tracking-wider text-indigo-400 border-b border-slate-100 dark:border-slate-800 pb-2 w-full text-left mb-3 flex items-center space-x-2">
                             <i data-lucide="pie-chart" class="w-4 h-4"></i>
-                            <span>Soil Classification Footage Distribution (USCS)</span>
+                            <span>Soil Classification Footage Distribution by USCS (ft)</span>
                         </h4>
-                        <div class="w-full h-64 relative flex justify-center">
-                            <canvas id="uscsPieChart"></canvas>
+                        <p class="w-full text-[10px] text-slate-500 dark:text-slate-400 mb-2">% of total soil footage.</p>
+                        <div class="w-full grid grid-cols-1 md:grid-cols-[minmax(0,1.3fr)_minmax(10rem,1fr)] gap-3 items-center">
+                            <div class="w-full h-64 relative"><canvas id="uscsPieChart"></canvas></div>
+                            <div id="uscsPieLegend" class="w-full max-h-64 overflow-y-auto space-y-1 pr-1" aria-label="USCS footage chart legend"></div>
                         </div>
                     </div>
 
                     <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
                         <h4 class="font-bold text-xs uppercase tracking-wider text-amber-500 border-b border-slate-100 dark:border-slate-800 pb-2 w-full text-left mb-3 flex items-center space-x-2">
                             <i data-lucide="pie-chart" class="w-4 h-4"></i>
-                            <span>Soil vs. Rock Drilled Footage</span>
+                            <span>Soil vs. Rock Drilled Footage (ft)</span>
                         </h4>
-                        <div class="w-full h-64 relative flex justify-center">
-                            <canvas id="soilRockPieChart"></canvas>
+                        <p class="w-full text-[10px] text-slate-500 dark:text-slate-400 mb-2">% of total drilled footage.</p>
+                        <div class="w-full grid grid-cols-1 md:grid-cols-[minmax(0,1.3fr)_minmax(10rem,1fr)] gap-3 items-center">
+                            <div class="w-full h-64 relative"><canvas id="soilRockPieChart"></canvas></div>
+                            <div id="soilRockPieLegend" class="w-full max-h-64 overflow-y-auto space-y-1 pr-1" aria-label="Soil and rock footage chart legend"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- BOTTOM GRID: PERCENTAGE HISTOGRAMS -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
                         <h4 class="font-bold text-xs uppercase tracking-wider text-emerald-500 border-b border-slate-100 dark:border-slate-800 pb-2 w-full text-left mb-3 flex items-center space-x-2">
@@ -813,6 +769,111 @@
                         <div class="w-full h-64 relative flex justify-center">
                             <canvas id="rqdHistogram"></canvas>
                         </div>
+                    </div>
+                </div>
+
+                <!-- DRILLING FOOTAGE SUMMARY -->
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
+                        <i data-lucide="activity" class="w-4 h-4"></i>
+                        <span>Drilling Footage Summary</span>
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
+                                    <th class="py-2.5 px-3">Boring ID</th>
+                                    <th class="py-2.5 px-3 text-right">Depth to Rock (ft)</th>
+                                    <th class="py-2.5 px-3 text-right">Soil Footage (ft)</th>
+                                    <th class="py-2.5 px-3 text-right">Rock Footage (ft)</th>
+                                    <th class="py-2.5 px-3 text-right">Total Depth (ft)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryDrillingTbody" class="divide-y divide-slate-200 dark:divide-slate-800">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SAMPLE SUMMARY -->
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
+                    <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-blue-500 flex items-center space-x-2">
+                            <i data-lucide="list-checks" class="w-4 h-4"></i>
+                            <span>Sample Summary</span>
+                        </h4>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <label for="sampleSummaryTypeFilter" class="flex items-center gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                Sample Type
+                                <select id="sampleSummaryTypeFilter" onchange="filterSampleSummaryByType(this.value)" class="table-select w-auto min-w-[150px] text-xs">
+                                    <option value="ALL">All Types</option>
+                                    <option value="SS">SS</option>
+                                    <option value="ST">ST - Shelby Tube</option>
+                                    <option value="BULK">BULK</option>
+                                    <option value="GRAB">GRAB</option>
+                                    <option value="CUTTINGS">CUTTINGS</option>
+                                </select>
+                            </label>
+                            <span id="sampleSummaryCounts" class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Project totals: Bulk 0 | Shelby tubes 0</span>
+                            <span id="sampleSummaryVisibleCount" class="text-[10px] text-slate-500 dark:text-slate-400">Showing 0 of 0</span>
+                        </div>
+                    </div>
+                    <div class="overflow-auto max-h-[32rem]">
+                        <table class="w-full min-w-[760px] text-left border-collapse whitespace-nowrap">
+                            <thead class="sticky top-0 z-10">
+                                <tr class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
+                                    <th data-sample-sort="boring" class="py-2 px-2" aria-sort="ascending"><button type="button" onclick="sortSampleSummary('boring')" class="hover:text-blue-500">Boring <span data-sort-indicator>^</span></button></th>
+                                    <th data-sample-sort="depth" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('depth')" class="hover:text-blue-500">Top Depth (ft) <span data-sort-indicator>-</span></button></th>
+                                    <th data-sample-sort="uscs" class="py-2 px-2"><button type="button" onclick="sortSampleSummary('uscs')" class="hover:text-blue-500">USCS <span data-sort-indicator>-</span></button></th>
+                                    <th data-sample-sort="type" class="py-2 px-2"><button type="button" onclick="sortSampleSummary('type')" class="hover:text-blue-500">Sample Type <span data-sort-indicator>-</span></button></th>
+                                    <th data-sample-sort="length" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('length')" class="hover:text-blue-500">Sample Length (in) <span data-sort-indicator>-</span></button></th>
+                                    <th data-sample-sort="recovery" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('recovery')" class="hover:text-blue-500">Recovery (in) <span data-sort-indicator>-</span></button></th>
+                                    <th data-sample-sort="recoveryPercent" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('recoveryPercent')" class="hover:text-blue-500">Recovery (%) <span data-sort-indicator>-</span></button></th>
+                                    <th data-sample-sort="nValue" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('nValue')" class="hover:text-blue-500">N-Value <span data-sort-indicator>-</span></button></th>
+                                </tr>
+                            </thead>
+                            <tbody id="summarySamplesTbody" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400">Recovery is recovered length divided by sample length. Missing values are not treated as zero.</p>
+                </div>
+
+                <!-- GROUNDWATER SUMMARY -->
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
+                    <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <div>
+                            <h4 class="font-bold text-xs uppercase tracking-wider text-sky-500 flex items-center space-x-2">
+                                <i data-lucide="droplet" class="w-4 h-4"></i>
+                                <span>Groundwater Depth by Observation Type</span>
+                            </h4>
+                            <p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Depth below ground surface (ft); each valid reading is weighted equally. Cave In observations are excluded.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                <span class="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase block">Borings with Water</span>
+                                <span id="gwStatWithWater" class="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">0</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span class="text-[9px] font-bold text-slate-500 uppercase block">Borings without Water</span>
+                                <span id="gwStatWithoutWater" class="font-extrabold text-sm text-slate-500">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[600px] text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
+                                    <th class="py-2 px-3">Observation Type</th>
+                                    <th class="py-2 px-3 text-right">Min Depth (ft)</th>
+                                    <th class="py-2 px-3 text-right">Max Depth (ft)</th>
+                                    <th class="py-2 px-3 text-right">Average Depth (ft)</th>
+                                    <th class="py-2 px-3 text-right">Readings</th>
+                                    <th class="py-2 px-3 text-right">Borings</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gwCategorySummaryTbody" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+                        </table>
                     </div>
                 </div>
 
