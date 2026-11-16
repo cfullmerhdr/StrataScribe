@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StrataScribe v1.6.25 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>StrataScribe v1.6.27 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -101,7 +101,7 @@
                 >
 
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.25</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.27</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -621,7 +621,7 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
-        Version: v1.6.25 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.25
+        Version: v1.6.27 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.27
     </footer>
 
     <!-- Project Boring Profiles Modal -->
@@ -632,7 +632,7 @@
                     <i data-lucide="folder-kanban" class="w-5 h-5 text-amber-400"></i>
                     <div>
                         <h3 class="font-bold text-sm">Project Boring Profiles</h3>
-                        <p class="text-[11px] text-slate-400">Multi-Boring Profile Comparison</p>
+                        <p class="text-[11px] text-slate-400">Shared-Scale Cross-Section</p>
                     </div>
                 </div>
                 <button onclick="closeProjectBoringProfilesModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition shadow">
@@ -641,7 +641,7 @@
             </div>
             
             <div class="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-50 dark:bg-slate-950/40">
-                <div class="w-full lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col space-y-3 overflow-y-auto flex-shrink-0">
+                <div class="w-full lg:w-52 max-h-40 lg:max-h-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:border-b-0 lg:border-r p-2 flex flex-col space-y-2 overflow-y-auto flex-shrink-0">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                         <span class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Select Borings</span>
                         <div class="space-x-1">
@@ -650,13 +650,13 @@
                             <button onclick="profilesSelectAll(false)" class="text-[10px] font-bold text-slate-500 hover:underline">None</button>
                         </div>
                     </div>
-                    <div id="profilesBoringCheckboxes" class="space-y-2">
+                    <div id="profilesBoringCheckboxes" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1">
                         <!-- Populated dynamically -->
                     </div>
                 </div>
 
-                <div class="flex-1 p-4 overflow-x-auto overflow-y-auto flex items-start space-x-6 bg-slate-100 dark:bg-slate-950/60" id="profilesCanvasContainer">
-                    <!-- Rendered side-by-side profiles -->
+                <div class="flex-1 min-w-0 p-4 overflow-auto bg-slate-100 dark:bg-slate-950/60" id="profilesCanvasContainer">
+                    <!-- Rendered shared-scale boring cross-section -->
                 </div>
             </div>
 
