@@ -97,6 +97,7 @@
                         projectMeta = parsed.projectMeta || projectMeta;
                         borings = parsed.borings || borings;
                         activeBoringIndex = parsed.activeBoringIndex || 0;
+                        migrateLegacyGroundwaterObservationTypes();
                         return true;
                     }
                 }
@@ -111,6 +112,7 @@
                     projectMeta = saved.projectMeta || projectMeta;
                     borings = saved.borings || borings;
                     activeBoringIndex = saved.activeBoringIndex || 0;
+                    migrateLegacyGroundwaterObservationTypes();
                     return true;
                 }
             } catch (e) {
@@ -196,7 +198,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.28",
+                version: "v1.6.30",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -506,21 +508,49 @@
             return parts.length > 0 ? parts.join(', ') : "CLICK TO EDIT PROPERTIES...";
         }
 
+        function normalizeGroundwaterObservationType(value) {
+            const type = String(value || '').trim();
+            const types = {
+                'atd': 'ATD',
+                'ad': 'AD',
+                'next day': 'Next Day',
+                'cave in': 'Cave In',
+                'after coring': 'After Coring',
+                'after mud rotary': 'After Rotary Wash',
+                'after rotary wash': 'After Rotary Wash',
+                'n/e': 'N/E',
+                'n/a': 'N/A',
+                'other': 'Other'
+            };
+            return types[type.toLowerCase()] || type;
+        }
+
+        function migrateLegacyGroundwaterObservationTypes() {
+            borings.forEach(boring => {
+                (boring.gw || []).forEach(observation => {
+                    if (observation && String(observation.time || '').trim().toLowerCase() === 'after mud rotary') {
+                        observation.time = 'After Rotary Wash';
+                    }
+                });
+            });
+        }
+
         function getGWProfileLabel(gw) {
             if (!gw || !gw.time) return "";
-            if (gw.time === 'Other') return gw.customTime ? gw.customTime.toUpperCase() : 'OTHER';
+            const observationType = normalizeGroundwaterObservationType(gw.time);
+            if (observationType === 'Other') return gw.customTime ? gw.customTime.toUpperCase() : 'OTHER';
             const labels = {
                 "ATD": "GW: ATD",
                 "AD": "GW: AD",
                 "Next Day": "GW: ND",
                 "Cave In": "GW: CI",
                 "After Coring": "GW: AC",
-                "After Mud Rotary": "GW: AMR",
+                "After Rotary Wash": "GW: ARW",
                 "N/E": "GW: NE",
                 "N/A": "GW: NA",
                 "Other": "GW: NOTE"
             };
-            return labels[gw.time] || "GW";
+            return labels[observationType] || "GW";
         }
 
         function syncGPSLockUI() {
@@ -850,7 +880,7 @@
             for (let i = 0; i < 3; i++) {
                 const gw = cur.gw && cur.gw[i] ? cur.gw[i] : { depth: "", time: "N/A", customTime: "" };
                 document.getElementById(`gwDepth${i+1}`).value = gw.depth || "";
-                document.getElementById(`gwTime${i+1}`).value = gw.time || "N/A";
+                document.getElementById(`gwTime${i+1}`).value = normalizeGroundwaterObservationType(gw.time || "N/A");
                 const customWrap = document.getElementById(`gwCustomWrap${i+1}`);
                 const customInput = document.getElementById(`gwCustom${i+1}`);
                 customInput.value = gw.customTime || "";
@@ -2635,6 +2665,8 @@
         let soilRockChartInstance = null;
         let recoveryHistInstance = null;
         let rqdHistInstance = null;
+        let sampleSummarySort = { key: 'boring', direction: 1 };
+        let sampleSummaryTypeFilter = 'ALL';
 
         function openSummaryFiguresModal() {
             const modal = document.getElementById('summaryFiguresModal');
@@ -2657,14 +2689,6 @@
             const uscsFootageMap = {};
             let recoveryPercentages = [];
             let rqdPercentages = [];
-
-            let minWaterDepth = 9999;
-            let maxWaterDepth = -1;
-            let highestWaterElev = -999999;
-            let lowestWaterElev = 999999;
-            let boringsWithWaterCount = 0;
-            let boringsWithoutWaterCount = 0;
-            let hasWaterElevationData = false;
 
             borings.forEach(b => {
                 const totalDepth = parseFloat(b.totalDepth) || 0.0;
@@ -2720,27 +2744,6 @@
                 } else if (soilFootage > 0) {
                     uscsFootageMap['UNCLASSIFIED'] = (uscsFootageMap['UNCLASSIFIED'] || 0) + soilFootage;
                 }
-
-                let hasWaterInBoring = false;
-                const groundElev = parseFloat(b.gpsElevation) || null;
-                if (b.gw && b.gw.length > 0) {
-                    b.gw.forEach(gw => {
-                        const d = parseFloat(gw.depth);
-                        if (!isNaN(d) && gw.time && gw.time !== 'N/A' && gw.time !== 'N/E') {
-                            hasWaterInBoring = true;
-                            if (d < minWaterDepth) minWaterDepth = d;
-                            if (d > maxWaterDepth) maxWaterDepth = d;
-                            if (groundElev !== null && !isNaN(groundElev)) {
-                                const waterElev = groundElev - d;
-                                hasWaterElevationData = true;
-                                if (waterElev > highestWaterElev) highestWaterElev = waterElev;
-                                if (waterElev < lowestWaterElev) lowestWaterElev = waterElev;
-                            }
-                        }
-                    });
-                }
-                if (hasWaterInBoring) boringsWithWaterCount++;
-                else boringsWithoutWaterCount++;
             });
 
             document.getElementById('summaryDrillingTbody').innerHTML = drillingTableHtml + `
@@ -2753,46 +2756,325 @@
                 </tr>
             `;
 
-            document.getElementById('gwStatMinDepth').textContent = (minWaterDepth !== 9999) ? `${minWaterDepth.toFixed(1)} ft` : "N/E";
-            document.getElementById('gwStatMaxDepth').textContent = (maxWaterDepth !== -1) ? `${maxWaterDepth.toFixed(1)} ft` : "N/E";
-            document.getElementById('gwStatWithWater').textContent = boringsWithWaterCount;
-            document.getElementById('gwStatWithoutWater').textContent = boringsWithoutWaterCount;
-            document.getElementById('gwStatHighElev').textContent = hasWaterElevationData ? `${highestWaterElev.toFixed(1)} ft` : "N/A";
-            document.getElementById('gwStatLowElev').textContent = hasWaterElevationData ? `${lowestWaterElev.toFixed(1)} ft` : "N/A";
-
+            renderGroundwaterSummary();
+            renderSampleSummaryTable();
             renderUSCSPieChart(uscsFootageMap);
             renderSoilRockPieChart(totalSoilFootageAll, totalRockFootageAll);
             renderPercentageHistogram('recoveryHistogram', recoveryPercentages, 'Recovery Quality (%)', '#10b981');
             renderPercentageHistogram('rqdHistogram', rqdPercentages, 'RQD Quality (%)', '#3b82f6');
         }
 
+        function renderGroundwaterSummary() {
+            const categories = ['ATD', 'AD', 'Next Day', 'After Coring', 'After Rotary Wash', 'Other'];
+            const categoryStats = new Map(categories.map(category => [category, { depths: [], borings: new Set() }]));
+            let boringsWithWater = 0;
+            let boringsWithoutWater = 0;
+
+            borings.forEach((boring, boringIndex) => {
+                let hasWater = false;
+                (boring.gw || []).forEach(observation => {
+                    if (!observation) return;
+                    const rawDepth = String(observation.depth == null ? '' : observation.depth).trim();
+                    if (rawDepth === '') return;
+                    const depth = Number(rawDepth);
+                    if (!Number.isFinite(depth)) return;
+
+                    const observationType = normalizeGroundwaterObservationType(observation.time);
+                    if (observationType.toLowerCase() === 'cave in') return;
+                    hasWater = true;
+
+                    const stats = categoryStats.get(observationType);
+                    if (stats) {
+                        stats.depths.push(depth);
+                        stats.borings.add(boringIndex);
+                    }
+                });
+
+                if (hasWater) boringsWithWater++;
+                else boringsWithoutWater++;
+            });
+
+            document.getElementById('gwStatWithWater').textContent = boringsWithWater;
+            document.getElementById('gwStatWithoutWater').textContent = boringsWithoutWater;
+
+            const tbody = document.getElementById('gwCategorySummaryTbody');
+            tbody.replaceChildren();
+            categories.forEach(category => {
+                const stats = categoryStats.get(category);
+                const depths = stats.depths;
+                const minDepth = depths.reduce((minimum, depth) => Math.min(minimum, depth), Infinity);
+                const maxDepth = depths.reduce((maximum, depth) => Math.max(maximum, depth), -Infinity);
+                const values = depths.length
+                    ? [
+                        category,
+                        `${minDepth.toFixed(1)} ft`,
+                        `${maxDepth.toFixed(1)} ft`,
+                        `${(depths.reduce((sum, depth) => sum + depth, 0) / depths.length).toFixed(1)} ft`,
+                        String(depths.length),
+                        String(stats.borings.size)
+                    ]
+                    : [category, '--', '--', '--', '0', '0'];
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40';
+                values.forEach((value, index) => {
+                    const cell = document.createElement('td');
+                    cell.className = index === 0
+                        ? 'py-2 px-3 font-semibold text-sky-700 dark:text-sky-300'
+                        : 'py-2 px-3 text-right';
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
+                tbody.appendChild(row);
+            });
+        }
+
+        function getSummaryNumber(value) {
+            const text = String(value == null ? '' : value).trim();
+            if (text === '') return null;
+            const number = Number.parseFloat(text);
+            return Number.isFinite(number) ? number : null;
+        }
+
+        function compareNullableNumbers(a, b) {
+            if (a == null) return b == null ? 0 : 1;
+            if (b == null) return -1;
+            return a - b;
+        }
+
+        function compareSampleSummaryValues(a, b, key) {
+            const aValue = a.sort[key];
+            const bValue = b.sort[key];
+            if (aValue == null) return bValue == null ? 0 : 1;
+            if (bValue == null) return -1;
+
+            let comparison;
+            if (typeof aValue === 'number' && typeof bValue === 'number') comparison = aValue - bValue;
+            else comparison = String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
+            return comparison * sampleSummarySort.direction;
+        }
+
+        function renderSampleSummaryTable() {
+            const rows = [];
+            let bulkCount = 0;
+            let shelbyCount = 0;
+            let sequence = 0;
+
+            borings.forEach(boring => {
+                (boring.samples || []).forEach(sample => {
+                    const sampleType = String(sample.type || '').trim().toUpperCase();
+                    if (sampleType === 'BULK') bulkCount++;
+                    if (sampleType === 'ST') shelbyCount++;
+
+                    const depth = getRemarksDepth(sample.whole, sample.dec);
+                    const sampleLength = getSummaryNumber(sample.length);
+                    const recovery = getSummaryNumber(sample.rec);
+                    const nValue = computeN(sample.b2, sample.b3, sample.b1);
+                    const recoveryPercent = sampleLength > 0 && recovery != null ? recovery / sampleLength * 100 : null;
+                    const boringId = String(boring.id || 'N/A');
+                    const uscs = String(sample.uscs || '').trim().toUpperCase();
+
+                    rows.push({
+                        sequence: sequence++,
+                        boringId,
+                        values: [
+                            boringId,
+                            depth == null ? '--' : `${depth.toFixed(1)} ft`,
+                            uscs || '--',
+                            sampleType || '--',
+                            sampleLength == null ? '--' : `${sampleLength.toFixed(1)} in`,
+                            recovery == null ? '--' : `${recovery.toFixed(1)} in`,
+                            recoveryPercent == null ? '--' : `${recoveryPercent.toFixed(1)}%`,
+                            nValue === '' ? '--' : String(nValue)
+                        ],
+                        sort: {
+                            boring: boringId,
+                            depth,
+                            uscs,
+                            type: sampleType,
+                            length: sampleLength,
+                            recovery,
+                            recoveryPercent,
+                            nValue: nValue === 'Refusal' ? Number.POSITIVE_INFINITY : getSummaryNumber(nValue)
+                        }
+                    });
+                });
+            });
+
+            const totalSampleCount = rows.length;
+            const visibleRows = sampleSummaryTypeFilter === 'ALL'
+                ? rows
+                : rows.filter(item => item.sort.type === sampleSummaryTypeFilter);
+
+            visibleRows.sort((a, b) => {
+                const primary = compareSampleSummaryValues(a, b, sampleSummarySort.key);
+                if (primary) return primary;
+                const boringComparison = compareBoringIds(a.boringId, b.boringId);
+                if (boringComparison) return boringComparison;
+                return compareNullableNumbers(a.sort.depth, b.sort.depth) || a.sequence - b.sequence;
+            });
+
+            document.getElementById('sampleSummaryCounts').textContent = `Project totals: Bulk ${bulkCount} | Shelby tubes ${shelbyCount}`;
+            document.getElementById('sampleSummaryVisibleCount').textContent = `Showing ${visibleRows.length} of ${totalSampleCount} samples`;
+            const filter = document.getElementById('sampleSummaryTypeFilter');
+            if (filter) filter.value = sampleSummaryTypeFilter;
+            const tbody = document.getElementById('summarySamplesTbody');
+            tbody.replaceChildren();
+            if (rows.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 8;
+                cell.className = 'py-4 px-2 text-center text-slate-500';
+                cell.textContent = 'No soil samples recorded.';
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            } else if (visibleRows.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 8;
+                cell.className = 'py-4 px-2 text-center text-slate-500';
+                cell.textContent = 'No samples match this filter.';
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            } else {
+                visibleRows.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40';
+                    item.values.forEach((value, index) => {
+                        const cell = document.createElement('td');
+                        cell.className = index === 0 || index === 2 || index === 3
+                            ? 'py-2 px-2 font-semibold'
+                            : 'py-2 px-2 text-right';
+                        cell.textContent = value;
+                        row.appendChild(cell);
+                    });
+                    tbody.appendChild(row);
+                });
+            }
+
+            document.querySelectorAll('th[data-sample-sort]').forEach(header => {
+                const isSorted = header.dataset.sampleSort === sampleSummarySort.key;
+                header.setAttribute('aria-sort', isSorted
+                    ? (sampleSummarySort.direction === 1 ? 'ascending' : 'descending')
+                    : 'none');
+                const indicator = header.querySelector('[data-sort-indicator]');
+                if (indicator) indicator.textContent = isSorted
+                    ? (sampleSummarySort.direction === 1 ? '^' : 'v')
+                    : '-';
+            });
+        }
+
+        function filterSampleSummaryByType(sampleType) {
+            sampleSummaryTypeFilter = sampleType || 'ALL';
+            renderSampleSummaryTable();
+        }
+
+        function sortSampleSummary(key) {
+            if (sampleSummarySort.key === key) sampleSummarySort.direction *= -1;
+            else sampleSummarySort = { key, direction: 1 };
+            renderSampleSummaryTable();
+        }
+
+        function formatPieFootage(value) {
+            return Number(value.toPrecision(4)).toString();
+        }
+
+        function formatPiePercentage(value, total) {
+            const percentage = total > 0 ? value / total * 100 : 0;
+            return `${Number(percentage.toPrecision(3)).toString()}%`;
+        }
+
+        function renderFootagePieLegend(containerId, items, total, colors) {
+            const container = document.getElementById(containerId);
+            container.replaceChildren();
+            const legendItems = items.length ? items : [{ label: 'No Soil Data', value: 0 }];
+
+            legendItems.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-start gap-2 rounded px-1.5 py-1 text-[10px] hover:bg-slate-100 dark:hover:bg-slate-800';
+                const swatch = document.createElement('span');
+                swatch.className = 'mt-0.5 h-2.5 w-2.5 flex-shrink-0 rounded-sm';
+                swatch.style.backgroundColor = colors[index] || '#94a3b8';
+                const label = document.createElement('span');
+                label.className = 'min-w-0 flex-1 break-words font-semibold text-slate-700 dark:text-slate-200';
+                label.textContent = item.label;
+                const value = document.createElement('span');
+                value.className = 'flex-shrink-0 text-right text-slate-500 dark:text-slate-400';
+                value.textContent = `${formatPieFootage(item.value)} ft | ${formatPiePercentage(item.value, total)}`;
+                row.append(swatch, label, value);
+                container.appendChild(row);
+            });
+        }
+
         function renderUSCSPieChart(uscsMap) {
             const ctx = document.getElementById('uscsPieChart').getContext('2d');
             if (uscsChartInstance) uscsChartInstance.destroy();
-            const labels = Object.keys(uscsMap);
-            const data = Object.values(uscsMap);
-            if (labels.length === 0) { labels.push('No Soil Data'); data.push(1); }
+            const items = Object.entries(uscsMap)
+                .filter(([, footage]) => Number.isFinite(footage))
+                .map(([label, footage]) => ({ label, value: footage }));
+            const total = items.reduce((sum, item) => sum + item.value, 0);
+            const hasFootage = items.some(item => item.value > 0);
+            const labels = hasFootage ? items.map(item => item.label) : ['No Soil Data'];
+            const data = hasFootage ? items.map(item => item.value) : [1];
+            const colors = labels.map((_, index) => `hsl(${Math.round(index * 360 / Math.max(labels.length, 1))} 68% 52%)`);
+            renderFootagePieLegend('uscsPieLegend', hasFootage ? items : [], total, colors);
 
             uscsChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: labels,
-                    datasets: [{ data: data, backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#64748b', '#14b8a6', '#f97316', '#6366f1'] }]
+                    datasets: [{ data: data, backgroundColor: colors }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: context => {
+                                    if (!hasFootage) return 'No soil footage recorded';
+                                    const item = items[context.dataIndex];
+                                    return `${item.label}: ${formatPieFootage(item.value)} ft (${formatPiePercentage(item.value, total)} of footage)`;
+                                }
+                            }
+                        }
+                    }
+                },
             });
         }
 
         function renderSoilRockPieChart(soilFt, rockFt) {
             const ctx = document.getElementById('soilRockPieChart').getContext('2d');
             if (soilRockChartInstance) soilRockChartInstance.destroy();
+            const items = [
+                { label: 'Soil Drilling', value: soilFt },
+                { label: 'Rock Coring', value: rockFt }
+            ];
+            const total = soilFt + rockFt;
+            const colors = ['#f59e0b', '#475569'];
+            renderFootagePieLegend('soilRockPieLegend', items, total, colors);
+
             soilRockChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Soil Drilling', 'Rock Coring'],
-                    datasets: [{ data: [soilFt, rockFt], backgroundColor: ['#f59e0b', '#475569'] }]
+                    labels: items.map(item => item.label),
+                    datasets: [{ data: items.map(item => item.value), backgroundColor: colors }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: context => {
+                                    const item = items[context.dataIndex];
+                                    return `${item.label}: ${formatPieFootage(item.value)} ft (${formatPiePercentage(item.value, total)} of footage)`;
+                                }
+                            }
+                        }
+                    }
+                },
             });
         }
 
@@ -2833,7 +3115,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.28",
+                version: "v1.6.30",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2855,7 +3137,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.28",
+                version: "v1.6.30",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -3046,6 +3328,7 @@
                 } else {
                     projectMeta = importedProject.projectMeta;
                     borings = importedProject.borings;
+                    migrateLegacyGroundwaterObservationTypes();
                     activeBoringIndex = 0;
                     updateBoringSelector();
                     syncHeaderUI();
@@ -3084,7 +3367,7 @@
                 ProjectName: projectMeta.name || "",
                 Client: projectMeta.client || "",
                 ExportDate: new Date().toISOString().slice(0, 10),
-                StrataScribeVersion: "v1.6.28"
+                StrataScribeVersion: "v1.6.30"
             }];
             const boringRows = borings.map(b => ({
                 BoringID: b.id || "",
