@@ -192,7 +192,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.13",
+                version: "v1.6.22",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -1471,13 +1471,36 @@
             renderTables();
         }
 
+        function getDefaultRockStartDepth(boring) {
+            const refusalValue = boring.refusalDepth;
+            const refusalDepth = Number(refusalValue);
+            if (refusalValue !== null && refusalValue !== undefined && String(refusalValue).trim() !== "" && Number.isFinite(refusalDepth)) {
+                return refusalDepth;
+            }
+
+            let deepestSampleBottom = null;
+            (boring.samples || []).forEach(sample => {
+                const whole = Number(sample.whole);
+                const decimal = Number(sample.dec || 0);
+                if (sample.whole === null || sample.whole === undefined || String(sample.whole).trim() === "" || !Number.isFinite(whole) || !Number.isFinite(decimal)) return;
+
+                const lengthText = String(sample.length || "18").replace(/[^0-9.]/g, '');
+                const lengthInches = parseFloat(lengthText) || 18.0;
+                const sampleBottom = whole + decimal + lengthInches / 12.0;
+                deepestSampleBottom = deepestSampleBottom === null
+                    ? sampleBottom
+                    : Math.max(deepestSampleBottom, sampleBottom);
+            });
+
+            return deepestSampleBottom === null ? 0.0 : deepestSampleBottom;
+        }
+
         function addRockRow() {
             const activeBoring = borings[activeBoringIndex];
-            const refusalDep = parseFloat(activeBoring.refusalDepth);
             if (!activeBoring.rockSamples) activeBoring.rockSamples = [];
             
             const isFirstRun = (activeBoring.rockSamples.length === 0);
-            let nextTop = !isNaN(refusalDep) ? refusalDep : 0.0;
+            let nextTop = isFirstRun ? getDefaultRockStartDepth(activeBoring) : 0.0;
             const last = !isFirstRun ? activeBoring.rockSamples[activeBoring.rockSamples.length - 1] : null;
 
             if (last) {
@@ -2596,7 +2619,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.13",
+                version: "v1.6.22",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2618,7 +2641,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.16",
+                version: "v1.6.22",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2707,7 +2730,7 @@
                 ProjectName: projectMeta.name || "",
                 Client: projectMeta.client || "",
                 ExportDate: new Date().toISOString().slice(0, 10),
-                StrataScribeVersion: "v1.6.21"
+                StrataScribeVersion: "v1.6.22"
             }];
             const boringRows = borings.map(b => ({
                 BoringID: b.id || "",
