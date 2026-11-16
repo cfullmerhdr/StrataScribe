@@ -10,19 +10,23 @@
         // --- Dual Storage: localStorage (Synchronous Instant Backup) + IndexedDB ---
         const DB_NAME = 'StrataScribeDB';
         const STORE_NAME = 'projectStore';
-        const DB_VERSION = 1;
+        const DB_VERSION = 3;
         const LOCAL_STORAGE_KEY = 'strata_scribe_autosave_v1_6_10';
 
         function openDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
-                request.upgradeneeded = (event) => {
+                request.onupgradeneeded = (event) => {
                     const db = event.target.result;
                     if (!db.objectStoreNames.contains(STORE_NAME)) {
                         db.createObjectStore(STORE_NAME);
                     }
+                };
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    const db = request.result;
+                    db.onversionchange = () => db.close();
+                    resolve(db);
                 };
             });
         }
@@ -192,7 +196,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.22",
+                version: "v1.6.25",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -645,6 +649,14 @@
             ).join('');
         }
 
+        function boringIdExists(id, excludedIndex = -1) {
+            const normalizedId = String(id || "").trim().toLowerCase();
+            if (!normalizedId) return false;
+            return borings.some((boring, index) =>
+                index !== excludedIndex && String(boring.id || "").trim().toLowerCase() === normalizedId
+            );
+        }
+
         function switchBoring(index) {
             activeBoringIndex = parseInt(index);
             syncHeaderUI();
@@ -657,8 +669,11 @@
             const prefix = parsed.prefix.replace(/-$/, '');
             
             const existingNums = borings.filter(b => parseBoringId(b.id).prefix.includes(prefix)).map(b => parseBoringId(b.id).number);
-            const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : borings.length + 1;
-            const newBoringId = formatBoringId(prefix || 'B', nextNum);
+            let nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : borings.length + 1;
+            let newBoringId = formatBoringId(prefix || 'B', nextNum);
+            while (boringIdExists(newBoringId)) {
+                newBoringId = formatBoringId(prefix || 'B', ++nextNum);
+            }
             
             const newBoring = {
                 id: newBoringId,
@@ -735,6 +750,15 @@
         }
 
         function updateActiveBoringHeader(field, val) {
+            if (field === 'id') {
+                val = String(val || "").trim();
+                if (boringIdExists(val, activeBoringIndex)) {
+                    alert("Boring ID already exists.\n\nPlease enter a unique ID.");
+                    const idInput = document.getElementById('boringId');
+                    if (idInput) idInput.value = borings[activeBoringIndex].id || "";
+                    return;
+                }
+            }
             borings[activeBoringIndex][field] = val;
             if (field === 'id') updateBoringSelector();
             markUnsaved();
@@ -2619,7 +2643,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.22",
+                version: "v1.6.25",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2641,7 +2665,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.22",
+                version: "v1.6.25",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2677,28 +2701,168 @@
             document.getElementById('jsonFileInput').click();
         }
 
+        function isImportObject(value) {
+            return value !== null && typeof value === "object" && !Array.isArray(value);
+        }
+
+        function normalizeImportedText(value, fallback) {
+            if (value === undefined || value === null) return fallback;
+            if (typeof value !== "string" && typeof value !== "number") return null;
+            return String(value);
+        }
+
+        function normalizeImportedTextArray(value) {
+            if (value === undefined || value === null) return [];
+            if (typeof value === "string") return value.trim() ? [value] : [];
+            if (!Array.isArray(value)) return null;
+            const result = [];
+            for (const item of value) {
+                if (typeof item !== "string" && typeof item !== "number") return null;
+                result.push(String(item));
+            }
+            return result;
+        }
+
+        function normalizeImportedRecords(records, defaults, textFields, arrayFields, multiFields, requireDepth) {
+            if (records === undefined || records === null) return [];
+            if (!Array.isArray(records)) return null;
+
+            const normalizedRecords = [];
+            for (const record of records) {
+                if (!isImportObject(record)) return null;
+                const normalized = { ...defaults, ...record };
+
+                if (requireDepth) {
+                    const whole = normalizeImportedText(record.whole, null);
+                    const decimal = normalizeImportedText(record.dec, defaults.dec);
+                    if (whole === null || whole.trim() === "" || !Number.isFinite(Number(whole)) ||
+                        decimal === null || decimal.trim() === "" || !Number.isFinite(Number(decimal))) return null;
+                    normalized.whole = whole;
+                    normalized.dec = decimal;
+                }
+
+                for (const field of textFields) {
+                    normalized[field] = normalizeImportedText(record[field], defaults[field]);
+                    if (normalized[field] === null) return null;
+                }
+                for (const field of arrayFields) {
+                    normalized[field] = normalizeImportedTextArray(record[field]);
+                    if (normalized[field] === null) return null;
+                }
+                for (const field of multiFields) {
+                    const value = record[field];
+                    if (value !== undefined && value !== null && !Array.isArray(value) && typeof value !== "string") return null;
+                    normalized[field] = normalizeMultiRockValues(value);
+                }
+                normalizedRecords.push(normalized);
+            }
+            return normalizedRecords;
+        }
+
+        function normalizeImportedProject(parsed) {
+            if (!isImportObject(parsed) || !isImportObject(parsed.projectMeta) ||
+                !Array.isArray(parsed.borings) || parsed.borings.length === 0) return null;
+
+            const projectMeta = { ...parsed.projectMeta };
+            for (const field of ["client", "name", "number"]) {
+                projectMeta[field] = normalizeImportedText(projectMeta[field], "");
+                if (projectMeta[field] === null) return null;
+            }
+
+            const boringDefaults = {
+                rig: "", driller: "", logger: "", additionalNotes: "",
+                gpsLat: "", gpsLon: "", gpsAccuracy: "", gpsElevation: "", gpsTimestamp: "", gpsSource: "", gpsLocked: false,
+                totalDepth: "0.0", offset: "0", direction: "N/A", startDate: "", endDate: "",
+                terminationReason: "Completed at Planned Depth", refusalType: "None", refusalDepth: ""
+            };
+            const surfaceDefaults = { thickness: "", type: "Asphalt", remarks: "" };
+            const sampleDefaults = {
+                whole: 0, dec: "0.0", type: "SS", length: "18\"", b1: "", b2: "", b3: "", rec: "",
+                uscs: "", gradation: "", major: "", minor: "", moisture: "", shade: "", colors: [],
+                origin: "", mottling: "", descriptors: [], remarks: ""
+            };
+            const rockDefaults = {
+                whole: 0, dec: "0.0", runLength: "5.0", recWhole: 0, recFrac: "0/8", recovery: "",
+                rqdWhole: 0, rqdFrac: "0/8", rqd: "", rockType: "", shade: "", colors: [], weathering: [],
+                grainSize: [], grainShape: [], strength: [], bedding: [], jointType: "", jointSpacing: "",
+                jointPersistence: "", jointRoughness: "", jointGeometry: "", jointAperture: "", jointFilling: "",
+                gwCondition: "", natFractures: "0", descriptors: [], remarks: ""
+            };
+            const groundwaterDefaults = { depth: "", time: "N/A", customTime: "" };
+            const boringIds = new Set();
+            const normalizedBorings = [];
+
+            for (const boring of parsed.borings) {
+                if (!isImportObject(boring)) return null;
+                const id = normalizeImportedText(boring.id, "");
+                if (id === null || id.trim() === "") return null;
+                const normalizedId = id.trim().toLowerCase();
+                if (boringIds.has(normalizedId)) return null;
+                boringIds.add(normalizedId);
+
+                const normalized = { ...boringDefaults, ...boring, id: id.trim() };
+                const boringTextFields = [
+                    "rig", "driller", "logger", "additionalNotes", "gpsLat", "gpsLon", "gpsAccuracy",
+                    "gpsElevation", "gpsTimestamp", "gpsSource", "totalDepth", "offset", "direction",
+                    "startDate", "endDate", "terminationReason", "refusalType", "refusalDepth"
+                ];
+                for (const field of boringTextFields) {
+                    normalized[field] = normalizeImportedText(boring[field], boringDefaults[field]);
+                    if (normalized[field] === null) return null;
+                }
+                if (boring.gpsLocked !== undefined && boring.gpsLocked !== null && typeof boring.gpsLocked !== "boolean") return null;
+                normalized.gpsLocked = boring.gpsLocked === undefined || boring.gpsLocked === null ? false : boring.gpsLocked;
+
+                normalized.methods = normalizeImportedTextArray(boring.methods);
+                normalized.surfaceConditions = normalizeImportedRecords(
+                    boring.surfaceConditions, surfaceDefaults, ["thickness", "type", "remarks"], [], [], false
+                );
+                normalized.samples = normalizeImportedRecords(
+                    boring.samples, sampleDefaults,
+                    ["type", "length", "b1", "b2", "b3", "rec", "uscs", "gradation", "major", "minor", "moisture", "shade", "origin", "mottling", "remarks"],
+                    ["colors", "descriptors"], [], true
+                );
+                normalized.rockSamples = normalizeImportedRecords(
+                    boring.rockSamples, rockDefaults,
+                    ["runLength", "recWhole", "recFrac", "recovery", "rqdWhole", "rqdFrac", "rqd", "rockType", "shade", "jointType", "jointSpacing", "jointPersistence", "jointRoughness", "jointGeometry", "jointAperture", "jointFilling", "gwCondition", "natFractures", "remarks"],
+                    ["colors", "descriptors"], ["weathering", "grainSize", "grainShape", "strength", "bedding"], true
+                );
+                normalized.gw = normalizeImportedRecords(
+                    boring.gw, groundwaterDefaults, ["depth", "time", "customTime"], [], [], false
+                );
+                if (normalized.methods === null || normalized.surfaceConditions === null ||
+                    normalized.samples === null || normalized.rockSamples === null || normalized.gw === null) return null;
+                while (normalized.gw.length < 3) normalized.gw.push({ ...groundwaterDefaults });
+                normalizedBorings.push(normalized);
+            }
+
+            return { projectMeta, borings: normalizedBorings };
+        }
+
         function importJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
+                let importedProject;
                 try {
                     const parsed = JSON.parse(e.target.result);
-                    if (parsed.borings && Array.isArray(parsed.borings)) {
-                        borings = parsed.borings;
-                        if (parsed.projectMeta) projectMeta = parsed.projectMeta;
-                        activeBoringIndex = 0;
-                        updateBoringSelector();
-                        syncHeaderUI();
-                        renderTables();
-                        markSavedNow();
-                        saveLocal();
-                        showToast("Project successfully imported!");
-                    } else {
-                        alert("Invalid project JSON structure.");
-                    }
+                    importedProject = normalizeImportedProject(parsed);
                 } catch (err) {
-                    alert("Failed to parse JSON file: " + err.message);
+                    importedProject = null;
+                }
+                if (!importedProject) {
+                    alert("The selected file is not a valid StrataScribe project.");
+                } else {
+                    projectMeta = importedProject.projectMeta;
+                    borings = importedProject.borings;
+                    activeBoringIndex = 0;
+                    updateBoringSelector();
+                    syncHeaderUI();
+                    renderTables();
+                    markSavedNow();
+                    saveLocal();
+                    showToast("Project successfully imported!");
                 }
                 event.target.value = "";
             };
@@ -2730,7 +2894,7 @@
                 ProjectName: projectMeta.name || "",
                 Client: projectMeta.client || "",
                 ExportDate: new Date().toISOString().slice(0, 10),
-                StrataScribeVersion: "v1.6.22"
+                StrataScribeVersion: "v1.6.25"
             }];
             const boringRows = borings.map(b => ({
                 BoringID: b.id || "",
@@ -2746,12 +2910,18 @@
                 Latitude: toExcelNumber(b.gpsLat),
                 Longitude: toExcelNumber(b.gpsLon),
                 GPSAccuracy: toExcelNumber(b.gpsAccuracy),
+                Elevation: toExcelNumber(b.gpsElevation),
+                GPSTimestamp: b.gpsTimestamp || "",
+                GPSSource: b.gpsSource || "",
+                GPSLocked: !!b.gpsLocked,
+                DrillingMethods: Array.isArray(b.methods) ? b.methods.join(", ") : "",
                 StartDate: b.startDate || "",
                 EndDate: b.endDate || "",
                 AdditionalNotes: b.additionalNotes || ""
             }));
 
             const surfaceConditionRows = [];
+            const groundwaterRows = [];
             const soilSampleRows = [];
             const rockRunRows = [];
             borings.forEach(b => {
@@ -2762,6 +2932,20 @@
                         ThicknessIn: toExcelNumber(sc.thickness),
                         Type: sc.type || "",
                         Remarks: sc.remarks || ""
+                    });
+                });
+                (b.gw || []).forEach((gw, index) => {
+                    if (!gw) return;
+                    const hasObservation = (gw.depth !== undefined && gw.depth !== null && String(gw.depth).trim() !== "") ||
+                        (gw.time && gw.time !== "N/A") ||
+                        (gw.customTime && String(gw.customTime).trim() !== "");
+                    if (!hasObservation) return;
+                    groundwaterRows.push({
+                        BoringID: b.id || "",
+                        ObservationNumber: index + 1,
+                        DepthFt: toExcelNumber(gw.depth),
+                        ObservationType: gw.time || "",
+                        CustomTime: gw.customTime || ""
                     });
                 });
                 (b.samples || []).forEach(s => {
@@ -2787,6 +2971,7 @@
                         Shade: s.shade || "",
                         Colors: formatColorsString(s.colors),
                         Mottling: s.mottling || "",
+                        Descriptors: Array.isArray(s.descriptors) ? s.descriptors.join(", ") : "",
                         AutoDescription: buildSoilDescription(s, { ...s, density: densityConsistency }),
                         Remarks: s.remarks || ""
                     });
@@ -2803,6 +2988,7 @@
                         BottomDepthFt: bottomDepthFt,
                         RunLengthFt: runLengthFt,
                         RockType: r.rockType || "",
+                        Shade: r.shade || "",
                         Weathering: formatMultiRockField(r.weathering),
                         GrainSize: formatMultiRockField(r.grainSize),
                         GrainShape: formatMultiRockField(r.grainShape),
@@ -2846,7 +3032,7 @@
                 },
                 {
                     name: "Borings",
-                    headers: ["BoringID", "Rig", "Driller", "FieldLogger", "TotalDepth", "Offset", "Direction", "TerminationReason", "RefusalType", "RefusalDepth", "Latitude", "Longitude", "GPSAccuracy", "StartDate", "EndDate", "AdditionalNotes"],
+                    headers: ["BoringID", "Rig", "Driller", "FieldLogger", "TotalDepth", "Offset", "Direction", "TerminationReason", "RefusalType", "RefusalDepth", "Latitude", "Longitude", "GPSAccuracy", "Elevation", "GPSTimestamp", "GPSSource", "GPSLocked", "DrillingMethods", "StartDate", "EndDate", "AdditionalNotes"],
                     rows: boringRows
                 },
                 {
@@ -2855,13 +3041,18 @@
                     rows: surfaceConditionRows
                 },
                 {
+                    name: "Groundwater",
+                    headers: ["BoringID", "ObservationNumber", "DepthFt", "ObservationType", "CustomTime"],
+                    rows: groundwaterRows
+                },
+                {
                     name: "SoilSamples",
-                    headers: ["BoringID", "DepthFt", "SampleType", "SampleLengthIn", "Blow1", "Blow2", "Blow3", "NValue", "RecoveryIn", "USCS", "Gradation", "MajorModifier", "MinorModifier", "Moisture", "DensityConsistency", "Origin", "Shade", "Colors", "Mottling", "AutoDescription", "Remarks"],
+                    headers: ["BoringID", "DepthFt", "SampleType", "SampleLengthIn", "Blow1", "Blow2", "Blow3", "NValue", "RecoveryIn", "USCS", "Gradation", "MajorModifier", "MinorModifier", "Moisture", "DensityConsistency", "Origin", "Shade", "Colors", "Mottling", "Descriptors", "AutoDescription", "Remarks"],
                     rows: soilSampleRows
                 },
                 {
                     name: "RockRuns",
-                    headers: ["BoringID", "TopDepthFt", "BottomDepthFt", "RunLengthFt", "RockType", "Weathering", "GrainSize", "GrainShape", "Strength", "Bedding", "JointType", "JointSpacing", "JointPersistence", "JointRoughness", "JointGeometry", "JointAperture", "JointFilling", "GroundwaterCondition", "NaturalFracturesPerFt", "Descriptors", "RecoveryFt", "RecoveryIn", "RQDFt", "RQDIn", "AutoDescription", "Remarks"],
+                    headers: ["BoringID", "TopDepthFt", "BottomDepthFt", "RunLengthFt", "RockType", "Shade", "Weathering", "GrainSize", "GrainShape", "Strength", "Bedding", "JointType", "JointSpacing", "JointPersistence", "JointRoughness", "JointGeometry", "JointAperture", "JointFilling", "GroundwaterCondition", "NaturalFracturesPerFt", "Descriptors", "RecoveryFt", "RecoveryIn", "RQDFt", "RQDIn", "AutoDescription", "Remarks"],
                     rows: rockRunRows
                 }
             ];

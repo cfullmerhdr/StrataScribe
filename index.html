@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StrataScribe v1.6.22 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>StrataScribe v1.6.25 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -101,7 +101,7 @@
                 >
 
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.22</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.25</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -230,7 +230,7 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pl-2">
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Boring ID</label>
-                            <input type="text" id="boringId" oninput="updateActiveBoringHeader('id', this.value)" class="table-input font-bold text-amber-600 dark:text-amber-400" placeholder="e.g. B-01">
+                            <input type="text" id="boringId" onchange="updateActiveBoringHeader('id', this.value)" class="table-input font-bold text-amber-600 dark:text-amber-400" placeholder="e.g. B-01">
                         </div>
                         <div>
                             <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Drill Rig</label>
@@ -621,7 +621,7 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
-        Version: v1.6.22 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.22
+        Version: v1.6.25 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.25
     </footer>
 
     <!-- Project Boring Profiles Modal -->
