@@ -196,7 +196,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.25",
+                version: "v1.6.27",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2297,9 +2297,9 @@
             container.innerHTML = sortedBorings.map(b => {
                 const isChecked = profileSelectedBoringIds.includes(b.id);
                 return `
-                    <label class="flex items-center space-x-2.5 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition">
+                    <label class="flex items-center space-x-1.5 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition">
                         <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="onProfileCheckboxChange('${b.id}', this.checked)" class="w-4 h-4 accent-amber-500 rounded">
-                        <span class="font-bold text-xs text-slate-700 dark:text-slate-200">Boring ${b.id}</span>
+                        <span class="font-bold text-xs text-slate-700 dark:text-slate-200">${b.id}</span>
                     </label>
                 `;
             }).join('');
@@ -2315,24 +2315,27 @@
                     <div class="flex flex-col items-center justify-center w-full h-96 text-center space-y-2">
                         <i data-lucide="layers" class="w-10 h-10 text-slate-400"></i>
                         <p class="font-bold text-sm text-slate-600 dark:text-slate-400">No borings selected.</p>
-                        <p class="text-xs text-slate-400">Check one or more borings on the left panel to compare profiles side-by-side.</p>
+                        <p class="text-xs text-slate-400">Check one or more borings on the left panel to build a shared-scale cross-section.</p>
                     </div>
                 `;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
 
-            let maxProjectDepth = 30;
-            selectedBorings.forEach(b => {
-                const d = parseFloat(b.totalDepth) || 30;
-                if (d > maxProjectDepth) maxProjectDepth = d;
-            });
-
-            container.innerHTML = selectedBorings.map(b => {
+            const escapeSvgText = value => String(value == null ? '' : value)
+                .replace(/[&<>"']/g, character => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                })[character]);
+            const profiles = selectedBorings.map(b => {
                 const surfaceConditions = b.surfaceConditions || [];
                 const soilSamples = b.samples || [];
                 const rockSamples = b.rockSamples || [];
-                const totalDepth = parseFloat(b.totalDepth) || 30;
+                const totalDepth = Math.max(0, parseFloat(b.totalDepth) || 0);
+                const sampleDepth = sample => (parseFloat(sample.whole) || 0) + (parseFloat(sample.dec) || 0);
 
                 const layers = [];
                 let currentSurfaceDepth = 0.0;
@@ -2346,12 +2349,12 @@
                 });
 
                 soilSamples.forEach((current, i) => {
-                    let layerTop = (i === 0) ? ((surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0) : (parseFloat(current.whole) + parseFloat(current.dec));
+                    let layerTop = (i === 0) ? ((surfaceConditions.length > 0) ? currentSurfaceDepth : 0.0) : sampleDepth(current);
                     let layerBot;
                     if (i < soilSamples.length - 1) {
-                        layerBot = parseFloat(soilSamples[i + 1].whole) + parseFloat(soilSamples[i + 1].dec);
+                        layerBot = sampleDepth(soilSamples[i + 1]);
                     } else if (rockSamples.length > 0) {
-                        layerBot = parseFloat(rockSamples[0].whole) + parseFloat(rockSamples[0].dec);
+                        layerBot = sampleDepth(rockSamples[0]);
                     } else {
                         layerBot = Math.max(totalDepth, layerTop + 3.0);
                     }
@@ -2360,13 +2363,16 @@
                 });
 
                 rockSamples.forEach(r => {
-                    const top = parseFloat(r.whole) + parseFloat(r.dec);
+                    const top = (parseFloat(r.whole) || 0) + (parseFloat(r.dec) || 0);
                     const bot = top + (parseFloat(r.runLength) || 5.0);
                     const rockTypeStr = (r.rockType || 'ROCK').toUpperCase();
                     layers.push({ top, bot, uscs: rockTypeStr, type: 'ROCK', rockType: rockTypeStr });
                 });
 
-                const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3, s.b1) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
+                const sampleMarkers = soilSamples.map(s => ({
+                    top: sampleDepth(s),
+                    nVal: computeN(s.b2, s.b3, s.b1)
+                })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
                 const gwMarkers = (b.gw || []).map(gw => {
                     const depthVal = parseFloat(gw.depth);
                     if (isNaN(depthVal)) return null;
@@ -2374,70 +2380,115 @@
                     return (!label || label === "N/A") ? null : { top: depthVal, label: label };
                 }).filter(Boolean);
 
-                const svgWidth = 320;
-                const pxPerFoot = Math.min(22, Math.max(12, 450 / (maxProjectDepth || 30)));
-                const svgHeight = Math.max(400, (maxProjectDepth * pxPerFoot) + 50);
-                const colX = 75, colWidth = 100, startY = 25;
+                const depthCandidates = [
+                    totalDepth,
+                    ...layers.map(layer => layer.bot),
+                    ...sampleMarkers.map(marker => marker.top),
+                    ...gwMarkers.map(marker => marker.top)
+                ].filter(Number.isFinite);
+                const deepestLoggedDepth = Math.max(...depthCandidates, 0);
+                return { boring: b, layers, sampleMarkers, gwMarkers, depth: deepestLoggedDepth };
+            });
 
-                let svg = `<svg width="${svgWidth}" height="${svgHeight}" class="font-sans text-xs select-none">`;
-                svg += `<line x1="${colX}" y1="${startY}" x2="${colX}" y2="${startY + (maxProjectDepth * pxPerFoot)}" stroke="#64748b" stroke-width="2" />`;
+            const maxProjectDepth = Math.max(...profiles.map(profile => profile.depth), 0) || 30;
+            const axisX = 58;
+            const firstColumnX = 70;
+            const columnPitch = 210;
+            const colWidth = 88;
+            const startY = 54;
+            const plotHeight = maxProjectDepth * Math.min(22, Math.max(12, 450 / maxProjectDepth));
+            const pxPerFoot = plotHeight / maxProjectDepth;
+            const svgHeight = startY + plotHeight + 20;
+            const svgWidth = firstColumnX + (profiles.length * columnPitch) + 12;
+            const clipWidth = svgWidth - axisX - 8;
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" class="block font-sans text-xs select-none" style="max-width:none;flex:none">`;
+            svg += `<defs>
+                <clipPath id="profiles-plot-clip"><rect x="${axisX}" y="${startY}" width="${clipWidth}" height="${plotHeight}" /></clipPath>
+                <pattern id="profiles-hatch-rock" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="8" y2="0" stroke="#0f172a" stroke-width="2.2" /></pattern>
+                <pattern id="profiles-hatch-fill" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="6" y2="0" stroke="#ffffff" stroke-width="1.8" /><line x1="0" y1="0" x2="0" y2="6" stroke="#ffffff" stroke-width="1.8" /></pattern>
+                <pattern id="profiles-hatch-gravel" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="2.5" fill="none" stroke="#0f172a" stroke-width="1.8" /></pattern>
+                <pattern id="profiles-hatch-sand" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.5" fill="#713f12" /></pattern>
+                <pattern id="profiles-hatch-silt" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#1e3a8a" stroke-width="2.0" /></pattern>
+                <pattern id="profiles-hatch-silt-dark" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="2.0" /></pattern>
+                <pattern id="profiles-hatch-clay" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#7f1d1d" stroke-width="2.0" /></pattern>
+                <pattern id="profiles-hatch-clay-high" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#fee2e2" stroke-width="1.8" /><line x2="2" y1="0" x2="2" y2="6" stroke="#fee2e2" stroke-width="1.8" /></pattern>
+                <pattern id="profiles-hatch-organic" width="8" height="8" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="8" y2="8" stroke="#052e16" stroke-width="2.0" /><line x1="8" y1="0" x2="0" y2="8" stroke="#052e16" stroke-width="2.0" /></pattern>
+                <pattern id="profiles-hatch-topsoil" width="10" height="10" patternUnits="userSpaceOnUse"><polygon points="5,1 9,9 1,9" fill="none" stroke="#fffbeb" stroke-width="1.6" /></pattern>
+                <pattern id="profiles-hatch-asphalt" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><line x1="0" y1="0" x2="8" y2="0" stroke="#52525b" stroke-width="1.5" /></pattern>
+                <pattern id="profiles-hatch-concrete" width="6" height="6" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="3" height="3" fill="#94a3b8" opacity="0.3"/></pattern>
+                <pattern id="profiles-hatch-riprap" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M2,2 L8,2 L10,8 L4,10 Z" fill="none" stroke="#0f172a" stroke-width="1.8"/></pattern>
+                <pattern id="profiles-hatch-void" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#dc2626" stroke-width="2.0" /></pattern>
+                <pattern id="profiles-hatch-unknown" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="8" y2="0" stroke="#3b0764" stroke-width="1.8" /></pattern>
+            </defs>`;
+            svg += `<text x="14" y="26" text-anchor="middle" font-weight="700" font-size="10" fill="#64748b" transform="rotate(-90 14 26)">Depth (ft)</text>`;
 
-                for (let d = 0; d <= maxProjectDepth; d += 5) {
-                    const y = startY + (d * pxPerFoot);
-                    svg += `<line x1="${colX - 4}" y1="${y}" x2="${colX}" y2="${y}" stroke="#64748b" stroke-width="1.5" />`;
-                    svg += `<text x="${colX - 8}" y="${y + 3}" text-anchor="end" font-weight="600" font-size="9" fill="#64748b">${d}'</text>`;
-                    svg += `<line x1="${colX}" y1="${y}" x2="${colX + colWidth}" y2="${y}" stroke="#cbd5e1" stroke-dasharray="3,3" opacity="0.5" />`;
-                }
+            const tickDepths = [];
+            for (let depth = 0; depth <= maxProjectDepth; depth += 5) tickDepths.push(depth);
+            if (tickDepths[tickDepths.length - 1] < maxProjectDepth) tickDepths.push(maxProjectDepth);
+            tickDepths.forEach(depth => {
+                const y = startY + (depth * pxPerFoot);
+                svg += `<line x1="${axisX}" y1="${y}" x2="${svgWidth - 8}" y2="${y}" stroke="#cbd5e1" stroke-dasharray="3,3" opacity="0.65" />`;
+                svg += `<line x1="${axisX - 4}" y1="${y}" x2="${axisX}" y2="${y}" stroke="#64748b" stroke-width="1.5" />`;
+                svg += `<text x="${axisX - 8}" y="${y + 3}" text-anchor="end" font-weight="600" font-size="9" fill="#64748b">${Number(depth.toFixed(1))}'</text>`;
+            });
+            svg += `<line x1="${axisX}" y1="${startY}" x2="${axisX}" y2="${startY + plotHeight}" stroke="#64748b" stroke-width="2" />`;
 
-                layers.forEach(l => {
-                    const layerTopY = startY + (l.top * pxPerFoot);
-                    const layerHeight = Math.max(16, (l.bot - l.top) * pxPerFoot);
-                    const sym = getGeotechSymbology(l.uscs || l.rockType, l.type);
+            profiles.forEach((profile, index) => {
+                const slotX = firstColumnX + (index * columnPitch);
+                const colX = slotX + 54;
+                const boringId = escapeSvgText(profile.boring.id || 'Boring');
+                const totalDepthLabel = escapeSvgText(profile.boring.totalDepth || '0.0');
+                svg += `<text x="${colX + colWidth / 2}" y="19" text-anchor="middle" font-weight="800" font-size="12" fill="#d97706"><title>${boringId}</title>${boringId}</text>`;
+                svg += `<text x="${colX + colWidth / 2}" y="36" text-anchor="middle" font-weight="600" font-size="9" fill="#64748b">TD: ${totalDepthLabel} ft</text>`;
+            });
 
+            svg += `<g clip-path="url(#profiles-plot-clip)">`;
+            profiles.forEach((profile, index) => {
+                const slotX = firstColumnX + (index * columnPitch);
+                const colX = slotX + 54;
+                svg += `<line x1="${colX}" y1="${startY}" x2="${colX}" y2="${startY + plotHeight}" stroke="#64748b" stroke-width="1" />`;
+
+                profile.layers.forEach(layer => {
+                    const layerTop = Math.max(0, layer.top);
+                    const layerBottom = Math.min(maxProjectDepth, layer.bot);
+                    if (!Number.isFinite(layerTop) || !Number.isFinite(layerBottom) || layerBottom <= layerTop) return;
+                    const layerTopY = startY + (layerTop * pxPerFoot);
+                    const layerHeight = Math.max(1, (layerBottom - layerTop) * pxPerFoot);
+                    const sym = getGeotechSymbology(layer.uscs || layer.rockType, layer.type);
+                    const patternId = `profiles-${sym.hatch}`;
                     svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="${sym.fill}" stroke="#0f172a" stroke-width="1.2" />`;
-                    svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="url(#${sym.hatch})" opacity="0.85" stroke="#0f172a" stroke-width="1.2" />`;
+                    svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="url(#${patternId})" opacity="0.85" stroke="#0f172a" stroke-width="1.2" />`;
 
                     const midY = layerTopY + (layerHeight / 2);
-                    const displayText = l.uscs || l.rockType || "";
+                    const displayText = escapeSvgText(layer.uscs || layer.rockType || '');
                     if (layerHeight > 16 && displayText) {
-                        svg += `<text x="${colX + colWidth/2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${displayText}</text>`;
+                        svg += `<text x="${colX + colWidth / 2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${displayText}</text>`;
                     }
                 });
 
-                sampleMarkers.forEach(m => {
-                    const markerY = startY + (m.top * pxPerFoot);
-                    const nText = (m.nVal === "Refusal") ? "N=REF" : `N=${m.nVal}`;
+                profile.sampleMarkers.forEach(marker => {
+                    const markerY = startY + (marker.top * pxPerFoot);
+                    const nText = marker.nVal === "Refusal" ? "N=REF" : `N=${escapeSvgText(marker.nVal)}`;
                     svg += `<rect x="${colX + colWidth + 6}" y="${markerY - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
                     svg += `<text x="${colX + colWidth + 27}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${nText}</text>`;
                     svg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 6}" y2="${markerY}" stroke="#64748b" stroke-width="1.2" />`;
                 });
 
-                gwMarkers.forEach(gw => {
-                    const markerY = startY + (gw.top * pxPerFoot);
-                    const textWidth = Math.max(46, gw.label.length * 6.5 + 10);
-                    svg += `<polygon points="${colX},${markerY} ${colX-6},${markerY-4} ${colX-6},${markerY+4}" fill="#0284c7" />`;
-                    svg += `<rect x="${colX - textWidth - 8}" y="${markerY - 8}" width="${textWidth}" height="16" rx="3" fill="#0284c7" opacity="0.95" />`;
-                    svg += `<text x="${colX - 8 - (textWidth/2)}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="8.5" fill="#f8fafc">${gw.label}</text>`;
+                profile.gwMarkers.forEach(marker => {
+                    const markerY = startY + (marker.top * pxPerFoot);
+                    const fullLabel = escapeSvgText(marker.label);
+                    const visibleLabel = marker.label.length > 8 ? `${escapeSvgText(marker.label.slice(0, 7))}…` : fullLabel;
+                    const textWidth = Math.max(34, visibleLabel.length * 5 + 8);
+                    const labelX = colX - textWidth - 8;
+                    svg += `<polygon points="${colX},${markerY} ${colX - 6},${markerY - 4} ${colX - 6},${markerY + 4}" fill="#0284c7"><title>${fullLabel}</title></polygon>`;
+                    svg += `<rect x="${labelX}" y="${markerY - 8}" width="${textWidth}" height="16" rx="3" fill="#0284c7" opacity="0.95"><title>${fullLabel}</title></rect>`;
+                    svg += `<text x="${labelX + textWidth / 2}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="8.5" fill="#f8fafc">${visibleLabel}</text>`;
                     svg += `<line x1="${colX - 6}" y1="${markerY}" x2="${colX}" y2="${markerY}" stroke="#0284c7" stroke-width="1.5" />`;
                 });
+            });
 
-                svg += `</svg>`;
-
-                return `
-                    <div class="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col space-y-3 flex-shrink-0">
-                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-                            <div>
-                                <h4 class="font-extrabold text-amber-600 dark:text-amber-400 text-sm">Boring ${b.id}</h4>
-                                <p class="text-[11px] text-slate-400">Total Depth: ${b.totalDepth || '0.0'} ft | Rig: ${b.rig || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div class="overflow-y-auto flex justify-center bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                            ${svg}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            svg += `</g></svg>`;
+            container.innerHTML = svg;
         }
 
         // --- Summary Figures & Percentage Histograms ---
@@ -2643,7 +2694,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.25",
+                version: "v1.6.27",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2665,7 +2716,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.25",
+                version: "v1.6.27",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2894,7 +2945,7 @@
                 ProjectName: projectMeta.name || "",
                 Client: projectMeta.client || "",
                 ExportDate: new Date().toISOString().slice(0, 10),
-                StrataScribeVersion: "v1.6.25"
+                StrataScribeVersion: "v1.6.27"
             }];
             const boringRows = borings.map(b => ({
                 BoringID: b.id || "",
