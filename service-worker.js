@@ -1,7 +1,9 @@
-const CACHE_NAME = 'strata-scribe-v1.6.21';
+const CACHE_NAME = 'strata-scribe-v1.6.22';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './app.js',
+  './hdr_logo_forms_white.png',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
