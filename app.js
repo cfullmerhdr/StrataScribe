@@ -196,7 +196,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.27",
+                version: "v1.6.28",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -1029,7 +1029,12 @@
                             <i data-lucide="edit-3" class="w-3.5 h-3.5 flex-shrink-0"></i>
                         </button>
                     </td>
-                    <td class="py-2.5 px-3"><input type="text" value="${s.remarks || ''}" oninput="updateSoilRow(${idx}, 'remarks', this.value)" placeholder="Remarks..." class="table-input"></td>
+                    <td class="py-2.5 px-3">
+                        <button id="remarksButton_soil_${idx}" type="button" onclick="openRemarksEditor('soil', ${idx}, this)" class="w-full table-input text-left text-xs font-semibold flex items-center space-x-2">
+                            <i data-lucide="message-square-text" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                            <span data-remarks-label>${String(s.remarks || '').trim() ? 'Has Notes' : 'Add Remarks'}</span>
+                        </button>
+                    </td>
                     <td class="py-2.5 px-3 text-center"><button onclick="deleteSoilRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
                 `;
                 tbody.appendChild(tr);
@@ -1471,7 +1476,10 @@
                         </button>
                     </td>
                     <td class="py-2.5 px-3">
-                        <input type="text" value="${r.remarks || ''}" oninput="updateRockRow(${idx}, 'remarks', this.value)" class="table-input" placeholder="Remarks...">
+                        <button id="remarksButton_rock_${idx}" type="button" onclick="openRemarksEditor('rock', ${idx}, this)" class="w-full table-input text-left text-xs font-semibold flex items-center space-x-2">
+                            <i data-lucide="message-square-text" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                            <span data-remarks-label>${String(r.remarks || '').trim() ? 'Has Notes' : 'Add Remarks'}</span>
+                        </button>
                     </td>
                     <td class="py-2.5 px-3 text-center">
                         <button onclick="deleteRockRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -1492,7 +1500,138 @@
         function updateRockRow(idx, field, val) {
             borings[activeBoringIndex].rockSamples[idx][field] = val;
             markUnsaved();
+            if (field === 'remarks') {
+                void saveLocal();
+                return;
+            }
             renderTables();
+        }
+
+        let remarksEditorTarget = null;
+        let remarksEditorTrigger = null;
+        let remarksEditorCursorStart = 0;
+        let remarksEditorCursorEnd = 0;
+
+        function getRemarksDepth(whole, decimal) {
+            if (whole === null || whole === undefined || String(whole).trim() === '') return null;
+            const wholeDepth = Number(whole);
+            const decimalDepth = decimal === null || decimal === undefined || String(decimal).trim() === '' ? 0 : Number(decimal);
+            return Number.isFinite(wholeDepth) && Number.isFinite(decimalDepth) ? wholeDepth + decimalDepth : null;
+        }
+
+        function openRemarksEditor(type, idx, trigger) {
+            const boringIndex = activeBoringIndex;
+            const boring = borings[boringIndex];
+            const rows = type === 'soil' ? boring && boring.samples : boring && boring.rockSamples;
+            const row = rows && rows[idx];
+            if (!row) return;
+
+            remarksEditorTarget = { type, boringIndex, index: idx };
+            remarksEditorTrigger = trigger || null;
+            document.getElementById('remarksEditorTitle').textContent = type === 'soil' ? 'Soil Remarks' : 'Rock Remarks';
+
+            const topDepth = getRemarksDepth(row.whole, row.dec);
+            const topDepthLabel = topDepth === null ? 'N/A' : `${topDepth.toFixed(1)} ft`;
+            let details;
+            if (type === 'soil') {
+                details = [
+                    ['Boring ID', boring.id || 'N/A'],
+                    ['Depth', topDepthLabel],
+                    ['Sample Type', row.type || 'N/A']
+                ];
+            } else {
+                const runLengthText = String(row.runLength == null ? '' : row.runLength).trim();
+                const runLength = Number(runLengthText);
+                const bottomDepth = topDepth !== null && runLengthText !== '' && Number.isFinite(runLength) ? topDepth + runLength : null;
+                details = [
+                    ['Boring ID', boring.id || 'N/A'],
+                    ['Top Depth', topDepthLabel],
+                    ['Bottom Depth', bottomDepth === null ? 'N/A' : `${bottomDepth.toFixed(1)} ft`]
+                ];
+            }
+
+            const detailsContainer = document.getElementById('remarksEditorDetails');
+            detailsContainer.innerHTML = '';
+            details.forEach(([label, value]) => {
+                const item = document.createElement('div');
+                item.className = 'rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-2';
+                const name = document.createElement('div');
+                name.className = 'text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400';
+                name.textContent = label;
+                const detail = document.createElement('div');
+                detail.className = 'mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words';
+                detail.textContent = value;
+                item.append(name, detail);
+                detailsContainer.appendChild(item);
+            });
+
+            const quickInserts = type === 'soil'
+                ? ['DRILLER REMARK', 'GRASS ROOTS', 'TREE ROOTS', 'BRANCHES', 'ORGANICS', 'TRASH', 'ODOR']
+                : ['VOID/CAVITY', '% CORE WATER LOSS', 'CORE LOSS', 'BROKEN CORE'];
+            const quickInsertContainer = document.getElementById('remarksQuickInsertButtons');
+            quickInsertContainer.innerHTML = '';
+            quickInserts.forEach(text => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300';
+                button.textContent = text;
+                button.addEventListener('click', () => insertRemarksQuickText(text));
+                quickInsertContainer.appendChild(button);
+            });
+
+            const textarea = document.getElementById('remarksEditorTextarea');
+            textarea.value = row.remarks || '';
+            remarksEditorCursorStart = textarea.value.length;
+            remarksEditorCursorEnd = textarea.value.length;
+            document.getElementById('remarksEditorModal').classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function rememberRemarksCursor() {
+            const textarea = document.getElementById('remarksEditorTextarea');
+            if (!textarea) return;
+            remarksEditorCursorStart = textarea.selectionStart;
+            remarksEditorCursorEnd = textarea.selectionEnd;
+        }
+
+        function updateRemarksEditor(value) {
+            if (!remarksEditorTarget) return;
+            const boring = borings[remarksEditorTarget.boringIndex];
+            const rows = boring && (remarksEditorTarget.type === 'soil' ? boring.samples : boring.rockSamples);
+            const row = rows && rows[remarksEditorTarget.index];
+            if (!row) return;
+
+            row.remarks = value;
+            rememberRemarksCursor();
+            const button = document.getElementById(`remarksButton_${remarksEditorTarget.type}_${remarksEditorTarget.index}`);
+            const label = button && button.querySelector('[data-remarks-label]');
+            if (label) label.textContent = String(value || '').trim() ? 'Has Notes' : 'Add Remarks';
+            markUnsaved();
+            void saveLocal();
+        }
+
+        function insertRemarksQuickText(text) {
+            const textarea = document.getElementById('remarksEditorTextarea');
+            if (!textarea || !remarksEditorTarget) return;
+
+            const value = textarea.value;
+            const start = Math.max(0, Math.min(remarksEditorCursorStart, value.length));
+            const end = Math.max(start, Math.min(remarksEditorCursorEnd, value.length));
+            const separator = start > 0 && value[start - 1] !== '\n' ? '\n' : '';
+            const insertion = `${separator}${text}: `;
+            textarea.value = value.slice(0, start) + insertion + value.slice(end);
+            remarksEditorCursorStart = start + insertion.length;
+            remarksEditorCursorEnd = remarksEditorCursorStart;
+            textarea.focus();
+            textarea.setSelectionRange(remarksEditorCursorStart, remarksEditorCursorEnd);
+            updateRemarksEditor(textarea.value);
+        }
+
+        function closeRemarksEditor() {
+            document.getElementById('remarksEditorModal').classList.add('hidden');
+            remarksEditorTarget = null;
+            if (remarksEditorTrigger && document.contains(remarksEditorTrigger)) remarksEditorTrigger.focus();
+            remarksEditorTrigger = null;
         }
 
         function getDefaultRockStartDepth(boring) {
@@ -2694,7 +2833,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.27",
+                version: "v1.6.28",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2716,7 +2855,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.27",
+                version: "v1.6.28",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2945,7 +3084,7 @@
                 ProjectName: projectMeta.name || "",
                 Client: projectMeta.client || "",
                 ExportDate: new Date().toISOString().slice(0, 10),
-                StrataScribeVersion: "v1.6.27"
+                StrataScribeVersion: "v1.6.28"
             }];
             const boringRows = borings.map(b => ({
                 BoringID: b.id || "",

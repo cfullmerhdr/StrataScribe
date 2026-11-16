@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StrataScribe v1.6.27 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>StrataScribe v1.6.28 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -101,7 +101,7 @@
                 >
 
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.27</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.28</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -621,8 +621,33 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
-        Version: v1.6.27 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.27
+        Version: v1.6.28 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.28
     </footer>
+
+    <!-- Soil and Rock Remarks Editor -->
+    <div id="remarksEditorModal" class="fixed inset-0 bg-slate-950/80 z-[60] hidden flex items-center justify-center p-3 sm:p-5">
+        <div role="dialog" aria-modal="true" aria-labelledby="remarksEditorTitle" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
+            <div class="bg-slate-800 text-white px-4 sm:px-5 py-3 flex justify-between items-center border-b border-slate-700 flex-shrink-0">
+                <h3 id="remarksEditorTitle" class="font-bold text-base">Soil Remarks</h3>
+                <button type="button" onclick="closeRemarksEditor()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition shadow">Close</button>
+            </div>
+            <div class="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+                <div id="remarksEditorDetails" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
+                <div class="space-y-2">
+                    <p class="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">Quick Inserts</p>
+                    <div id="remarksQuickInsertButtons" class="flex flex-wrap gap-2"></div>
+                </div>
+                <div class="space-y-2">
+                    <label for="remarksEditorTextarea" class="block text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">Remarks</label>
+                    <textarea id="remarksEditorTextarea" rows="8" oninput="updateRemarksEditor(this.value)" onselect="rememberRemarksCursor()" onkeyup="rememberRemarksCursor()" onmouseup="rememberRemarksCursor()" onblur="rememberRemarksCursor()" autocapitalize="sentences" spellcheck="true" class="w-full min-h-[12rem] resize-y rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-3 text-base leading-relaxed text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30"></textarea>
+                </div>
+            </div>
+            <div class="bg-slate-100 dark:bg-slate-800 p-3 flex justify-between items-center border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+                <span class="text-[11px] text-slate-500 dark:text-slate-400">Changes save automatically as you type.</span>
+                <button type="button" onclick="closeRemarksEditor()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition shadow">Done</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Project Boring Profiles Modal -->
     <div id="projectBoringProfilesModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
