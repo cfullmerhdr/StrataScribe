@@ -1566,8 +1566,8 @@
             });
 
             const quickInserts = type === 'soil'
-                ? ['DRILLER REMARK', 'GRASS ROOTS', 'TREE ROOTS', 'BRANCHES', 'ORGANICS', 'TRASH', 'ODOR']
-                : ['VOID/CAVITY', '% CORE WATER LOSS', 'CORE LOSS', 'BROKEN CORE'];
+                ? ['DRILLER REMARK', 'GRASS ROOTS', 'TREE ROOTS', 'BRANCHES', 'ORGANICS', 'TRASH', 'ODOR', 'HARD DRILLING']
+                : ['VOID/CAVITY', 'SOIL SEAM', '% CORE WATER LOSS', 'CORE LOSS', 'BROKEN CORE'];
             const quickInsertContainer = document.getElementById('remarksQuickInsertButtons');
             quickInsertContainer.innerHTML = '';
             quickInserts.forEach(text => {
