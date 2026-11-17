@@ -12,6 +12,7 @@
         const STORE_NAME = 'projectStore';
         const DB_VERSION = 3;
         const LOCAL_STORAGE_KEY = 'strata_scribe_autosave_v1_6_10';
+        const TUTORIAL_DISMISSED_KEY = 'strataScribeTutorialDismissed_v1_7_0';
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -166,6 +167,46 @@
         function toggleToolsMenu() {
             const menu = document.getElementById('toolsDropdownMenu');
             if (menu) menu.classList.toggle('hidden');
+        }
+
+        function isTutorialDismissed() {
+            try {
+                return localStorage.getItem(TUTORIAL_DISMISSED_KEY) === 'true';
+            } catch (error) {
+                console.error('Tutorial preference read error:', error);
+                return false;
+            }
+        }
+
+        function saveTutorialPreference() {
+            const checkbox = document.getElementById('tutorialDoNotShowAgain');
+            if (!checkbox) return;
+            try {
+                if (checkbox.checked) {
+                    localStorage.setItem(TUTORIAL_DISMISSED_KEY, 'true');
+                } else {
+                    localStorage.removeItem(TUTORIAL_DISMISSED_KEY);
+                }
+            } catch (error) {
+                console.error('Tutorial preference save error:', error);
+            }
+        }
+
+        function openTutorialModal() {
+            const modal = document.getElementById('tutorialModal');
+            const checkbox = document.getElementById('tutorialDoNotShowAgain');
+            if (!modal || !checkbox) return;
+            checkbox.checked = isTutorialDismissed();
+            modal.classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            const closeButton = document.getElementById('tutorialCloseButton');
+            if (closeButton) closeButton.focus();
+        }
+
+        function closeTutorialModal() {
+            saveTutorialPreference();
+            const modal = document.getElementById('tutorialModal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function closeToolsMenu() {
@@ -4108,6 +4149,7 @@
             renderTables();
             if (typeof lucide !== 'undefined') lucide.createIcons();
             isInitialized = true;
+            if (!isTutorialDismissed()) openTutorialModal();
         });
 
         // Mobile lifecycle event listeners to guarantee data is saved when closing/switching apps
