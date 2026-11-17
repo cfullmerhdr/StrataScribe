@@ -12,6 +12,7 @@
         const STORE_NAME = 'projectStore';
         const DB_VERSION = 3;
         const LOCAL_STORAGE_KEY = 'strata_scribe_autosave_v1_6_10';
+        const TUTORIAL_DISMISSED_KEY = 'strataScribeTutorialDismissed_v1_7_0';
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -168,6 +169,46 @@
             if (menu) menu.classList.toggle('hidden');
         }
 
+        function isTutorialDismissed() {
+            try {
+                return localStorage.getItem(TUTORIAL_DISMISSED_KEY) === 'true';
+            } catch (error) {
+                console.error('Tutorial preference read error:', error);
+                return false;
+            }
+        }
+
+        function saveTutorialPreference() {
+            const checkbox = document.getElementById('tutorialDoNotShowAgain');
+            if (!checkbox) return;
+            try {
+                if (checkbox.checked) {
+                    localStorage.setItem(TUTORIAL_DISMISSED_KEY, 'true');
+                } else {
+                    localStorage.removeItem(TUTORIAL_DISMISSED_KEY);
+                }
+            } catch (error) {
+                console.error('Tutorial preference save error:', error);
+            }
+        }
+
+        function openTutorialModal() {
+            const modal = document.getElementById('tutorialModal');
+            const checkbox = document.getElementById('tutorialDoNotShowAgain');
+            if (!modal || !checkbox) return;
+            checkbox.checked = isTutorialDismissed();
+            modal.classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            const closeButton = document.getElementById('tutorialCloseButton');
+            if (closeButton) closeButton.focus();
+        }
+
+        function closeTutorialModal() {
+            saveTutorialPreference();
+            const modal = document.getElementById('tutorialModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
         function closeToolsMenu() {
             const menu = document.getElementById('toolsDropdownMenu');
             if (menu) menu.classList.add('hidden');
@@ -198,7 +239,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.31",
+                version: "v1.7.0",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -2622,23 +2663,149 @@
         }
 
         function getRockQualityMarkers(rockSamples, getDepth) {
-            return rockSamples.map(sample => ({
-                top: getDepth(sample),
-                recovery: Number.parseFloat(sample.recovery),
-                rqd: Number.parseFloat(sample.rqd)
-            })).filter(marker => Number.isFinite(marker.top) &&
-                (Number.isFinite(marker.recovery) || Number.isFinite(marker.rqd)));
+            return rockSamples.map(sample => {
+                const runLength = Number.parseFloat(sample.runLength);
+                const recovery = Number.parseFloat(sample.recovery);
+                const rqd = Number.parseFloat(sample.rqd);
+                return {
+                    top: getDepth(sample),
+                    recoveryPercent: Number.isFinite(runLength) && runLength > 0 && Number.isFinite(recovery)
+                        ? (recovery / runLength) * 100
+                        : NaN,
+                    rqdPercent: Number.isFinite(runLength) && runLength > 0 && Number.isFinite(rqd)
+                        ? (rqd / runLength) * 100
+                        : NaN
+                };
+            }).filter(marker => Number.isFinite(marker.top) &&
+                (Number.isFinite(marker.recoveryPercent) || Number.isFinite(marker.rqdPercent)));
         }
 
-        function renderRockQualityMarkerSvg(marker, colX, colWidth, startY, pxPerFoot) {
-            const labels = [];
-            if (Number.isFinite(marker.recovery)) labels.push(`REC ${marker.recovery.toFixed(1)}'`);
-            if (Number.isFinite(marker.rqd)) labels.push(`RQD ${marker.rqd.toFixed(1)}'`);
-            const markerY = startY + marker.top * pxPerFoot;
-            const x = colX + colWidth + 6;
-            return labels.map((label, index) => {
-                const y = markerY + (labels.length === 1 ? 0 : (index === 0 ? -7 : 7));
-                return `<rect x="${x}" y="${y - 6}" width="48" height="12" rx="3" fill="#4b5563" opacity="0.96"><title>${label}</title></rect><text x="${x + 24}" y="${y + 2.8}" text-anchor="middle" font-weight="700" font-size="7.5" fill="#ffffff">${label}</text>`;
+        function getRockAnomalyMarkers(rockSamples, getDepth) {
+            return rockSamples.flatMap(sample => {
+                const runTop = getDepth(sample);
+                if (!Number.isFinite(runTop) || !Array.isArray(sample.anomalies)) return [];
+                return sample.anomalies.map(anomaly => {
+                    const topText = String(anomaly && anomaly.topDepth != null ? anomaly.topDepth : '').trim();
+                    const top = topText ? Number(topText) : NaN;
+                    const length = anomaly ? getRockAnomalyLengthFt(anomaly) : null;
+                    if (!Number.isFinite(top) || !Number.isFinite(length) || length <= 0) return null;
+                    const lengthText = Number(length.toFixed(2)).toString();
+                    const type = String(anomaly.type || 'Anomaly').trim() || 'Anomaly';
+                    return { top, label: `${type} ${lengthText}'` };
+                }).filter(Boolean);
+            });
+        }
+
+        function layoutProfileMarkerLabels(markers, startY, maxDepth, pxPerFoot) {
+            const prepared = markers.map(marker => ({
+                ...marker,
+                targetY: startY + marker.top * pxPerFoot
+            })).sort((a, b) => a.targetY - b.targetY || a.priority - b.priority);
+            const positioned = [];
+            let cluster = [];
+
+            const placeCluster = () => {
+                if (!cluster.length) return;
+                cluster.sort((a, b) => a.priority - b.priority || a.targetY - b.targetY);
+                const gap = 2;
+                const totalHeight = cluster.reduce((sum, marker) => sum + marker.height, 0) + gap * (cluster.length - 1);
+                const targetCenter = cluster.reduce((sum, marker) => sum + marker.targetY, 0) / cluster.length;
+                let top = targetCenter - totalHeight / 2;
+                const minTop = startY + 1;
+                const maxBottom = startY + maxDepth * pxPerFoot - 1;
+                if (top < minTop) top = minTop;
+                if (top + totalHeight > maxBottom) top = maxBottom - totalHeight;
+
+                cluster.forEach(marker => {
+                    const centerY = top + marker.height / 2;
+                    positioned.push({ ...marker, centerY });
+                    top += marker.height + gap;
+                });
+                cluster = [];
+            };
+
+            prepared.forEach(marker => {
+                const previous = cluster[cluster.length - 1];
+                if (previous && marker.targetY - previous.targetY > (previous.height + marker.height) / 2 + 2) {
+                    placeCluster();
+                }
+                cluster.push(marker);
+            });
+            placeCluster();
+            return positioned;
+        }
+
+        function renderProfileRightMarkersSvg(sampleMarkers, rockMarkers, colX, colWidth, startY, maxDepth, pxPerFoot) {
+            const markers = [
+                ...sampleMarkers.map(marker => ({
+                    ...marker,
+                    kind: 'n-value',
+                    height: 16,
+                    priority: 0
+                })),
+                ...rockMarkers.map(marker => ({
+                    ...marker,
+                    kind: 'rock-quality',
+                    height: 24,
+                    priority: 1
+                }))
+            ];
+            return layoutProfileMarkerLabels(markers, startY, maxDepth, pxPerFoot).map(marker => {
+                const x = colX + colWidth + 6;
+                const width = 54;
+                const title = marker.kind === 'n-value'
+                    ? (marker.nVal === 'Refusal' ? 'N=REF' : `N=${marker.nVal}`)
+                    : [
+                        Number.isFinite(marker.recoveryPercent) ? `REC ${marker.recoveryPercent.toFixed(0)}%` : '',
+                        Number.isFinite(marker.rqdPercent) ? `RQD ${marker.rqdPercent.toFixed(0)}%` : ''
+                    ].filter(Boolean).join(' / ');
+                const leader = `<path d="M ${colX + colWidth} ${marker.targetY} L ${x} ${marker.centerY}" fill="none" stroke="#64748b" stroke-width="1.2" />`;
+                if (marker.kind === 'n-value') {
+                    const nText = marker.nVal === 'Refusal' ? 'N=REF' : `N=${marker.nVal}`;
+                    return `${leader}<rect x="${x}" y="${marker.centerY - marker.height / 2}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.96"><title>${escapeProfileSvgText(title)}</title></rect><text x="${x + 21}" y="${marker.centerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${escapeProfileSvgText(nText)}</text>`;
+                }
+
+                const labels = [
+                    Number.isFinite(marker.recoveryPercent) ? `REC ${marker.recoveryPercent.toFixed(0)}%` : '',
+                    Number.isFinite(marker.rqdPercent) ? `RQD ${marker.rqdPercent.toFixed(0)}%` : ''
+                ].filter(Boolean);
+                const rowSpacing = labels.length > 1 ? 10 : 0;
+                const text = labels.map((label, index) => {
+                    const y = marker.centerY + (index - (labels.length - 1) / 2) * rowSpacing + 2.8;
+                    return `<text x="${x + 27}" y="${y}" text-anchor="middle" font-weight="700" font-size="7.5" fill="#ffffff">${label}</text>`;
+                }).join('');
+                return `${leader}<rect x="${x}" y="${marker.centerY - marker.height / 2}" width="${width}" height="${marker.height}" rx="3" fill="#4b5563" opacity="0.96"><title>${escapeProfileSvgText(title)}</title></rect>${text}`;
+            }).join('');
+        }
+
+        function renderProfileLeftMarkersSvg(groundwaterMarkers, anomalyMarkers, colX, startY, maxDepth, pxPerFoot) {
+            const markers = [
+                ...anomalyMarkers.map(marker => ({
+                    ...marker,
+                    kind: 'anomaly',
+                    height: 16,
+                    priority: 0
+                })),
+                ...groundwaterMarkers.map(marker => ({
+                    ...marker,
+                    kind: 'groundwater',
+                    height: 16,
+                    priority: 1
+                }))
+            ];
+            return layoutProfileMarkerLabels(markers, startY, maxDepth, pxPerFoot).map(marker => {
+                const color = marker.kind === 'anomaly' ? '#7c3aed' : '#0284c7';
+                const width = Math.min(90, Math.max(46, marker.label.length * 4 + 10));
+                const x = colX - width - 8;
+                const fullLabel = escapeProfileSvgText(marker.label);
+                const maxChars = Math.max(8, Math.floor((width - 10) / 4));
+                const visibleLabel = marker.label.length > maxChars
+                    ? `${escapeProfileSvgText(marker.label.slice(0, maxChars - 1))}…`
+                    : fullLabel;
+                const leader = `<path d="M ${x + width} ${marker.centerY} L ${colX - 12} ${marker.centerY} L ${colX - 6} ${marker.targetY}" fill="none" stroke="${color}" stroke-width="1.2" />`;
+                const label = `<rect x="${x}" y="${marker.centerY - 8}" width="${width}" height="16" rx="3" fill="${color}" opacity="0.96"><title>${fullLabel}</title></rect><text x="${x + width / 2}" y="${marker.centerY + 3}" text-anchor="middle" font-weight="700" font-size="7.5" fill="#f8fafc">${visibleLabel}</text>`;
+                const depthTick = `<polygon points="${colX},${marker.targetY} ${colX - 6},${marker.targetY - 4} ${colX - 6},${marker.targetY + 4}" fill="${color}" />`;
+                return `${leader}${label}${depthTick}`;
             }).join('');
         }
 
@@ -2691,6 +2858,7 @@
 
             const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3, s.b1) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
             const rockMarkers = getRockQualityMarkers(rockSamples, sample => parseFloat(sample.whole) + parseFloat(sample.dec));
+            const anomalyMarkers = getRockAnomalyMarkers(rockSamples, sample => parseFloat(sample.whole) + parseFloat(sample.dec));
             const gwMarkers = (curBoring.gw || []).map(gw => {
                 const depthVal = parseFloat(gw.depth);
                 if (isNaN(depthVal)) return null;
@@ -2698,17 +2866,17 @@
                 return (!label || label === "N/A") ? null : { top: depthVal, label: label };
             }).filter(Boolean);
 
-            renderLiveProfileSVG(layers, sampleMarkers, rockMarkers, gwMarkers, totalDepth);
+            renderLiveProfileSVG(layers, sampleMarkers, rockMarkers, gwMarkers, anomalyMarkers, totalDepth);
             renderLiveProfileTable(layers);
         }
 
-        function renderLiveProfileSVG(layers, sampleMarkers, rockMarkers, gwMarkers, maxDepth) {
+        function renderLiveProfileSVG(layers, sampleMarkers, rockMarkers, gwMarkers, anomalyMarkers, maxDepth) {
             const container = document.getElementById('liveProfileSvgContainer');
             if (!container) return;
             const svgWidth = 350;
             const pxPerFoot = Math.min(26, Math.max(12, 360 / (maxDepth || 30)));
             const svgHeight = Math.max(340, (maxDepth * pxPerFoot) + 50);
-            const colX = 75, colWidth = 100, startY = 25;
+            const colX = 105, colWidth = 100, startY = 25;
 
             let svg = `<svg width="${svgWidth}" height="${svgHeight}" class="font-sans text-xs select-none">
                 <defs>
@@ -2757,26 +2925,8 @@
                 }
             });
 
-            sampleMarkers.forEach(m => {
-                const markerY = startY + (m.top * pxPerFoot);
-                const nText = (m.nVal === "Refusal") ? "N=REF" : `N=${m.nVal}`;
-                svg += `<rect x="${colX + colWidth + 6}" y="${markerY - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
-                svg += `<text x="${colX + colWidth + 27}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${nText}</text>`;
-                svg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 6}" y2="${markerY}" stroke="#64748b" stroke-width="1.2" />`;
-            });
-
-            rockMarkers.forEach(marker => {
-                svg += renderRockQualityMarkerSvg(marker, colX, colWidth, startY, pxPerFoot);
-            });
-
-            gwMarkers.forEach(gw => {
-                const markerY = startY + (gw.top * pxPerFoot);
-                const textWidth = Math.max(46, gw.label.length * 6.5 + 10);
-                svg += `<polygon points="${colX},${markerY} ${colX-6},${markerY-4} ${colX-6},${markerY+4}" fill="#0284c7" />`;
-                svg += `<rect x="${colX - textWidth - 8}" y="${markerY - 8}" width="${textWidth}" height="16" rx="3" fill="#0284c7" opacity="0.95" />`;
-                svg += `<text x="${colX - 8 - (textWidth/2)}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="8.5" fill="#f8fafc">${gw.label}</text>`;
-                svg += `<line x1="${colX - 6}" y1="${markerY}" x2="${colX}" y2="${markerY}" stroke="#0284c7" stroke-width="1.5" />`;
-            });
+            svg += renderProfileRightMarkersSvg(sampleMarkers, rockMarkers, colX, colWidth, startY, maxDepth, pxPerFoot);
+            svg += renderProfileLeftMarkersSvg(gwMarkers, anomalyMarkers, colX, startY, maxDepth, pxPerFoot);
 
             svg += `</svg>`;
             container.innerHTML = svg;
@@ -2920,6 +3070,7 @@
                     nVal: computeN(s.b2, s.b3, s.b1)
                 })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
                 const rockMarkers = getRockQualityMarkers(rockSamples, sampleDepth);
+                const anomalyMarkers = getRockAnomalyMarkers(rockSamples, sampleDepth);
                 const gwMarkers = (b.gw || []).map(gw => {
                     const depthVal = parseFloat(gw.depth);
                     if (isNaN(depthVal)) return null;
@@ -2932,26 +3083,27 @@
                     ...layers.map(layer => layer.bot),
                     ...sampleMarkers.map(marker => marker.top),
                     ...rockMarkers.map(marker => marker.top),
+                    ...anomalyMarkers.map(marker => marker.top),
                     ...gwMarkers.map(marker => marker.top)
                 ].filter(Number.isFinite);
                 const deepestLoggedDepth = Math.max(...depthCandidates, 0);
-                return { boring: b, layers, sampleMarkers, rockMarkers, gwMarkers, depth: deepestLoggedDepth };
+                return { boring: b, layers, sampleMarkers, rockMarkers, gwMarkers, anomalyMarkers, depth: deepestLoggedDepth };
             });
 
             const maxProjectDepth = Math.max(...profiles.map(profile => profile.depth), 0) || 30;
             const axisX = 58;
-            const firstColumnX = 70;
-            const columnPitch = 210;
+            const firstColumnX = 110;
+            const columnPitch = 250;
             const colWidth = 88;
             const startY = 54;
             const plotHeight = maxProjectDepth * Math.min(22, Math.max(12, 450 / maxProjectDepth));
             const pxPerFoot = plotHeight / maxProjectDepth;
             const svgHeight = startY + plotHeight + 20;
             const svgWidth = firstColumnX + (profiles.length * columnPitch) + 12;
-            const clipWidth = svgWidth - axisX - 8;
+            const clipWidth = svgWidth - 16;
             let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" class="block font-sans text-xs select-none" style="max-width:none;flex:none">`;
             svg += `<defs>
-                <clipPath id="profiles-plot-clip"><rect x="${axisX}" y="${startY}" width="${clipWidth}" height="${plotHeight}" /></clipPath>
+                <clipPath id="profiles-plot-clip"><rect x="8" y="${startY}" width="${clipWidth}" height="${plotHeight}" /></clipPath>
                 <pattern id="profiles-hatch-rock" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="8" y2="0" stroke="#0f172a" stroke-width="2.2" /></pattern>
                 <pattern id="profiles-hatch-fill" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="6" y2="0" stroke="#ffffff" stroke-width="1.8" /><line x1="0" y1="0" x2="0" y2="6" stroke="#ffffff" stroke-width="1.8" /></pattern>
                 <pattern id="profiles-hatch-gravel" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="2.5" fill="none" stroke="#0f172a" stroke-width="1.8" /></pattern>
@@ -3017,29 +3169,12 @@
                     }
                 });
 
-                profile.sampleMarkers.forEach(marker => {
-                    const markerY = startY + (marker.top * pxPerFoot);
-                    const nText = marker.nVal === "Refusal" ? "N=REF" : `N=${escapeSvgText(marker.nVal)}`;
-                    svg += `<rect x="${colX + colWidth + 6}" y="${markerY - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
-                    svg += `<text x="${colX + colWidth + 27}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${nText}</text>`;
-                    svg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 6}" y2="${markerY}" stroke="#64748b" stroke-width="1.2" />`;
-                });
-
-                profile.rockMarkers.forEach(marker => {
-                    svg += renderRockQualityMarkerSvg(marker, colX, colWidth, startY, pxPerFoot);
-                });
-
-                profile.gwMarkers.forEach(marker => {
-                    const markerY = startY + (marker.top * pxPerFoot);
-                    const fullLabel = escapeSvgText(marker.label);
-                    const visibleLabel = marker.label.length > 8 ? `${escapeSvgText(marker.label.slice(0, 7))}…` : fullLabel;
-                    const textWidth = Math.max(34, visibleLabel.length * 5 + 8);
-                    const labelX = colX - textWidth - 8;
-                    svg += `<polygon points="${colX},${markerY} ${colX - 6},${markerY - 4} ${colX - 6},${markerY + 4}" fill="#0284c7"><title>${fullLabel}</title></polygon>`;
-                    svg += `<rect x="${labelX}" y="${markerY - 8}" width="${textWidth}" height="16" rx="3" fill="#0284c7" opacity="0.95"><title>${fullLabel}</title></rect>`;
-                    svg += `<text x="${labelX + textWidth / 2}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="8.5" fill="#f8fafc">${visibleLabel}</text>`;
-                    svg += `<line x1="${colX - 6}" y1="${markerY}" x2="${colX}" y2="${markerY}" stroke="#0284c7" stroke-width="1.5" />`;
-                });
+                svg += renderProfileRightMarkersSvg(
+                    profile.sampleMarkers, profile.rockMarkers, colX, colWidth, startY, maxProjectDepth, pxPerFoot
+                );
+                svg += renderProfileLeftMarkersSvg(
+                    profile.gwMarkers, profile.anomalyMarkers, colX, startY, maxProjectDepth, pxPerFoot
+                );
             });
 
             svg += `</g></svg>`;
@@ -3502,7 +3637,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.31",
+                version: "v1.7.0",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -3541,7 +3676,7 @@
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.31",
+                version: "v1.7.0",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -3824,7 +3959,7 @@
                 ProjectName: projectMeta.name || "",
                 Client: projectMeta.client || "",
                 ExportDate: new Date().toISOString().slice(0, 10),
-                StrataScribeVersion: "v1.6.31"
+                StrataScribeVersion: "v1.7.0"
             }];
             const boringRows = borings.map(b => ({
                 BoringID: b.id || "",
@@ -4014,6 +4149,7 @@
             renderTables();
             if (typeof lucide !== 'undefined') lucide.createIcons();
             isInitialized = true;
+            if (!isTutorialDismissed()) openTutorialModal();
         });
 
         // Mobile lifecycle event listeners to guarantee data is saved when closing/switching apps
