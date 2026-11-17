@@ -198,7 +198,7 @@
         function exportJSONBackupSilently() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.30",
+                version: "v1.6.31",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -268,7 +268,7 @@
         const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
         const surfaceConditionTypes = [
-            "Asphalt", "Concrete", "Mineral Aggregate Base", "Crushed Stone Base", "Base Stone", "Shot Rock", "Gravel Surface", "Chip Seal", "Asphalt Millings", "Topsoil", "Mulch", "Landscaping Rock", "Riprap", "Structural Fill", "Existing Fill", "Brick", "Pavement", "Sidewalk", "Crushed Concrete", "Flowable Fill", "Peat", "Organics", "Debris", "Cinders", "Slag", "Coal Ash", "Other (Custom)"
+            "Topsoil", "Asphalt", "Concrete", "Mineral Aggregate Base", "Crushed Stone Base", "Base Stone", "Shot Rock", "Gravel Surface", "Chip Seal", "Asphalt Millings", "Mulch", "Landscaping Rock", "Riprap", "Structural Fill", "Existing Fill", "Brick", "Pavement", "Sidewalk", "Crushed Concrete", "Flowable Fill", "Peat", "Organics", "Debris", "Cinders", "Slag", "Coal Ash", "Other (Custom)"
         ];
 
         // --- Rock Reference Lists ---
@@ -997,6 +997,22 @@
             renderTables();
         }
 
+        function buildSoilRecoveryOptions(sample) {
+            const selectedRecovery = String(sample.rec == null ? "" : sample.rec);
+            const parsedRecovery = Number.parseFloat(selectedRecovery);
+            const options = Array.from({ length: 41 }, (_, value) => String(value));
+            if (Number.isFinite(parsedRecovery) && !options.includes(selectedRecovery)) options.push(selectedRecovery);
+            options.sort((a, b) => Number(a) - Number(b));
+            return `<option value=""></option>${options.map(value =>
+                `<option value="${value}" ${selectedRecovery === value ? 'selected' : ''}>${value}"</option>`
+            ).join('')}`;
+        }
+
+        function syncBulkSampleRecovery(sample) {
+            const sampleLength = Number.parseFloat(String(sample.length == null ? "" : sample.length));
+            sample.rec = Number.isFinite(sampleLength) && sampleLength >= 0 ? String(sampleLength) : "";
+        }
+
         function renderSoilTable() {
             const tbody = document.getElementById('soilLogTbody');
             if (!tbody) return;
@@ -1045,12 +1061,11 @@
                     <td class="py-2.5 px-3 text-center font-extrabold text-amber-600 dark:text-amber-400 text-sm">${nVal}</td>
                     <td class="py-2.5 px-3">
                         <select
+                            id="soilRecovery_${idx}"
                             onchange="updateSoilRow(${idx}, 'rec', this.value)"
                             class="table-select text-center">
                             <option value=""></option>
-                            ${Array.from({ length: 41 }, (_, i) =>
-                                `<option value="${i}" ${s.rec == i ? 'selected' : ''}>${i}"</option>`
-                            ).join('')}
+                            ${buildSoilRecoveryOptions(s)}
                         </select>
                     </td>
                     <td class="py-2.5 px-3">
@@ -1074,16 +1089,25 @@
 
         function onSampleTypeChange(idx, val) {
             const sample = borings[activeBoringIndex].samples[idx];
+            const previousType = sample.type;
             sample.type = val;
             if (sampleLengthDefaults[val] !== undefined) {
                 sample.length = sampleLengthDefaults[val];
             }
+            if (val === 'BULK') syncBulkSampleRecovery(sample);
+            else if (previousType === 'BULK') sample.rec = "";
             markUnsaved();
             renderTables();
         }
 
         function updateSoilRow(idx, field, val) {
-            borings[activeBoringIndex].samples[idx][field] = val;
+            const sample = borings[activeBoringIndex].samples[idx];
+            sample[field] = val;
+            if (field === 'length' && sample.type === 'BULK') {
+                syncBulkSampleRecovery(sample);
+                const recoverySelect = document.getElementById(`soilRecovery_${idx}`);
+                if (recoverySelect) recoverySelect.innerHTML = buildSoilRecoveryOptions(sample);
+            }
             markUnsaved();
             saveLocal();
             if (['b1', 'b2', 'b3'].includes(field)) {
@@ -1091,18 +1115,39 @@
             }
         }
 
+        function getDefaultSoilSampleTopDepth(samples) {
+            if (!samples.length) return 1;
+            const deepestBottom = samples.reduce((deepest, sample) => {
+                const top = getRemarksDepth(sample.whole, sample.dec);
+                if (top === null) return deepest;
+                const lengthInches = Number.parseFloat(String(sample.length == null ? "" : sample.length));
+                const bottom = top + (Number.isFinite(lengthInches) ? lengthInches / 12 : 0);
+                return Math.max(deepest, bottom);
+            }, Number.NEGATIVE_INFINITY);
+            if (!Number.isFinite(deepestBottom)) return 1;
+
+            const standardDepths = [1, 3.5, 6, 8.5, 13.5];
+            while (standardDepths[standardDepths.length - 1] <= deepestBottom) {
+                standardDepths.push(standardDepths[standardDepths.length - 1] + 5);
+            }
+            return standardDepths.find(depth => depth > deepestBottom);
+        }
+
         function addSoilRow() {
             const curSamples = borings[activeBoringIndex].samples;
             const last = curSamples[curSamples.length - 1];
-            const nextWhole = last ? parseInt(last.whole) + 2 : 0;
+            const nextTop = getDefaultSoilSampleTopDepth(curSamples);
+            const nextWhole = Math.floor(nextTop);
+            const nextDecimal = (nextTop - nextWhole).toFixed(1);
             const defaultType = last ? last.type : "SS";
+            const defaultLength = sampleLengthDefaults[defaultType] || "18\"";
             
             curSamples.push({
-                whole: nextWhole, dec: "0.0", type: defaultType, length: sampleLengthDefaults[defaultType] || "18\"",
-                b1: "", b2: "", b3: "", rec: "", 
+                whole: nextWhole, dec: nextDecimal, type: defaultType, length: defaultLength,
+                b1: "", b2: "", b3: "", rec: defaultType === "BULK" ? String(Number.parseFloat(defaultLength)) : "",
                 uscs: last ? last.uscs : "", gradation: last ? last.gradation : "", major: last ? last.major : "", minor: last ? last.minor : "", 
                 moisture: last ? last.moisture : "", shade: "", colors: last && last.colors ? [...last.colors] : [], 
-                origin: last ? last.origin : "", mottling: last ? last.mottling : "", descriptors: [], remarks: ""
+                origin: last ? last.origin : "", mottling: last ? last.mottling : "", descriptors: [], remarks: "", pocketPen: ""
             });
             markUnsaved();
             renderTables();
@@ -1506,6 +1551,11 @@
                         </button>
                     </td>
                     <td class="py-2.5 px-3">
+                        <button id="anomalyButton_${idx}" type="button" onclick="openRockAnomalyEditor(${idx})" class="w-full table-input text-left text-xs font-semibold">
+                            ${Array.isArray(r.anomalies) && r.anomalies.length ? `Anomalies (${r.anomalies.length})` : 'Add Anomaly'}
+                        </button>
+                    </td>
+                    <td class="py-2.5 px-3">
                         <button id="remarksButton_rock_${idx}" type="button" onclick="openRemarksEditor('rock', ${idx}, this)" class="w-full table-input text-left text-xs font-semibold flex items-center space-x-2">
                             <i data-lucide="message-square-text" class="w-3.5 h-3.5 flex-shrink-0"></i>
                             <span data-remarks-label>${String(r.remarks || '').trim() ? 'Has Notes' : 'Add Remarks'}</span>
@@ -1595,8 +1645,21 @@
                 detailsContainer.appendChild(item);
             });
 
+            const pocketPenWrap = document.getElementById('remarksEditorPocketPenWrap');
+            const pocketPenSelect = document.getElementById('remarksEditorPocketPen');
+            pocketPenWrap.classList.toggle('hidden', type !== 'soil');
+            if (type === 'soil') {
+                pocketPenSelect.innerHTML = '<option value="">Not recorded</option>' +
+                    Array.from({ length: 19 }, (_, index) => {
+                        const value = (index * 0.25).toFixed(2);
+                        return `<option value="${value}">${value} tsf</option>`;
+                    }).join('');
+                const pocketPenValue = String(row.pocketPen == null ? '' : row.pocketPen).trim();
+                pocketPenSelect.value = pocketPenValue === '' ? '' : String(Number(pocketPenValue).toFixed(2));
+            }
+
             const quickInserts = type === 'soil'
-                ? ['DRILLER REMARK', 'GRASS ROOTS', 'TREE ROOTS', 'BRANCHES', 'ORGANICS', 'TRASH', 'ODOR', 'HARD DRILLING']
+                ? ['DRILLER REMARK', 'GRASS ROOTS', 'TREE ROOTS', 'BRANCHES', 'ORGANICS', 'TRASH', 'ODOR', 'HARD DRILLING', ...(row.type === 'BULK' ? ['NUMBER OF BUCKETS'] : [])]
                 : ['VOID/CAVITY', 'SOIL SEAM', '% CORE WATER LOSS', 'CORE LOSS', 'BROKEN CORE'];
             const quickInsertContainer = document.getElementById('remarksQuickInsertButtons');
             quickInsertContainer.innerHTML = '';
@@ -1615,6 +1678,16 @@
             remarksEditorCursorEnd = textarea.value.length;
             document.getElementById('remarksEditorModal').classList.remove('hidden');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function updatePocketPenFromRemarksEditor(value) {
+            if (!remarksEditorTarget || remarksEditorTarget.type !== 'soil') return;
+            const boring = borings[remarksEditorTarget.boringIndex];
+            const sample = boring && boring.samples && boring.samples[remarksEditorTarget.index];
+            if (!sample) return;
+            sample.pocketPen = value;
+            markUnsaved();
+            void saveLocal();
         }
 
         function rememberRemarksCursor() {
@@ -1664,6 +1737,256 @@
             remarksEditorTrigger = null;
         }
 
+        const rockAnomalyTypes = ['Void', 'Soil Seam', 'Vug', 'Fossil', 'Vertical Joint', 'Other'];
+        let rockAnomalyContext = null;
+        let rockAnomalyDraft = [];
+        let rockAnomalyRemarkIndex = null;
+
+        function openRockAnomalyEditor(idx) {
+            const boringIndex = activeBoringIndex;
+            const run = borings[boringIndex] && borings[boringIndex].rockSamples && borings[boringIndex].rockSamples[idx];
+            if (!run) return;
+
+            rockAnomalyContext = { boringIndex, index: idx };
+            rockAnomalyDraft = Array.isArray(run.anomalies)
+                ? run.anomalies.filter(anomaly => anomaly && typeof anomaly === 'object').map(anomaly => ({
+                    type: String(anomaly.type || ''),
+                    topDepth: anomaly.topDepth == null ? '' : String(anomaly.topDepth),
+                    length: anomaly.length == null ? '' : String(anomaly.length),
+                    lengthInches: String(anomaly.lengthInches == null ? '' : anomaly.lengthInches).trim() ||
+                        (Number.isFinite(Number(anomaly.length)) ? String((Number(anomaly.length) * 12).toFixed(2)) : ''),
+                    otherRemark: String(anomaly.otherRemark || '')
+                }))
+                : [];
+            const topDepth = getRemarksDepth(run.whole, run.dec);
+            const runLength = Number.parseFloat(run.runLength);
+            const bottomDepth = topDepth !== null && Number.isFinite(runLength) ? topDepth + runLength : null;
+            document.getElementById('rockAnomalySubtitle').textContent =
+                `Boring ${borings[boringIndex].id || 'N/A'} · Core run ${topDepth === null ? 'N/A' : `${topDepth.toFixed(1)} ft`} to ${bottomDepth === null ? 'N/A' : `${bottomDepth.toFixed(1)} ft`}`;
+            clearRockAnomalyValidation();
+            renderRockAnomalyRows();
+            document.getElementById('rockAnomalyModal').classList.remove('hidden');
+        }
+
+        function clearRockAnomalyValidation() {
+            const validation = document.getElementById('rockAnomalyValidation');
+            validation.classList.add('hidden');
+            validation.textContent = '';
+        }
+
+        function getRockAnomalyBottom(anomaly) {
+            const topText = String(anomaly.topDepth == null ? '' : anomaly.topDepth).trim();
+            if (!topText) return null;
+            const top = Number(topText);
+            const length = getRockAnomalyLengthFt(anomaly);
+            return Number.isFinite(top) && Number.isFinite(length) ? top + length : null;
+        }
+
+        function convertRockAnomalyInchesToFeet(value) {
+            const text = String(value == null ? '' : value).trim();
+            if (!text) return null;
+            const inches = Number(text);
+            if (!Number.isFinite(inches) || inches <= 0) return null;
+            return Number((Math.round(inches / 0.6 + Number.EPSILON) * 0.05).toFixed(2));
+        }
+
+        function getRockAnomalyLengthFt(anomaly) {
+            const inches = String(anomaly.lengthInches == null ? '' : anomaly.lengthInches).trim();
+            if (inches) return convertRockAnomalyInchesToFeet(inches);
+            const legacyLength = String(anomaly.length == null ? '' : anomaly.length).trim();
+            if (!legacyLength) return null;
+            const length = Number(legacyLength);
+            return Number.isFinite(length) ? length : null;
+        }
+
+        function renderRockAnomalyRows() {
+            const tbody = document.getElementById('rockAnomalyTbody');
+            tbody.replaceChildren();
+
+            rockAnomalyDraft.forEach((anomaly, index) => {
+                const row = document.createElement('tr');
+                const typeCell = document.createElement('td');
+                typeCell.className = 'p-2';
+                const typeSelect = document.createElement('select');
+                typeSelect.className = 'table-select min-w-32';
+                typeSelect.innerHTML = `<option value="">Select type</option>${rockAnomalyTypes.map(type => `<option value="${type}">${type}</option>`).join('')}`;
+                typeSelect.value = anomaly.type;
+                typeSelect.addEventListener('change', () => {
+                    anomaly.type = typeSelect.value;
+                    clearRockAnomalyValidation();
+                });
+                typeCell.appendChild(typeSelect);
+
+                const topCell = document.createElement('td');
+                topCell.className = 'p-2';
+                const topInput = document.createElement('input');
+                topInput.type = 'number';
+                topInput.step = '0.05';
+                topInput.className = 'table-input min-w-28';
+                topInput.placeholder = 'e.g. 18.5';
+                topInput.value = anomaly.topDepth;
+                const bottomCell = document.createElement('td');
+                bottomCell.className = 'p-2 text-right font-semibold';
+                const bottomOutput = document.createElement('span');
+                bottomOutput.textContent = getRockAnomalyBottom(anomaly) === null ? '--' : `${getRockAnomalyBottom(anomaly).toFixed(2)} ft`;
+                topInput.addEventListener('input', () => {
+                    anomaly.topDepth = topInput.value;
+                    updateBottomOutput();
+                });
+                topCell.appendChild(topInput);
+
+                const lengthCell = document.createElement('td');
+                lengthCell.className = 'p-2';
+                const lengthInput = document.createElement('input');
+                lengthInput.type = 'number';
+                lengthInput.step = '0.1';
+                lengthInput.min = '0.3';
+                lengthInput.className = 'table-input min-w-24';
+                lengthInput.placeholder = 'e.g. 6';
+                lengthInput.value = anomaly.lengthInches;
+                lengthInput.addEventListener('input', () => {
+                    anomaly.lengthInches = lengthInput.value;
+                    const convertedLength = convertRockAnomalyInchesToFeet(lengthInput.value);
+                    anomaly.length = convertedLength === null ? '' : convertedLength.toFixed(2);
+                    updateBottomOutput();
+                });
+                lengthCell.appendChild(lengthInput);
+                bottomCell.appendChild(bottomOutput);
+
+                const lengthFeetCell = document.createElement('td');
+                lengthFeetCell.className = 'p-2 text-right font-semibold text-slate-600 dark:text-slate-300';
+                const lengthFeetOutput = document.createElement('span');
+                const initialLengthFt = getRockAnomalyLengthFt(anomaly);
+                lengthFeetOutput.textContent = initialLengthFt === null ? '--' : `${initialLengthFt.toFixed(2)} ft`;
+                lengthFeetCell.appendChild(lengthFeetOutput);
+
+                const remarkCell = document.createElement('td');
+                remarkCell.className = 'p-2';
+                const remarkButton = document.createElement('button');
+                remarkButton.type = 'button';
+                remarkButton.className = 'table-input min-w-32 text-left';
+                remarkButton.textContent = anomaly.otherRemark.trim() || 'Add remark';
+                remarkButton.addEventListener('click', () => openRockAnomalyRemarkEditor(index));
+                remarkCell.appendChild(remarkButton);
+
+                const removeCell = document.createElement('td');
+                removeCell.className = 'p-2 text-center';
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'rounded px-2 py-1 font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40';
+                removeButton.textContent = 'Remove';
+                removeButton.addEventListener('click', () => {
+                    rockAnomalyDraft.splice(index, 1);
+                    clearRockAnomalyValidation();
+                    renderRockAnomalyRows();
+                });
+                removeCell.appendChild(removeButton);
+                row.append(typeCell, topCell, lengthCell, lengthFeetCell, bottomCell, remarkCell, removeCell);
+                tbody.appendChild(row);
+
+                function updateBottomOutput() {
+                    const convertedLength = convertRockAnomalyInchesToFeet(anomaly.lengthInches);
+                    anomaly.length = convertedLength === null ? '' : convertedLength.toFixed(2);
+                    lengthFeetOutput.textContent = convertedLength === null ? '--' : `${convertedLength.toFixed(2)} ft`;
+                    const bottom = getRockAnomalyBottom(anomaly);
+                    bottomOutput.textContent = bottom === null ? '--' : `${bottom.toFixed(2)} ft`;
+                    clearRockAnomalyValidation();
+                }
+            });
+        }
+
+        function addRockAnomalyRow() {
+            rockAnomalyDraft.push({ type: '', topDepth: '', length: '', lengthInches: '', otherRemark: '' });
+            clearRockAnomalyValidation();
+            renderRockAnomalyRows();
+        }
+
+        function openRockAnomalyRemarkEditor(index) {
+            rockAnomalyRemarkIndex = index;
+            document.getElementById('rockAnomalyRemarkInput').value = rockAnomalyDraft[index].otherRemark;
+            document.getElementById('rockAnomalyRemarkModal').classList.remove('hidden');
+            document.getElementById('rockAnomalyRemarkInput').focus();
+        }
+
+        function closeRockAnomalyRemarkEditor() {
+            document.getElementById('rockAnomalyRemarkModal').classList.add('hidden');
+            rockAnomalyRemarkIndex = null;
+        }
+
+        function saveRockAnomalyRemark() {
+            if (rockAnomalyRemarkIndex === null || !rockAnomalyDraft[rockAnomalyRemarkIndex]) return;
+            rockAnomalyDraft[rockAnomalyRemarkIndex].otherRemark = document.getElementById('rockAnomalyRemarkInput').value.trim();
+            closeRockAnomalyRemarkEditor();
+            renderRockAnomalyRows();
+        }
+
+        function closeRockAnomalyModal() {
+            document.getElementById('rockAnomalyRemarkModal').classList.add('hidden');
+            document.getElementById('rockAnomalyModal').classList.add('hidden');
+            rockAnomalyContext = null;
+            rockAnomalyDraft = [];
+            rockAnomalyRemarkIndex = null;
+        }
+
+        function saveRockAnomalies() {
+            if (!rockAnomalyContext) return;
+            const boring = borings[rockAnomalyContext.boringIndex];
+            const run = boring && boring.rockSamples && boring.rockSamples[rockAnomalyContext.index];
+            if (!run) return;
+
+            const runTop = getRemarksDepth(run.whole, run.dec);
+            const runLength = Number.parseFloat(run.runLength);
+            const runBottom = runTop !== null && Number.isFinite(runLength) ? runTop + runLength : null;
+            const errors = [];
+            const anomalies = [];
+            rockAnomalyDraft.forEach((anomaly, index) => {
+                const type = String(anomaly.type || '').trim();
+                const topText = String(anomaly.topDepth == null ? '' : anomaly.topDepth).trim();
+                const lengthInchesText = String(anomaly.lengthInches == null ? '' : anomaly.lengthInches).trim();
+                const remark = String(anomaly.otherRemark || '').trim();
+                if (!type && !topText && !lengthInchesText && !remark) return;
+
+                const rowNumber = index + 1;
+                const top = topText === '' ? NaN : Number(topText);
+                const lengthInches = lengthInchesText === '' ? NaN : Number(lengthInchesText);
+                const length = convertRockAnomalyInchesToFeet(lengthInchesText);
+                if (!rockAnomalyTypes.includes(type)) errors.push(`Row ${rowNumber}: choose an anomaly type.`);
+                if (!Number.isFinite(top)) errors.push(`Row ${rowNumber}: enter a valid top depth.`);
+                if (!Number.isFinite(lengthInches) || lengthInches <= 0 || length === null || length <= 0) {
+                    errors.push(`Row ${rowNumber}: enter a positive length in inches that converts to at least 0.05 ft.`);
+                }
+                if (Number.isFinite(top) && Number.isFinite(length) && length > 0) {
+                    const bottom = top + length;
+                    if (runTop === null || runBottom === null || top < runTop - 1e-9 || bottom > runBottom + 1e-9) {
+                        errors.push(`Row ${rowNumber}: anomaly must stay within the core run (${runTop === null || runBottom === null ? 'valid run depths unavailable' : `${runTop.toFixed(1)}–${runBottom.toFixed(1)} ft`}).`);
+                    }
+                }
+                if (rockAnomalyTypes.includes(type) && Number.isFinite(top) && Number.isFinite(length) && length > 0 &&
+                    runTop !== null && runBottom !== null && top >= runTop - 1e-9 && top + length <= runBottom + 1e-9) {
+                    anomalies.push({
+                        type,
+                        topDepth: topText,
+                        length: length.toFixed(2),
+                        lengthInches: lengthInchesText,
+                        otherRemark: remark
+                    });
+                }
+            });
+
+            if (errors.length) {
+                const validation = document.getElementById('rockAnomalyValidation');
+                validation.textContent = errors.join(' ');
+                validation.classList.remove('hidden');
+                return;
+            }
+
+            run.anomalies = anomalies;
+            markUnsaved();
+            void saveLocal();
+            renderTables();
+            closeRockAnomalyModal();
+        }
+
         function getDefaultRockStartDepth(boring) {
             const refusalValue = boring.refusalDepth;
             const refusalDepth = Number(refusalValue);
@@ -1709,7 +2032,7 @@
                 rqdWhole: 0, rqdFrac: "0/8", rqd: "",
                 rockType: "", shade: "", colors: [], weathering: [], grainSize: [], grainShape: [], strength: [],
                 bedding: [], jointType: "", jointSpacing: "", jointPersistence: "", jointRoughness: "", jointGeometry: "",
-                jointAperture: "", jointFilling: "", gwCondition: "", natFractures: "0", descriptors: [], remarks: ""
+                jointAperture: "", jointFilling: "", gwCondition: "", natFractures: "0", descriptors: [], remarks: "", anomalies: []
             };
 
             if (!isFirstRun && last) {
@@ -2273,6 +2596,52 @@
             return { fill: '#d8b4fe', hatch: 'hatch-unknown', textColor: '#3b0764' };
         }
 
+        function abbreviateProfileSurfaceLabel(value) {
+            const label = String(value || '').trim();
+            const abbreviations = {
+                'mineral aggregate base': 'M. A. Base',
+                'crushed stone base': 'C. Stone Base',
+                'structural fill': 'S. Fill',
+                'existing fill': 'E. Fill',
+                'asphalt millings': 'A. Millings',
+                'landscaping rock': 'Land. Rock',
+                'crushed concrete': 'C. Concrete'
+            };
+            if (abbreviations[label.toLowerCase()]) return abbreviations[label.toLowerCase()];
+            if (label.length <= 'Structural Fill'.length) return label;
+            const words = label.split(/\s+/);
+            return words.length > 1
+                ? `${words.slice(0, -1).map(word => `${word[0]}.`).join(' ')} ${words[words.length - 1]}`
+                : `${label.slice(0, 12)}…`;
+        }
+
+        function escapeProfileSvgText(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function getRockQualityMarkers(rockSamples, getDepth) {
+            return rockSamples.map(sample => ({
+                top: getDepth(sample),
+                recovery: Number.parseFloat(sample.recovery),
+                rqd: Number.parseFloat(sample.rqd)
+            })).filter(marker => Number.isFinite(marker.top) &&
+                (Number.isFinite(marker.recovery) || Number.isFinite(marker.rqd)));
+        }
+
+        function renderRockQualityMarkerSvg(marker, colX, colWidth, startY, pxPerFoot) {
+            const labels = [];
+            if (Number.isFinite(marker.recovery)) labels.push(`REC ${marker.recovery.toFixed(1)}'`);
+            if (Number.isFinite(marker.rqd)) labels.push(`RQD ${marker.rqd.toFixed(1)}'`);
+            const markerY = startY + marker.top * pxPerFoot;
+            const x = colX + colWidth + 6;
+            return labels.map((label, index) => {
+                const y = markerY + (labels.length === 1 ? 0 : (index === 0 ? -7 : 7));
+                return `<rect x="${x}" y="${y - 6}" width="48" height="12" rx="3" fill="#4b5563" opacity="0.96"><title>${label}</title></rect><text x="${x + 24}" y="${y + 2.8}" text-anchor="middle" font-weight="700" font-size="7.5" fill="#ffffff">${label}</text>`;
+            }).join('');
+        }
+
         function updateLiveProfile() {
             const curBoring = borings[activeBoringIndex];
             if (!curBoring) return;
@@ -2293,7 +2662,7 @@
                 const layerBot = currentSurfaceDepth + thickFeet;
                 currentSurfaceDepth = layerBot;
                 const scType = sc.type || "Surface Condition";
-                layers.push({ top: layerTop, bot: layerBot, uscs: scType.toUpperCase(), type: 'SURFACE', description: `${sc.thickness || 0}" ${scType}${sc.remarks ? ' (' + sc.remarks + ')' : ''}` });
+                layers.push({ top: layerTop, bot: layerBot, uscs: scType.toUpperCase(), surfaceLabel: scType, type: 'SURFACE', description: `${sc.thickness || 0}" ${scType}${sc.remarks ? ' (' + sc.remarks + ')' : ''}` });
             });
 
             soilSamples.forEach((current, i) => {
@@ -2321,6 +2690,7 @@
             });
 
             const sampleMarkers = soilSamples.map(s => ({ top: parseFloat(s.whole) + parseFloat(s.dec), nVal: computeN(s.b2, s.b3, s.b1) })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
+            const rockMarkers = getRockQualityMarkers(rockSamples, sample => parseFloat(sample.whole) + parseFloat(sample.dec));
             const gwMarkers = (curBoring.gw || []).map(gw => {
                 const depthVal = parseFloat(gw.depth);
                 if (isNaN(depthVal)) return null;
@@ -2328,11 +2698,11 @@
                 return (!label || label === "N/A") ? null : { top: depthVal, label: label };
             }).filter(Boolean);
 
-            renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, totalDepth);
+            renderLiveProfileSVG(layers, sampleMarkers, rockMarkers, gwMarkers, totalDepth);
             renderLiveProfileTable(layers);
         }
 
-        function renderLiveProfileSVG(layers, sampleMarkers, gwMarkers, maxDepth) {
+        function renderLiveProfileSVG(layers, sampleMarkers, rockMarkers, gwMarkers, maxDepth) {
             const container = document.getElementById('liveProfileSvgContainer');
             if (!container) return;
             const svgWidth = 350;
@@ -2378,9 +2748,12 @@
                 svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="url(#${sym.hatch})" opacity="0.85" stroke="#0f172a" stroke-width="1.2" />`;
 
                 const midY = layerTopY + (layerHeight / 2);
-                const displayText = l.uscs || l.rockType || "";
+                const displayText = l.type === 'SURFACE'
+                    ? abbreviateProfileSurfaceLabel(l.surfaceLabel || l.uscs)
+                    : l.uscs || l.rockType || "";
                 if (layerHeight > 16 && displayText) {
-                    svg += `<text x="${colX + colWidth/2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${displayText}</text>`;
+                    const fullSurfaceLabel = l.type === 'SURFACE' ? `<title>${escapeProfileSvgText(l.surfaceLabel || l.uscs)}</title>` : '';
+                    svg += `<text x="${colX + colWidth/2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${fullSurfaceLabel}${escapeProfileSvgText(displayText)}</text>`;
                 }
             });
 
@@ -2390,6 +2763,10 @@
                 svg += `<rect x="${colX + colWidth + 6}" y="${markerY - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
                 svg += `<text x="${colX + colWidth + 27}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${nText}</text>`;
                 svg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 6}" y2="${markerY}" stroke="#64748b" stroke-width="1.2" />`;
+            });
+
+            rockMarkers.forEach(marker => {
+                svg += renderRockQualityMarkerSvg(marker, colX, colWidth, startY, pxPerFoot);
             });
 
             gwMarkers.forEach(gw => {
@@ -2514,7 +2891,7 @@
                     const layerTop = currentSurfaceDepth;
                     const layerBot = currentSurfaceDepth + thickFeet;
                     currentSurfaceDepth = layerBot;
-                    layers.push({ top: layerTop, bot: layerBot, uscs: (sc.type || 'SURFACE').toUpperCase(), type: 'SURFACE' });
+                    layers.push({ top: layerTop, bot: layerBot, uscs: (sc.type || 'SURFACE').toUpperCase(), surfaceLabel: sc.type || 'SURFACE', type: 'SURFACE' });
                 });
 
                 soilSamples.forEach((current, i) => {
@@ -2542,6 +2919,7 @@
                     top: sampleDepth(s),
                     nVal: computeN(s.b2, s.b3, s.b1)
                 })).filter(m => m.nVal !== undefined && m.nVal !== "" && m.nVal !== null);
+                const rockMarkers = getRockQualityMarkers(rockSamples, sampleDepth);
                 const gwMarkers = (b.gw || []).map(gw => {
                     const depthVal = parseFloat(gw.depth);
                     if (isNaN(depthVal)) return null;
@@ -2553,10 +2931,11 @@
                     totalDepth,
                     ...layers.map(layer => layer.bot),
                     ...sampleMarkers.map(marker => marker.top),
+                    ...rockMarkers.map(marker => marker.top),
                     ...gwMarkers.map(marker => marker.top)
                 ].filter(Number.isFinite);
                 const deepestLoggedDepth = Math.max(...depthCandidates, 0);
-                return { boring: b, layers, sampleMarkers, gwMarkers, depth: deepestLoggedDepth };
+                return { boring: b, layers, sampleMarkers, rockMarkers, gwMarkers, depth: deepestLoggedDepth };
             });
 
             const maxProjectDepth = Math.max(...profiles.map(profile => profile.depth), 0) || 30;
@@ -2629,9 +3008,12 @@
                     svg += `<rect x="${colX}" y="${layerTopY}" width="${colWidth}" height="${layerHeight}" fill="url(#${patternId})" opacity="0.85" stroke="#0f172a" stroke-width="1.2" />`;
 
                     const midY = layerTopY + (layerHeight / 2);
-                    const displayText = escapeSvgText(layer.uscs || layer.rockType || '');
+                    const displayText = escapeSvgText(layer.type === 'SURFACE'
+                        ? abbreviateProfileSurfaceLabel(layer.surfaceLabel || layer.uscs)
+                        : layer.uscs || layer.rockType || '');
                     if (layerHeight > 16 && displayText) {
-                        svg += `<text x="${colX + colWidth / 2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${displayText}</text>`;
+                        const fullSurfaceLabel = layer.type === 'SURFACE' ? `<title>${escapeSvgText(layer.surfaceLabel || layer.uscs)}</title>` : '';
+                        svg += `<text x="${colX + colWidth / 2}" y="${midY + 3.5}" text-anchor="middle" font-weight="800" font-size="10" fill="${sym.textColor}" stroke="${sym.fill}" stroke-width="2.5" paint-order="stroke fill">${fullSurfaceLabel}${displayText}</text>`;
                     }
                 });
 
@@ -2641,6 +3023,10 @@
                     svg += `<rect x="${colX + colWidth + 6}" y="${markerY - 8}" width="42" height="16" rx="3" fill="#1e293b" opacity="0.9" />`;
                     svg += `<text x="${colX + colWidth + 27}" y="${markerY + 3.5}" text-anchor="middle" font-weight="700" font-size="9" fill="#f8fafc">${nText}</text>`;
                     svg += `<line x1="${colX + colWidth}" y1="${markerY}" x2="${colX + colWidth + 6}" y2="${markerY}" stroke="#64748b" stroke-width="1.2" />`;
+                });
+
+                profile.rockMarkers.forEach(marker => {
+                    svg += renderRockQualityMarkerSvg(marker, colX, colWidth, startY, pxPerFoot);
                 });
 
                 profile.gwMarkers.forEach(marker => {
@@ -2869,9 +3255,9 @@
                     const sampleLength = getSummaryNumber(sample.length);
                     const recovery = getSummaryNumber(sample.rec);
                     const nValue = computeN(sample.b2, sample.b3, sample.b1);
-                    const recoveryPercent = sampleLength > 0 && recovery != null ? recovery / sampleLength * 100 : null;
                     const boringId = String(boring.id || 'N/A');
                     const uscs = String(sample.uscs || '').trim().toUpperCase();
+                    const sampleDate = String(sample.date || boring.startDate || '').trim();
 
                     rows.push({
                         sequence: sequence++,
@@ -2880,20 +3266,20 @@
                             boringId,
                             depth == null ? '--' : `${depth.toFixed(1)} ft`,
                             uscs || '--',
+                            sampleDate || '--',
                             sampleType || '--',
                             sampleLength == null ? '--' : `${sampleLength.toFixed(1)} in`,
                             recovery == null ? '--' : `${recovery.toFixed(1)} in`,
-                            recoveryPercent == null ? '--' : `${recoveryPercent.toFixed(1)}%`,
                             nValue === '' ? '--' : String(nValue)
                         ],
                         sort: {
                             boring: boringId,
                             depth,
                             uscs,
+                            date: sampleDate,
                             type: sampleType,
                             length: sampleLength,
                             recovery,
-                            recoveryPercent,
                             nValue: nValue === 'Refusal' ? Number.POSITIVE_INFINITY : getSummaryNumber(nValue)
                         }
                     });
@@ -2941,7 +3327,7 @@
                     row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40';
                     item.values.forEach((value, index) => {
                         const cell = document.createElement('td');
-                        cell.className = index === 0 || index === 2 || index === 3
+                        cell.className = index === 0 || index === 2 || index === 4
                             ? 'py-2 px-2 font-semibold'
                             : 'py-2 px-2 text-right';
                         cell.textContent = value;
@@ -2975,12 +3361,13 @@
         }
 
         function formatPieFootage(value) {
-            return Number(value.toPrecision(4)).toString();
+            return Number(value).toFixed(1);
         }
 
         function formatPiePercentage(value, total) {
             const percentage = total > 0 ? value / total * 100 : 0;
-            return `${Number(percentage.toPrecision(3)).toString()}%`;
+            if (value > 0 && percentage < 0.5) return '<1%';
+            return `${Math.round(percentage)}%`;
         }
 
         function renderFootagePieLegend(containerId, items, total, colors) {
@@ -3115,7 +3502,7 @@
         function exportJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.30",
+                version: "v1.6.31",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -3134,10 +3521,27 @@
             showToast("Project saved (backup exported as .txt).");
         }
 
+        function formatRockAnomaliesForExcel(anomalies) {
+            if (!Array.isArray(anomalies)) return "";
+            return anomalies.filter(anomaly => anomaly && typeof anomaly === 'object').map(anomaly => {
+                const top = Number(anomaly.topDepth);
+                const length = Number(anomaly.length);
+                const bottom = top + length;
+                const rawLengthInches = String(anomaly.lengthInches == null ? '' : anomaly.lengthInches).trim();
+                const lengthInches = rawLengthInches ? Number(rawLengthInches) : NaN;
+                const displayedInches = Number.isFinite(lengthInches) ? lengthInches : length * 12;
+                const topText = Number.isFinite(top) ? `${top.toFixed(2)} ft` : String(anomaly.topDepth || "");
+                const lengthText = Number.isFinite(length) ? `${length.toFixed(2)} ft (${Number(displayedInches.toFixed(2))} in)` : String(anomaly.length || "");
+                const bottomText = Number.isFinite(bottom) ? `${bottom.toFixed(2)} ft` : "";
+                const remarkText = String(anomaly.otherRemark || "").trim();
+                return `${anomaly.type || "Anomaly"} | Top: ${topText} | Length: ${lengthText} | Bottom: ${bottomText}${remarkText ? ` | Remark: ${remarkText}` : ""}`;
+            }).join("\n");
+        }
+
         async function shareProjectJSON() {
             const payload = {
                 application: "StrataScribe",
-                version: "v1.6.30",
+                version: "v1.6.31",
                 exportTimestamp: new Date().toISOString(),
                 projectMeta: projectMeta,
                 borings: borings
@@ -3250,7 +3654,7 @@
             const surfaceDefaults = { thickness: "", type: "Asphalt", remarks: "" };
             const sampleDefaults = {
                 whole: 0, dec: "0.0", type: "SS", length: "18\"", b1: "", b2: "", b3: "", rec: "",
-                uscs: "", gradation: "", major: "", minor: "", moisture: "", shade: "", colors: [],
+                uscs: "", gradation: "", major: "", minor: "", moisture: "", shade: "", colors: [], pocketPen: "",
                 origin: "", mottling: "", descriptors: [], remarks: ""
             };
             const rockDefaults = {
@@ -3258,7 +3662,7 @@
                 rqdWhole: 0, rqdFrac: "0/8", rqd: "", rockType: "", shade: "", colors: [], weathering: [],
                 grainSize: [], grainShape: [], strength: [], bedding: [], jointType: "", jointSpacing: "",
                 jointPersistence: "", jointRoughness: "", jointGeometry: "", jointAperture: "", jointFilling: "",
-                gwCondition: "", natFractures: "0", descriptors: [], remarks: ""
+                gwCondition: "", natFractures: "0", descriptors: [], remarks: "", anomalies: []
             };
             const groundwaterDefaults = { depth: "", time: "N/A", customTime: "" };
             const boringIds = new Set();
@@ -3291,14 +3695,33 @@
                 );
                 normalized.samples = normalizeImportedRecords(
                     boring.samples, sampleDefaults,
-                    ["type", "length", "b1", "b2", "b3", "rec", "uscs", "gradation", "major", "minor", "moisture", "shade", "origin", "mottling", "remarks"],
+                    ["type", "length", "b1", "b2", "b3", "rec", "uscs", "gradation", "major", "minor", "moisture", "shade", "origin", "mottling", "remarks", "pocketPen"],
                     ["colors", "descriptors"], [], true
                 );
+                if (normalized.samples) {
+                    normalized.samples = normalized.samples.map(sample => {
+                        const rawPocketPen = String(sample.pocketPen == null ? "" : sample.pocketPen).trim();
+                        if (!rawPocketPen) return sample;
+                        const pocketPen = Number(rawPocketPen);
+                        return Number.isFinite(pocketPen) && pocketPen >= 0 && pocketPen <= 4.5 &&
+                            Math.abs(pocketPen * 4 - Math.round(pocketPen * 4)) < 1e-9
+                            ? { ...sample, pocketPen: pocketPen.toFixed(2) }
+                            : null;
+                    });
+                    if (normalized.samples.some(sample => sample === null)) return null;
+                }
                 normalized.rockSamples = normalizeImportedRecords(
                     boring.rockSamples, rockDefaults,
                     ["runLength", "recWhole", "recFrac", "recovery", "rqdWhole", "rqdFrac", "rqd", "rockType", "shade", "jointType", "jointSpacing", "jointPersistence", "jointRoughness", "jointGeometry", "jointAperture", "jointFilling", "gwCondition", "natFractures", "remarks"],
                     ["colors", "descriptors"], ["weathering", "grainSize", "grainShape", "strength", "bedding"], true
                 );
+                if (normalized.rockSamples) {
+                    normalized.rockSamples = normalized.rockSamples.map(run => {
+                        const anomalies = normalizeImportedRockAnomalies(run.anomalies, run);
+                        return anomalies === null ? null : { ...run, anomalies };
+                    });
+                    if (normalized.rockSamples.some(run => run === null)) return null;
+                }
                 normalized.gw = normalizeImportedRecords(
                     boring.gw, groundwaterDefaults, ["depth", "time", "customTime"], [], [], false
                 );
@@ -3309,6 +3732,40 @@
             }
 
             return { projectMeta, borings: normalizedBorings };
+        }
+
+        function normalizeImportedRockAnomalies(anomalies, run) {
+            if (!Array.isArray(anomalies)) return null;
+            const runTop = getRemarksDepth(run.whole, run.dec);
+            const runLength = Number.parseFloat(run.runLength);
+            const runBottom = runTop !== null && Number.isFinite(runLength) ? runTop + runLength : null;
+            const normalized = [];
+            for (const anomaly of anomalies) {
+                if (!isImportObject(anomaly)) return null;
+                const type = normalizeImportedText(anomaly.type, "");
+                const topText = normalizeImportedText(anomaly.topDepth, "");
+                const lengthText = normalizeImportedText(anomaly.length, "");
+                const lengthInchesText = normalizeImportedText(anomaly.lengthInches, "");
+                const otherRemark = normalizeImportedText(anomaly.otherRemark, "");
+                if (type === null || topText === null || lengthText === null || lengthInchesText === null || otherRemark === null ||
+                    !rockAnomalyTypes.includes(type)) return null;
+                const top = Number(topText);
+                const length = Number(lengthText);
+                const lengthInches = lengthInchesText.trim() ? Number(lengthInchesText) : length * 12;
+                const convertedLength = convertRockAnomalyInchesToFeet(lengthInches);
+                if (!topText.trim() || !lengthText.trim() || !Number.isFinite(top) || !Number.isFinite(length) || length <= 0 ||
+                    !Number.isFinite(lengthInches) || lengthInches <= 0 || convertedLength === null ||
+                    Math.abs(convertedLength - length) > 1e-9 ||
+                    runTop === null || runBottom === null || top < runTop - 1e-9 || top + length > runBottom + 1e-9) return null;
+                normalized.push({
+                    type,
+                    topDepth: topText,
+                    length: convertedLength.toFixed(2),
+                    lengthInches: lengthInchesText.trim() ? lengthInchesText : lengthInches.toFixed(2),
+                    otherRemark
+                });
+            }
+            return normalized;
         }
 
         function importJSON(event) {
@@ -3367,7 +3824,7 @@
                 ProjectName: projectMeta.name || "",
                 Client: projectMeta.client || "",
                 ExportDate: new Date().toISOString().slice(0, 10),
-                StrataScribeVersion: "v1.6.30"
+                StrataScribeVersion: "v1.6.31"
             }];
             const boringRows = borings.map(b => ({
                 BoringID: b.id || "",
@@ -3434,6 +3891,7 @@
                         Blow3: toExcelNumber(s.b3),
                         NValue: nValue,
                         RecoveryIn: toExcelNumber(s.rec),
+                        PocketPenTsf: toExcelNumber(s.pocketPen),
                         USCS: s.uscs || "",
                         Gradation: s.gradation || "",
                         MajorModifier: s.major || "",
@@ -3482,6 +3940,7 @@
                         RQDFt: toExcelNumber(r.rqd),
                         RQDIn: formatInchesDisplayString(r.rqdWhole, r.rqdFrac),
                         AutoDescription: buildRockDescription(r),
+                        Anomalies: formatRockAnomaliesForExcel(r.anomalies),
                         Remarks: r.remarks || ""
                     });
                 });
@@ -3520,12 +3979,12 @@
                 },
                 {
                     name: "SoilSamples",
-                    headers: ["BoringID", "DepthFt", "SampleType", "SampleLengthIn", "Blow1", "Blow2", "Blow3", "NValue", "RecoveryIn", "USCS", "Gradation", "MajorModifier", "MinorModifier", "Moisture", "DensityConsistency", "Origin", "Shade", "Colors", "Mottling", "Descriptors", "AutoDescription", "Remarks"],
+                    headers: ["BoringID", "DepthFt", "SampleType", "SampleLengthIn", "Blow1", "Blow2", "Blow3", "NValue", "RecoveryIn", "PocketPenTsf", "USCS", "Gradation", "MajorModifier", "MinorModifier", "Moisture", "DensityConsistency", "Origin", "Shade", "Colors", "Mottling", "Descriptors", "AutoDescription", "Remarks"],
                     rows: soilSampleRows
                 },
                 {
                     name: "RockRuns",
-                    headers: ["BoringID", "TopDepthFt", "BottomDepthFt", "RunLengthFt", "RockType", "Shade", "Weathering", "GrainSize", "GrainShape", "Strength", "Bedding", "JointType", "JointSpacing", "JointPersistence", "JointRoughness", "JointGeometry", "JointAperture", "JointFilling", "GroundwaterCondition", "NaturalFracturesPerFt", "Descriptors", "RecoveryFt", "RecoveryIn", "RQDFt", "RQDIn", "AutoDescription", "Remarks"],
+                    headers: ["BoringID", "TopDepthFt", "BottomDepthFt", "RunLengthFt", "RockType", "Shade", "Weathering", "GrainSize", "GrainShape", "Strength", "Bedding", "JointType", "JointSpacing", "JointPersistence", "JointRoughness", "JointGeometry", "JointAperture", "JointFilling", "GroundwaterCondition", "NaturalFracturesPerFt", "Descriptors", "RecoveryFt", "RecoveryIn", "RQDFt", "RQDIn", "AutoDescription", "Anomalies", "Remarks"],
                     rows: rockRunRows
                 }
             ];
