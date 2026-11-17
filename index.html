@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StrataScribe v1.6.30 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
+    <title>StrataScribe v1.6.31 - Tablet, Desktop & Mobile Geotechnical Field Logger</title>
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
@@ -101,7 +101,7 @@
                 >
 
                 <div>
-                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.30</span></h1>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight">Strata Scribe <span class="text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30">v1.6.31</span></h1>
                     <p class="text-[10px] sm:text-[11px] text-slate-400">Geotechnical Field Logger</p>
                 </div>
             </div>
@@ -313,6 +313,7 @@
                                 <select id="terminationReason" onchange="updateActiveBoringHeader('terminationReason', this.value)" class="table-select text-xs font-semibold bg-white dark:bg-slate-900">
                                     <option value="Completed at Planned Depth">Completed at Planned Depth</option>
                                     <option value="Bedrock Reached">Bedrock Reached</option>
+                                    <option value="Assumed Bedrock Reached">Assumed Bedrock Reached</option>
                                     <option value="Client Directed Stop">Client Directed Stop</option>
                                     <option value="Utility Encountered">Utility Encountered</option>
                                     <option value="Equipment Limitation">Equipment Limitation</option>
@@ -329,6 +330,7 @@
                                     <option value="Rock Refusal">Rock Refusal</option>
                                     <option value="Core Barrel Refusal">Core Barrel Refusal</option>
                                     <option value="Practical Refusal">Practical Refusal</option>
+                                    <option value="Equipment Unable to Progress">Equipment Unable to Progress</option>
                                     <option value="Other">Other</option>
                                 </select>
                             </div>
@@ -578,7 +580,7 @@
                 <!-- Compact Rock Coring Table -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
-                        <table class="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[1250px]">
+                        <table class="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[1450px]">
                             <thead class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 uppercase tracking-wider font-bold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
                                 <tr>
                                     <th class="py-3 px-3 min-w-[140px]">Top Depth (ft)</th>
@@ -587,6 +589,7 @@
                                     <th class="py-3 px-3 min-w-[210px]">Recovery (Inches / Ft)</th>
                                     <th class="py-3 px-3 min-w-[210px]">RQD (Inches / Ft)</th>
                                     <th class="py-3 px-3 min-w-[280px]">Rock Properties</th>
+                                    <th class="py-3 px-3 min-w-[150px]">Anomaly</th>
                                     <th class="py-3 px-3 min-w-[180px]">Remarks</th>
                                     <th class="py-3 px-3 text-center min-w-[60px]">Delete</th>
                                 </tr>
@@ -621,7 +624,7 @@
 
     <!-- PWA Debug Footer -->
     <footer class="bg-slate-900 text-slate-400 py-2 px-4 text-center text-xs font-mono border-t border-slate-800 mt-auto">
-        Version: v1.6.30 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.30
+        Version: v1.6.31 &nbsp;|&nbsp; Cache: strata-scribe-v1.6.31
     </footer>
 
     <!-- Soil and Rock Remarks Editor -->
@@ -633,6 +636,12 @@
             </div>
             <div class="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
                 <div id="remarksEditorDetails" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
+                <div id="remarksEditorPocketPenWrap" class="hidden max-w-xs space-y-1">
+                    <label for="remarksEditorPocketPen" class="block text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">Pocket Pen (tsf)</label>
+                    <select id="remarksEditorPocketPen" onchange="updatePocketPenFromRemarksEditor(this.value)" class="table-select w-full text-base">
+                        <option value="">Not recorded</option>
+                    </select>
+                </div>
                 <div class="space-y-2">
                     <p class="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">Quick Inserts</p>
                     <div id="remarksQuickInsertButtons" class="flex flex-wrap gap-2"></div>
@@ -645,6 +654,56 @@
             <div class="bg-slate-100 dark:bg-slate-800 p-3 flex justify-between items-center border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
                 <span class="text-[11px] text-slate-500 dark:text-slate-400">Changes save automatically as you type.</span>
                 <button type="button" onclick="closeRemarksEditor()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition shadow">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rock Core Anomalies Editor -->
+    <div id="rockAnomalyModal" class="fixed inset-0 bg-slate-950/80 z-[70] hidden flex items-center justify-center p-3 sm:p-5">
+        <div role="dialog" aria-modal="true" aria-labelledby="rockAnomalyTitle" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
+            <div class="bg-slate-800 text-white px-4 sm:px-5 py-3 flex justify-between items-center border-b border-slate-700 flex-shrink-0">
+                <div>
+                    <h3 id="rockAnomalyTitle" class="font-bold text-base">Core Run Anomalies</h3>
+                    <p id="rockAnomalySubtitle" class="text-xs text-slate-300 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeRockAnomalyModal()" class="bg-slate-600 hover:bg-slate-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition">Close</button>
+            </div>
+            <div class="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-3">
+                <p class="text-xs text-slate-500 dark:text-slate-400">Enter anomaly length in inches. Length is converted to feet and rounded to the nearest 0.05 ft. Depths must fall within this core run.</p>
+                <div id="rockAnomalyValidation" class="hidden rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300" role="alert"></div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[850px] text-left text-xs border-collapse">
+                        <thead class="sticky top-0 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase">
+                            <tr>
+                                <th class="p-2">Type</th>
+                                <th class="p-2">Top Depth (ft)</th>
+                                <th class="p-2">Length (in)</th>
+                                <th class="p-2">Length (ft)</th>
+                                <th class="p-2">Bottom Depth (ft)</th>
+                                <th class="p-2">Other Remark</th>
+                                <th class="p-2">Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rockAnomalyTbody" class="divide-y divide-slate-200 dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
+                <button type="button" onclick="addRockAnomalyRow()" class="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300">+ Add Anomaly</button>
+            </div>
+            <div class="bg-slate-100 dark:bg-slate-800 p-3 flex justify-end items-center gap-2 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+                <button type="button" onclick="closeRockAnomalyModal()" class="rounded-lg border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                <button type="button" onclick="saveRockAnomalies()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition shadow">Save Anomalies</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Short anomaly remark editor -->
+    <div id="rockAnomalyRemarkModal" class="fixed inset-0 bg-slate-950/70 z-[80] hidden flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" aria-labelledby="rockAnomalyRemarkTitle" class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-700 w-full max-w-md p-4 space-y-3">
+            <h3 id="rockAnomalyRemarkTitle" class="font-bold text-sm text-slate-800 dark:text-slate-100">Anomaly Remark</h3>
+            <textarea id="rockAnomalyRemarkInput" rows="3" maxlength="500" class="w-full resize-y rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 p-3 text-base text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30" placeholder="Brief note (for example, fossil fragments)"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeRockAnomalyRemarkEditor()" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                <button type="button" onclick="saveRockAnomalyRemark()" class="bg-amber-500 px-4 py-2 rounded-lg text-xs font-bold text-slate-950">Save Remark</button>
             </div>
         </div>
     </div>
@@ -814,17 +873,17 @@
                                     <th data-sample-sort="boring" class="py-2 px-2" aria-sort="ascending"><button type="button" onclick="sortSampleSummary('boring')" class="hover:text-blue-500">Boring <span data-sort-indicator>^</span></button></th>
                                     <th data-sample-sort="depth" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('depth')" class="hover:text-blue-500">Top Depth (ft) <span data-sort-indicator>-</span></button></th>
                                     <th data-sample-sort="uscs" class="py-2 px-2"><button type="button" onclick="sortSampleSummary('uscs')" class="hover:text-blue-500">USCS <span data-sort-indicator>-</span></button></th>
+                                    <th data-sample-sort="date" class="py-2 px-2"><button type="button" onclick="sortSampleSummary('date')" class="hover:text-blue-500">Date <span data-sort-indicator>-</span></button></th>
                                     <th data-sample-sort="type" class="py-2 px-2"><button type="button" onclick="sortSampleSummary('type')" class="hover:text-blue-500">Sample Type <span data-sort-indicator>-</span></button></th>
                                     <th data-sample-sort="length" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('length')" class="hover:text-blue-500">Sample Length (in) <span data-sort-indicator>-</span></button></th>
                                     <th data-sample-sort="recovery" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('recovery')" class="hover:text-blue-500">Recovery (in) <span data-sort-indicator>-</span></button></th>
-                                    <th data-sample-sort="recoveryPercent" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('recoveryPercent')" class="hover:text-blue-500">Recovery (%) <span data-sort-indicator>-</span></button></th>
                                     <th data-sample-sort="nValue" class="py-2 px-2 text-right"><button type="button" onclick="sortSampleSummary('nValue')" class="hover:text-blue-500">N-Value <span data-sort-indicator>-</span></button></th>
                                 </tr>
                             </thead>
                             <tbody id="summarySamplesTbody" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
                         </table>
                     </div>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400">Recovery is recovered length divided by sample length. Missing values are not treated as zero.</p>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400">Sample date uses the boring Start Date; missing values are shown as --.</p>
                 </div>
 
                 <!-- GROUNDWATER SUMMARY -->
